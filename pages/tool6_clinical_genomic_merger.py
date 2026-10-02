@@ -283,7 +283,7 @@ with col_u2:
 with col_demo:
     st.write("")
     st.write("")
-    use_sample = st.checkbox("🧪 Load Demo Mismatched Datasets", value=True, on_change=reset_on_mode_change_t6)
+    use_sample = st.checkbox("🧪 Load Demo Mismatched Datasets", value=(clin_file is None or gen_file is None), on_change=reset_on_mode_change_t6)
 
 df_clin_raw = None
 df_gen_raw = None
@@ -292,8 +292,22 @@ if clin_file is not None and gen_file is not None:
     try:
         c_sep = "\t" if clin_file.name.lower().endswith((".tsv", ".txt")) else ","
         g_sep = "\t" if gen_file.name.lower().endswith((".tsv", ".txt")) else ","
-        df_clin_raw = pd.read_csv(clin_file, sep=c_sep)
-        df_gen_raw = pd.read_csv(gen_file, sep=g_sep)
+        
+        # 1. Vertical Protection: Stop reading at 50,000 rows
+        df_clin_raw = pd.read_csv(clin_file, sep=c_sep, nrows=50000)
+        df_gen_raw = pd.read_csv(gen_file, sep=g_sep, nrows=50000)
+        
+        if len(df_clin_raw) == 50000 or len(df_gen_raw) == 50000:
+            st.warning("⚠ One or both files exceed 50,000 rows. Truncating to the first 50,000 to ensure stable performance.")
+            
+        # 2. Horizontal Protection: Prevent massive wide matrices from crashing RAM during transpose/merge
+        if len(df_gen_raw.columns) > 5000:
+            st.warning(f"⚠ Genomic matrix contains {len(df_gen_raw.columns):,} columns. Truncating to the first 5,000 features/samples to protect server memory.")
+            df_gen_raw = df_gen_raw.iloc[:, :5000]
+            
+        if len(df_clin_raw.columns) > 1000:
+            df_clin_raw = df_clin_raw.iloc[:, :1000]
+            
     except Exception as e:
         st.error(f"Error reading uploaded files: {e}")
 elif use_sample:

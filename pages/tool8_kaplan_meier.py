@@ -861,13 +861,24 @@ with col_up:
 with col_demo:
     st.write("")
     st.write("")
-    use_sample = st.checkbox("🧪 Load Demo Oncology Survival Cohort", value=True, on_change=reset_on_mode_change_t8)
+    use_sample = st.checkbox("🧪 Load Demo Oncology Survival Cohort", value=(uploaded_file is None), on_change=reset_on_mode_change_t8)
 
 df_input = None
 if uploaded_file is not None:
     try:
         sep = "\t" if uploaded_file.name.lower().endswith((".tsv", ".txt")) else ","
-        df_input = pd.read_csv(uploaded_file, sep=sep)
+        
+        # 1. Vertical Protection: Stop at 5,000 rows to prevent O(N^2) math timeouts
+        df_input = pd.read_csv(uploaded_file, sep=sep, nrows=5000)
+        
+        if len(df_input) == 5000:
+            st.warning("⚠ File exceeds 5,000 patients. Truncating to the first 5,000 to ensure stable survival calculations.")
+            
+        # 2. Horizontal Protection: Prevent Batch HR Screen from timing out the CPU
+        if len(df_input.columns) > 1000:
+            st.warning(f"⚠ File contains {len(df_input.columns):,} columns. Truncating to the first 1,000 features to protect server memory and compute limits.")
+            df_input = df_input.iloc[:, :1000]
+            
     except Exception as e:
         st.error(f"Error reading file: {e}")
 elif use_sample:

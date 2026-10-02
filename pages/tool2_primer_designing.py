@@ -248,26 +248,48 @@ def has_3prime_dimer(seq1, seq2, match_len=4):
     rc_tail2 = rev_comp(seq2[-match_len:].upper())
     return tail1 == rc_tail2
 
-def parse_fasta_text(raw_text):
+def parse_fasta_safe(file_iterator, max_seqs=1000, max_len=3000):
     records = []
     curr_id = None
     curr_seq = []
-    for line in raw_text.splitlines():
-        line = line.strip()
-        if not line:
+    
+    # 1. Stream line-by-line to protect RAM from massive FASTA files
+    for line in file_iterator:
+        if isinstance(line, bytes):
+            line_str = line.decode("utf-8", errors="ignore").strip()
+        else:
+            line_str = line.strip()
+            
+        if not line_str:
             continue
-        if line.startswith(">"):
-            if curr_id is not None and curr_seq:
-                records.append({"Sample_ID": curr_id, "Sequence": "".join(curr_seq).upper()})
-            curr_id = line[1:].strip().split()[0]
+            
+        if line_str.startswith(">"):
+            if curr_id is not None:
+                full_seq = "".join(curr_seq).upper()
+                # 2. Horizontal CPU Protection: Truncate sequence length
+                if len(full_seq) > max_len:
+                    full_seq = full_seq[:max_len]
+                records.append({"Sample_ID": curr_id, "Sequence": full_seq})
+                
+                # 3. Vertical CPU Protection: Cap total sequences
+                if len(records) >= max_seqs:
+                    st.warning(f"⚠ FASTA exceeds {max_seqs} sequences. Truncating to protect server compute limits.")
+                    return pd.DataFrame(records)
+                    
+            curr_id = line_str[1:].strip().split()[0]
             curr_seq = []
         else:
-            clean_line = "".join(c for c in line.upper() if c in "ATGC")
-            curr_seq.append(clean_line)
-    if curr_id is not None and curr_seq:
-        records.append({"Sample_ID": curr_id, "Sequence": "".join(curr_seq).upper()})
-    elif not records and curr_seq:
-        records.append({"Sample_ID": "Sample_Seq_1", "Sequence": "".join(curr_seq).upper()})
+            # Only append if under limit to save memory overhead
+            if sum(len(s) for s in curr_seq) < max_len:
+                clean_line = "".join(c for c in line_str.upper() if c in "ATGC")
+                curr_seq.append(clean_line)
+                
+    if curr_id is not None:
+        full_seq = "".join(curr_seq).upper()
+        if len(full_seq) > max_len:
+            full_seq = full_seq[:max_len]
+        records.append({"Sample_ID": curr_id, "Sequence": full_seq})
+        
     return pd.DataFrame(records)
 
 # ==========================================
@@ -283,7 +305,7 @@ with col_up:
 with col_demo:
     st.write("")
     st.write("")
-    use_sample = st.checkbox("🧪 Load Demo Multi-Gene Dataset", value=False, on_change=reset_on_mode_change_t2)
+    use_sample = st.checkbox("🧪 Load Demo Multi-Gene Dataset", value=(uploaded_file is None), on_change=reset_on_mode_change_t2)
 
 paste_seq = st.text_area(
     "Or paste FASTA / Raw DNA Sequences directly (optional):",
@@ -297,21 +319,29 @@ if uploaded_file is not None:
     try:
         fname = uploaded_file.name.lower()
         if fname.endswith(".csv"):
-            raw_df = pd.read_csv(uploaded_file)
+            # Protect against massive CSV files
+            raw_df = pd.read_csv(uploaded_file, nrows=1000)
+            if len(raw_df) == 1000:
+                st.warning("⚠ CSV exceeds 1,000 sequences. Truncating to ensure stable thermodynamic calculations.")
+                
             sc1, sc2 = st.columns(2)
             id_col = sc1.selectbox("Select Sample/Gene ID Column:", raw_df.columns, index=0)
             sq_col = sc2.selectbox("Select Nucleotide Sequence Column:", raw_df.columns, index=1 if len(raw_df.columns) > 1 else 0)
+            
+            # Extract and safely truncate the sequences
             df_seqs = pd.DataFrame({
                 "Sample_ID": raw_df[id_col].astype(str),
-                "Sequence": raw_df[sq_col].astype(str).str.upper().str.replace(r"[^ATGC]", "", regex=True)
+                "Sequence": raw_df[sq_col].astype(str).str.upper().str.replace(r"[^ATGC]", "", regex=True).str.slice(0, 3000)
             })
         else:
-            content = uploaded_file.read().decode("utf-8", errors="ignore")
-            df_seqs = parse_fasta_text(content)
+            # Pass the file buffer directly to the streaming parser
+            df_seqs = parse_fasta_safe(uploaded_file, max_seqs=1000, max_len=3000)
+            
     except Exception as e:
         st.error(f"Error reading uploaded file: {e}")
+        
 elif paste_seq.strip():
-    df_seqs = parse_fasta_text(paste_seq)
+    df_seqs = parse_fasta_safe(paste_seq.splitlines(), max_seqs=1000, max_len=3000)
 elif use_sample:
     df_seqs = pd.DataFrame([
         {

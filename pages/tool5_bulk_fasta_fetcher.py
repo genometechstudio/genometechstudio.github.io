@@ -348,19 +348,22 @@ if uploaded_file is not None:
     try:
         fname = uploaded_file.name.lower()
         if fname.endswith(".csv"):
-            df_input = pd.read_csv(uploaded_file)
+            df_input = pd.read_csv(uploaded_file, nrows=5000)
         else:
-            df_input = pd.read_csv(uploaded_file, sep="\t")
+            df_input = pd.read_csv(uploaded_file, sep="\t", nrows=5000)
             
-        # Fail-safe: Detect if a headerless .txt file was uploaded and pandas grabbed the first ID as the column name
+        # Fail-safe: Detect if a headerless .txt file was uploaded
         first_col = str(df_input.columns[0]).upper()
         if not df_input.empty and first_col.startswith(("NM_", "NP_", "ENS", "NC_", "NR_", "XM_", "XP_")):
             uploaded_file.seek(0)
             if fname.endswith(".csv"):
-                df_input = pd.read_csv(uploaded_file, header=None)
+                df_input = pd.read_csv(uploaded_file, header=None, nrows=5000)
             else:
-                df_input = pd.read_csv(uploaded_file, sep="\t", header=None)
+                df_input = pd.read_csv(uploaded_file, sep="\t", header=None, nrows=5000)
             df_input.columns = ["Accession_ID"] + [f"Col_{i}" for i in range(1, len(df_input.columns))]
+            
+        if len(df_input) == 5000:
+            st.warning("⚠️ File exceeds 5,000 IDs. Truncating to protect Streamlit memory and API limits.")
             
     except Exception as e:
         st.error(f"Error reading file: {e}")

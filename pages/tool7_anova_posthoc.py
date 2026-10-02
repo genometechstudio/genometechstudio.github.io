@@ -794,13 +794,24 @@ with col_up:
 with col_demo:
     st.write("")
     st.write("")
-    use_sample = st.checkbox("🧪 Load Demo 4-Group Immunotherapy Dataset", value=True, on_change=reset_on_mode_change_t7)
+    use_sample = st.checkbox("🧪 Load Demo 4-Group Immunotherapy Dataset", value=(uploaded_file is None), on_change=reset_on_mode_change_t7)
 
 df_input = None
 if uploaded_file is not None:
     try:
         sep = "\t" if uploaded_file.name.lower().endswith((".tsv", ".txt")) else ","
-        df_input = pd.read_csv(uploaded_file, sep=sep)
+        
+        # 1. Vertical Protection: Stop reading at 50,000 rows
+        df_input = pd.read_csv(uploaded_file, sep=sep, nrows=50000)
+        
+        if len(df_input) == 50000:
+            st.warning("⚠ File exceeds 50,000 rows. Truncating to the first 50,000 to ensure stable performance.")
+            
+        # 2. Horizontal Protection: Drop excess columns to prevent Batch ANOVA timeouts
+        if len(df_input.columns) > 1000:
+            st.warning(f"⚠ File contains {len(df_input.columns):,} columns. Truncating to the first 1,000 features to protect server memory and compute limits.")
+            df_input = df_input.iloc[:, :1000]
+            
     except Exception as e:
         st.error(f"Error reading file: {e}")
 elif use_sample:
@@ -903,6 +914,8 @@ if df_input is not None and not df_input.empty:
 
             if len(groups_dict) < 2:
                 st.error("At least 2 experimental groups with numeric observations are required to run ANOVA / Post-Hoc analysis.")
+            elif len(groups_dict) > 50:
+                st.error(f"⛔ Error: {len(groups_dict)} distinct groups detected. Please select a valid categorical 'Group Column'. (If you accidentally selected a unique 'Sample_ID' column, the system will attempt to compute millions of post-hoc permutations and crash).")
             else:
                 res = run_omnibus_and_posthoc(groups_dict, core_engine)
                 posthoc_df = res["posthoc"].drop(columns=["Group_A", "Group_B", "Adjusted_P_Value_Numeric", "Short_Stars"])

@@ -387,21 +387,25 @@ DEMO_SUSCEPTIBILITY_DATA = pd.DataFrame([
     {"Gene_Symbol": "DNMT3A", "Protein_Change": "p.Pro305=", "cDNA_Change": "c.915G>A", "Variant_ID": "rs75030202", "Chromosome": "chr2", "Position": 25234373}
 ])
 
-def parse_vcf_for_t4(raw_text):
+def parse_vcf_for_t4_safe(file_buffer, max_rows=50000):
     rows = []
-    for line in raw_text.splitlines():
-        line = line.strip()
-        if not line or line.startswith("#"):
+    # Stream the file line-by-line instead of loading the whole file into RAM
+    for line in file_buffer:
+        line_str = line.decode("utf-8", errors="ignore").strip()
+        if not line_str or line_str.startswith("#"):
             continue
-        parts = line.split("\t") if "\t" in line else line.split()
+            
+        parts = line_str.split("\t") if "\t" in line_str else line_str.split()
         if len(parts) < 8:
             continue
+            
         chrom, pos, rsid, ref, alt, qual, flt, info_str = parts[:8]
         info_map = {}
         for item in info_str.split(";"):
             if "=" in item:
                 k, v = item.split("=", 1)
                 info_map[k.upper()] = v
+                
         rows.append({
             "Gene_Symbol": info_map.get("GENE", info_map.get("SYMBOL", "Unknown")),
             "Protein_Change": info_map.get("HGVSP", info_map.get("AA", f"{ref}>{alt}")),
@@ -412,6 +416,12 @@ def parse_vcf_for_t4(raw_text):
             "VCF_CLNSIG": info_map.get("CLNSIG", ""),
             "VCF_IMPACT": info_map.get("IMPACT", "")
         })
+        
+        # Hard stop to protect Streamlit memory
+        if len(rows) >= max_rows:
+            st.warning(f"⚠ VCF exceeds {max_rows} variants. Truncating to protect server memory.")
+            break
+            
     return pd.DataFrame(rows)
 
 # ==========================================
@@ -427,17 +437,26 @@ with col_up:
 with col_demo:
     st.write("")
     st.write("")
-    use_sample = st.checkbox("🧪 Load Demo High-Risk Dataset", value=True, on_change=reset_on_mode_change_t4)
+    use_sample = st.checkbox("🧪 Load Demo High-Risk Dataset", value=(uploaded_file is None), on_change=reset_on_mode_change_t4)
 
 df_input = None
 if uploaded_file is not None:
     try:
         fname = uploaded_file.name.lower()
         if fname.endswith(".vcf"):
-            df_input = parse_vcf_for_t4(uploaded_file.read().decode("utf-8", errors="ignore"))
+            # Safe streaming VCF parser
+            df_input = parse_vcf_for_t4_safe(uploaded_file)
         else:
+            # Safe streaming CSV/TSV parser
             sep = "\t" if (fname.endswith(".tsv") or fname.endswith(".txt")) else ","
-            df_input = pd.read_csv(uploaded_file, sep=sep)
+            
+            # Adding nrows prevents Pandas from loading files larger than 50,000 rows into RAM
+            df_input = pd.read_csv(uploaded_file, sep=sep, nrows=50000)
+            
+            # Notify the client if the file was large enough to trigger the hard stop
+            if len(df_input) == 50000:
+                st.warning("⚠ File exceeds 50,000 variants. Truncating to the first 50,000 to ensure stable performance.")
+                
     except Exception as e:
         st.error(f"Error reading file: {e}")
 elif use_sample:

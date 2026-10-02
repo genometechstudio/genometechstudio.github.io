@@ -3,6 +3,9 @@ import pandas as pd
 import numpy as np
 import requests
 import urllib.parse
+import json
+import os
+import time
 
 # 1. Page Configuration (Isolated Single-Tool View)
 st.set_page_config(
@@ -177,12 +180,12 @@ with st.expander("📋 Required File Format & Clinical Annotation Features (.csv
       3. **Genomic Loci** (`Chromosome`, `Start_bp`, `End_bp`, `Strand`)
       4. **Functional Metadata** (`Gene_Biotype`, `Gene_Description`, `Mapping_Status`)
       5. **Microsoft Excel Gene-Date Guard:** Prevents Excel from corrupting gene symbols like `MARCH1` or `SEPT2` into calendar dates.
-    * **💻 Cross-Platform File Compatibility (Windows & Apple macOS):** All exported `.csv` tables use universal `UTF-8-BOM` encoding—double-click to open directly in **Microsoft Excel (Windows/Mac)**, **Apple Numbers**, **Google Sheets**, or load into **R / Python**. Sequence (`.fasta`) and vector figure (`.svg` / `.html`) outputs open natively in any text editor (**Notepad / Mac TextEdit**) or web browser (**Safari / Chrome / Edge**).
+    * **💻 Cross-Platform File Compatibility (Windows & Apple macOS):** All exported `.csv` tables use universal `UTF-8-BOM` encoding—double-click to open directly in **Microsoft Excel (Windows/Mac)**, **Apple Numbers**, **Google Sheets**, or load into **R / Python**.
     * **Single-Pipeline License Note:** Each checkout unlocks your selected **Conversion Direction & Organism**. Adjusting formatting toggles within the same conversion direction is free; switching to a new conversion direction or organism starts a new run.
     """)
 
 # ==========================================
-# STEP 2: TOOL-SPECIFIC INPUTS
+# STEP 2: TOOL-SPECIFIC INPUTS & UPLOAD
 # ==========================================
 col_up, col_sample = st.columns([3, 1])
 with col_up:
@@ -197,17 +200,21 @@ with col_sample:
     use_sample = st.checkbox("🧪 Load Demo Ensembl Dataset", value=False, on_change=reset_on_pipeline_change_t1)
 
 df_input = None
+
 if uploaded_file is not None:
     try:
         if uploaded_file.name.endswith(".txt"):
-            df_input = pd.read_csv(uploaded_file, sep=None, engine="python")
+            df_input = pd.read_csv(uploaded_file, sep=None, engine="python", nrows=50000)
         else:
-            df_input = pd.read_csv(uploaded_file)
-        if len(df_input) > 50000:
-            st.warning("⚠ File exceeds 50,000 rows. Truncating to the first 50,000 IDs.")
-            df_input = df_input.iloc[:50000]
+            df_input = pd.read_csv(uploaded_file, nrows=50000)
+        
+        # Enforce Streamlit Memory Limit dynamically based on the nrows cutoff
+        if len(df_input) == 50000:
+            st.warning("⚠ File exceeds 50,000 rows. Truncating to the first 50,000 IDs to ensure stable performance.")
+            
     except Exception as e:
         st.error(f"Error reading file: {e}. Please ensure it is a valid .csv or .txt file.")
+        
 elif use_sample:
     df_input = pd.DataFrame({
         "Ensembl_ID": [
@@ -220,6 +227,9 @@ elif use_sample:
         "Adjusted_P_Value": [0.0001, 0.0023, 0.00004, 0.012, 0.0008, 0.00001, 0.041, 0.003, 0.0002, 0.009, 0.018, 0.45]
     })
 
+# ==========================================
+# STEP 3: PARAMETERS & PROCESSING
+# ==========================================
 if df_input is not None:
     st.markdown("### ⚙️ Configure Translation & Annotation Parameters")
     c1, c2, c3 = st.columns(3)
@@ -279,9 +289,6 @@ if df_input is not None:
     current_file_sig = uploaded_file.name if uploaded_file is not None else "demo_data"
     current_pipeline_sig = f"{current_file_sig}|{conversion_dir}|{species_taxid}"
 
-    # ==========================================
-    # STEP 3: RUN LIVE TRANSLATION & PREVIEW
-    # ==========================================
     if st.button("🚀 Run Gene ID Translation"):
         if st.session_state["locked_pipeline_t1"] is not None and st.session_state["locked_pipeline_t1"] != current_pipeline_sig:
             st.session_state["is_unlocked_t1"] = False
@@ -318,6 +325,9 @@ if df_input is not None:
             unique_queries = list(dict.fromkeys(clean_ids))
             mapping_dict = {}
             
+            progress_bar = st.progress(0)
+            
+            # CHUNKING LOOP: Safely hits the API 1,000 IDs at a time
             for i in range(0, len(unique_queries), 1000):
                 batch = unique_queries[i:i+1000]
                 try:
@@ -381,9 +391,13 @@ if df_input is not None:
                             }
                 except Exception as e:
                     st.error(f"Network error contacting genomic server: {e}")
+                    
+                progress_bar.progress(min(1.0, (i + 1000) / len(unique_queries)))
 
             out_df = df_input.copy()
             mapped_col_vals = [mapping_dict.get(cid, {}).get("mapped", "Unmapped") for cid in clean_ids]
+            
+            # EXCEL GUARD APPLICATION
             if excel_guard and target_col_name == "Official_Gene_Symbol":
                 mapped_col_vals = [f'="{v}"' if v != "Unmapped" else v for v in mapped_col_vals]
 
@@ -496,72 +510,71 @@ if "result_df_t1" in st.session_state:
                 if not entered_key:
                     st.warning("Please enter a key.")
                 else:
-                    import json
-                    import os
-                    import razorpay
-                    import time
-                    
-                    DB_FILE = "used_keys.json"
-                    AUTHORIZED_DEMO_KEYS = ["GTS-DEMO-BRAJ", "GTS-DEMO-VAN", "GTS-DEMO-RADHE"]
-                    
-                    def is_key_burned(key_to_check):
-                        if not os.path.exists(DB_FILE):
-                            with open(DB_FILE, 'w') as f:
-                                json.dump({"used_keys": {}}, f)
-                        with open(DB_FILE, 'r') as f:
-                            data = json.load(f)
-                        return key_to_check in data["used_keys"], data.get("used_keys", {}).get(key_to_check, "")
+                    try:
+                        import razorpay
+                        DB_FILE = "used_keys.json"
+                        AUTHORIZED_DEMO_KEYS = ["GTS-DEMO-BRAJ", "GTS-DEMO-VAN", "GTS-DEMO-RADHE"]
                         
-                    def burn_key(key_to_burn):
-                        with open(DB_FILE, 'r') as f:
-                            data = json.load(f)
-                        data["used_keys"][key_to_burn] = time.strftime("%Y-%m-%d %H:%M:%S")
-                        with open(DB_FILE, 'w') as f:
-                            json.dump(data, f)
+                        def is_key_burned(key_to_check):
+                            if not os.path.exists(DB_FILE):
+                                with open(DB_FILE, 'w') as f:
+                                    json.dump({"used_keys": {}}, f)
+                            with open(DB_FILE, 'r') as f:
+                                data = json.load(f)
+                            return key_to_check in data["used_keys"], data.get("used_keys", {}).get(key_to_check, "")
+                            
+                        def burn_key(key_to_burn):
+                            with open(DB_FILE, 'r') as f:
+                                data = json.load(f)
+                            data["used_keys"][key_to_burn] = time.strftime("%Y-%m-%d %H:%M:%S")
+                            with open(DB_FILE, 'w') as f:
+                                json.dump(data, f)
 
-                    # 1. INFINITE MASTER KEY CHECK
-                    if entered_key == "GTS-MASTER-UNLIMITED":
-                        st.session_state["is_unlocked_t1"] = True
-                        st.rerun()
-
-                    # 2. AUTHORIZED DEMO KEY CHECK (One-Time Use)
-                    elif entered_key in AUTHORIZED_DEMO_KEYS:
-                        burned, burn_date = is_key_burned(entered_key)
-                        if burned:
-                            st.error(f"❌ Security Lock: This Demo Key was already claimed on {burn_date}.")
-                        else:
-                            burn_key(entered_key)
+                        # 1. INFINITE MASTER KEY CHECK
+                        if entered_key == "GTS-MASTER-UNLIMITED":
                             st.session_state["is_unlocked_t1"] = True
                             st.rerun()
 
-                    # 3. RAZORPAY API VERIFICATION (Amount-Checked & One-Time Use)
-                    elif entered_key.startswith("pay_") and len(entered_key) >= 14:
-                        burned, burn_date = is_key_burned(entered_key)
-                        if burned:
-                            st.error(f"❌ Security Lock: This Receipt ID was already claimed on {burn_date}. Keys cannot be shared.")
-                        else:
-                            try:
-                                # Authenticate with Razorpay Servers
-                                client = razorpay.Client(auth=(st.secrets["razorpay"]["key_id"], st.secrets["razorpay"]["key_secret"]))
-                                payment = client.payment.fetch(entered_key)
-                                
-                                # Verify the transaction was successful
-                                if payment["status"] in ["captured", "authorized"]:
-                                    # Check for $40 USD (4000 cents) OR ₹3500 INR (350000 paise)
-                                    if (payment["amount"] >= 4000 and payment["currency"] == "USD") or (payment["amount"] >= 350000 and payment["currency"] == "INR"):
-                                        burn_key(entered_key)
-                                        st.session_state["is_unlocked_t1"] = True
-                                        st.rerun()
-                                    else:
-                                        st.error(f"❌ Invalid Payment Amount. Expected $40.00 USD or ₹3500 INR, but found {payment['amount']/100:.2f} {payment['currency']}.")
-                                else:
-                                    st.error(f"❌ Payment Status: {payment['status'].upper()}. This transaction is not complete.")
+                        # 2. AUTHORIZED DEMO KEY CHECK (One-Time Use)
+                        elif entered_key in AUTHORIZED_DEMO_KEYS:
+                            burned, burn_date = is_key_burned(entered_key)
+                            if burned:
+                                st.error(f"❌ Security Lock: This Demo Key was already claimed on {burn_date}.")
+                            else:
+                                burn_key(entered_key)
+                                st.session_state["is_unlocked_t1"] = True
+                                st.rerun()
+
+                        # 3. RAZORPAY API VERIFICATION (Amount-Checked & One-Time Use)
+                        elif entered_key.startswith("pay_") and len(entered_key) >= 14:
+                            burned, burn_date = is_key_burned(entered_key)
+                            if burned:
+                                st.error(f"❌ Security Lock: This Receipt ID was already claimed on {burn_date}. Keys cannot be shared.")
+                            else:
+                                try:
+                                    # Authenticate with Razorpay Servers
+                                    client = razorpay.Client(auth=(st.secrets["razorpay"]["key_id"], st.secrets["razorpay"]["key_secret"]))
+                                    payment = client.payment.fetch(entered_key)
                                     
-                            except Exception as e:
-                                st.error("❌ Invalid Payment ID. The bank API could not verify this transaction.")
-                                
-                    else:
-                        st.error("❌ Invalid Key Format or Unauthorized Demo Key.")
+                                    # Verify the transaction was successful
+                                    if payment["status"] in ["captured", "authorized"]:
+                                        # Check for $40 USD (4000 cents) OR ₹3500 INR (350000 paise)
+                                        if (payment["amount"] >= 4000 and payment["currency"] == "USD") or (payment["amount"] >= 350000 and payment["currency"] == "INR"):
+                                            burn_key(entered_key)
+                                            st.session_state["is_unlocked_t1"] = True
+                                            st.rerun()
+                                        else:
+                                            st.error(f"❌ Invalid Payment Amount. Expected $40.00 USD or ₹3500 INR, but found {payment['amount']/100:.2f} {payment['currency']}.")
+                                    else:
+                                        st.error(f"❌ Payment Status: {payment['status'].upper()}. This transaction is not complete.")
+                                        
+                                except Exception as e:
+                                    st.error("❌ Invalid Payment ID. The bank API could not verify this transaction.")
+                                    
+                        else:
+                            st.error("❌ Invalid Key Format or Unauthorized Demo Key.")
+                    except ImportError:
+                        st.error("Razorpay module not found. Please ensure 'razorpay' is in your requirements.txt")
         # --- END API & ANTI-REUSE GATEWAY UPGRADE ---
 
     st.markdown("---")
@@ -591,4 +604,3 @@ if "result_df_t1" in st.session_state:
             mailto_url = f"mailto:genometechstudio@gmail.com?subject={subject}&body={body}"
             st.success("✅ Your remark and run diagnostics are ready! Click below to send directly from your email client:")
             st.markdown(f'👉 <a href="https://mail.google.com/mail/?view=cm&fs=1&to=genometechstudio@gmail.com&su={subject}&body={body}" target="_blank" style="color:#38bdf8;font-weight:700;text-decoration:underline;">Click Here to Send via Gmail (Browser)</a> &nbsp;|&nbsp; <a href="{mailto_url}" style="color:#c4b5fd;font-weight:600;text-decoration:underline;">Open in Default Mail App (Outlook/Mac)</a>', unsafe_allow_html=True)
-            

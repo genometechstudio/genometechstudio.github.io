@@ -235,24 +235,33 @@ def is_transition(ref, alt):
     pair = {str(ref).upper(), str(alt).split(",")[0].upper()}
     return pair == {"A", "G"} or pair == {"C", "T"}
 
-def parse_vcf_content(raw_text, selected_sample_idx=0):
+def parse_vcf_content_safe(file_iterator, selected_sample_idx=0, max_rows=50000):
     meta_lines = 0
     ref_genome = "Unspecified"
     data_rows = []
 
-    for line in raw_text.splitlines():
-        line = line.strip()
-        if not line:
+    # Stream the file line-by-line to prevent RAM overload
+    for line in file_iterator:
+        if isinstance(line, bytes):
+            line_str = line.decode("utf-8", errors="ignore").strip()
+        else:
+            line_str = line.strip()
+            
+        if not line_str:
             continue
-        if line.startswith("##"):
+        
+        # Parse Meta-Information Headers
+        if line_str.startswith("##"):
             meta_lines += 1
-            if line.lower().startswith("##reference="):
-                ref_genome = line.split("=", 1)[1]
+            if line_str.lower().startswith("##reference="):
+                ref_genome = line_str.split("=", 1)[1]
             continue
-        if line.startswith("#CHROM") or line.startswith("CHROM"):
+        
+        # Skip the Column Header line
+        if line_str.startswith("#CHROM") or line_str.startswith("CHROM"):
             continue
 
-        parts = line.split("\t") if "\t" in line else line.split()
+        parts = line_str.split("\t") if "\t" in line_str else line_str.split()
         if len(parts) < 8:
             continue
 
@@ -270,7 +279,7 @@ def parse_vcf_content(raw_text, selected_sample_idx=0):
             else:
                 info_dict[item.upper()] = "True"
 
-        # Extract Functional Annotations (supports direct tags + SnpEff ANN + Ensembl VEP CSQ)
+        # Extract Functional Annotations
         gene_sym = info_dict.get("GENE", info_dict.get("SYMBOL", "N/A"))
         transcript_id = info_dict.get("TRANSCRIPT", info_dict.get("FEATURE", "N/A"))
         conseq = info_dict.get("CONSEQ", info_dict.get("EFF", "N/A"))
@@ -286,22 +295,17 @@ def parse_vcf_content(raw_text, selected_sample_idx=0):
         except ValueError:
             pop_af = 0.0
 
+        # Unpack SnpEff ANN or VEP CSQ fields
         ann_raw = info_dict.get("ANN", info_dict.get("CSQ", ""))
         if ann_raw:
             first_ann = ann_raw.split(",")[0].split("|")
             if len(first_ann) >= 4:
-                if conseq == "N/A" and first_ann[1]:
-                    conseq = first_ann[1]
-                if impact == "N/A" and first_ann[2]:
-                    impact = first_ann[2]
-                if gene_sym == "N/A" and first_ann[3]:
-                    gene_sym = first_ann[3]
-            if len(first_ann) >= 7 and transcript_id == "N/A" and first_ann[6]:
-                transcript_id = first_ann[6]
-            if len(first_ann) >= 10 and hgvsc == "N/A" and first_ann[9]:
-                hgvsc = first_ann[9]
-            if len(first_ann) >= 11 and hgvsp == "N/A" and first_ann[10]:
-                hgvsp = first_ann[10]
+                if conseq == "N/A" and first_ann[1]: conseq = first_ann[1]
+                if impact == "N/A" and first_ann[2]: impact = first_ann[2]
+                if gene_sym == "N/A" and first_ann[3]: gene_sym = first_ann[3]
+            if len(first_ann) >= 7 and transcript_id == "N/A" and first_ann[6]: transcript_id = first_ann[6]
+            if len(first_ann) >= 10 and hgvsc == "N/A" and first_ann[9]: hgvsc = first_ann[9]
+            if len(first_ann) >= 11 and hgvsp == "N/A" and first_ann[10]: hgvsp = first_ann[10]
 
         # Parse FORMAT & Selected Sample Column
         fmt_map = {}
@@ -313,20 +317,14 @@ def parse_vcf_content(raw_text, selected_sample_idx=0):
 
         gt_raw = fmt_map.get("GT", "./.")
         gt_norm = gt_raw.replace("|", "/")
-        if gt_norm in ("0/1", "1/0", "0/2", "1/2"):
-            zygosity = "Heterozygous (0/1)"
-        elif gt_norm in ("1/1", "2/2"):
-            zygosity = "Homozygous Alt (1/1)"
-        elif gt_norm == "0/0":
-            zygosity = "Homozygous Ref (0/0)"
-        else:
-            zygosity = f"Uncalled/Other ({gt_raw})"
+        if gt_norm in ("0/1", "1/0", "0/2", "1/2"): zygosity = "Heterozygous (0/1)"
+        elif gt_norm in ("1/1", "2/2"): zygosity = "Homozygous Alt (1/1)"
+        elif gt_norm == "0/0": zygosity = "Homozygous Ref (0/0)"
+        else: zygosity = f"Uncalled/Other ({gt_raw})"
 
         dp_val = fmt_map.get("DP", info_dict.get("DP", "0"))
-        try:
-            dp_int = int(float(dp_val.split(",")[0]))
-        except ValueError:
-            dp_int = 0
+        try: dp_int = int(float(dp_val.split(",")[0]))
+        except ValueError: dp_int = 0
 
         ad_raw = fmt_map.get("AD", "")
         ref_reads, alt_reads = 0, 0
@@ -335,24 +333,17 @@ def parse_vcf_content(raw_text, selected_sample_idx=0):
             try:
                 ref_reads = int(ad_parts[0])
                 alt_reads = sum(int(x) for x in ad_parts[1:] if x.isdigit())
-            except ValueError:
-                pass
+            except ValueError: pass
 
         af_info = fmt_map.get("AF", info_dict.get("AF", ""))
-        if (ref_reads + alt_reads) > 0:
-            vaf_pct = round((alt_reads / (ref_reads + alt_reads)) * 100.0, 2)
+        if (ref_reads + alt_reads) > 0: vaf_pct = round((alt_reads / (ref_reads + alt_reads)) * 100.0, 2)
         elif af_info:
-            try:
-                vaf_pct = round(float(af_info.split(",")[0]) * 100.0, 2)
-            except ValueError:
-                vaf_pct = 0.0
-        else:
-            vaf_pct = 0.0
+            try: vaf_pct = round(float(af_info.split(",")[0]) * 100.0, 2)
+            except ValueError: vaf_pct = 0.0
+        else: vaf_pct = 0.0
 
-        try:
-            qual_float = round(float(qual), 1) if qual != "." else 0.0
-        except ValueError:
-            qual_float = 0.0
+        try: qual_float = round(float(qual), 1) if qual != "." else 0.0
+        except ValueError: qual_float = 0.0
 
         gq_val = fmt_map.get("GQ", "N/A")
         var_type = classify_variant(ref, alt)
@@ -385,6 +376,11 @@ def parse_vcf_content(raw_text, selected_sample_idx=0):
             "Filter_Status": flt,
             "Raw_INFO_String": info_str
         })
+        
+        # Hard stop memory protection limit
+        if len(data_rows) >= max_rows:
+            st.warning(f"⚠ VCF file exceeds {max_rows} variants. Truncating to protect server memory.")
+            break
 
     return pd.DataFrame(data_rows), meta_lines, ref_genome
 
@@ -403,19 +399,34 @@ with col_demo:
     st.write("")
     use_sample = st.checkbox("🧪 Load Demo Clinical VCF Dataset", value=False, on_change=reset_on_mode_change_t3)
 
-raw_vcf_text = None
+file_iterator = None
+detected_samples = ["SAMPLE_01"] # Default fallback
+
 if uploaded_file is not None:
-    raw_vcf_text = uploaded_file.read().decode("utf-8", errors="ignore")
+    # 1. First Pass: Read just the header to get sample names (Memory Safe)
+    for line in uploaded_file:
+        line_str = line.decode("utf-8", errors="ignore").strip()
+        if line_str.startswith("#CHROM") or line_str.startswith("CHROM"):
+            cols = line_str.lstrip("#").split("\t") if "\t" in line_str else line_str.lstrip("#").split()
+            if len(cols) > 9:
+                detected_samples = cols[9:]
+            break
+    
+    # 2. Reset the file pointer back to the beginning for the main parsing loop
+    uploaded_file.seek(0)
+    file_iterator = uploaded_file
+
 elif use_sample:
-    raw_vcf_text = DEMO_VCF_TEXT
+    file_iterator = DEMO_VCF_TEXT.splitlines()
+    detected_samples = detect_vcf_samples(DEMO_VCF_TEXT)
 
 # ==========================================
 # STEP 3: CORE PARSING PIPELINE & QC SLIDERS
 # ==========================================
-if raw_vcf_text is not None:
+if file_iterator is not None:
     st.markdown("### ⚙️ Configure Clinical Parsing Pipeline & Quality Filters")
 
-    detected_samples = detect_vcf_samples(raw_vcf_text)
+    detected_samples = detect_vcf_samples(file_iterator)
 
     mp1, mp2 = st.columns([2, 1])
     with mp1:
@@ -481,7 +492,7 @@ if raw_vcf_text is not None:
         st.session_state["locked_mode_t3"] = current_mode_sig
 
         with st.spinner("Stripping VCF meta-headers, unpacking INFO/FORMAT fields, and computing clinical metrics..."):
-            parsed_df, meta_cnt, ref_build = parse_vcf_content(raw_vcf_text, selected_sample_idx)
+            parsed_df, meta_cnt, ref_build = parse_vcf_content_safe(file_iterator, selected_sample_idx)
 
             if parsed_df.empty:
                 st.error("No valid variant rows found. Please verify your VCF file contains standard tab-separated variant records.")
