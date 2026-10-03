@@ -16,7 +16,7 @@ st.set_page_config(
 # ==========================================
 TOOL_MAP = {
     "1": "pages/tool1_gene_translator.py",
-    "2": "pages/tool2_primer_design.py",
+    "2": "pages/tool2_primer_designing.py",
     "3": "pages/tool3_vcf_to_csv.py",
     "4": "pages/tool4_variant_susceptibility.py",
     "5": "pages/tool5_bulk_fasta_fetcher.py",
@@ -164,9 +164,9 @@ TOOLS_META = [
     ("Tool #1 • Nomenclature & Annotation", "🧬 Universal Gene ID Translator",
      "Convert up to 50,000 Ensembl, Symbol, or Entrez IDs across model organisms with genomic coordinates, UniProt links & Excel date-corruption guard.",
      "1", "Launch Tool #1: Gene ID Translator"),
-    ("Tool #2 • Wet-Lab PCR & qPCR", "🧪 Automated Batch Primer Designer",
+    ("Tool #2 • Wet-Lab PCR & qPCR", "🧪 Automated Batch Primer Designing",
      "Design ranked Forward & Reverse primer pairs with binding coordinates, 3' ΔG stability, SYBR Green amplicon melt Tm, and vendor synthesis sheets.",
-     "2", "Launch Tool #2: Batch Primer Designer"),
+     "2", "Launch Tool #2: Batch Primer Designing"),
     ("Tool #3 • NGS Variant Calling", "📄 VCF to Clinical CSV Converter",
      "Unpack complex multi-sample .vcf files into clean Excel tables with Genotype, Read Depth (DP), VAF %, SnpEff/VEP impact, and ClinVar calls.",
      "3", "Launch Tool #3: VCF to Clinical CSV"),
