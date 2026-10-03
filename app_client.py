@@ -776,6 +776,16 @@ with head_col2:
 
 st.markdown("<hr style='border-color: rgba(16, 185, 129, 0.2); margin: 0.75rem 0 1.5rem 0;'>", unsafe_allow_html=True)
 
+# --- HIDE STREAMLIT'S DEFAULT SIDEBAR NAVIGATION ---
+st.markdown(
+    """
+    <style>
+        [data-testid="stSidebarNav"] {display: none;}
+    </style>
+    """,
+    unsafe_allow_html=True,
+)
+
 # --- LOGIN SCREEN ---
 if not st.session_state.logged_in:
     
