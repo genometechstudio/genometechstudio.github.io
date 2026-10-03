@@ -194,6 +194,7 @@ with col_up:
         type=["csv", "txt"],
         on_change=reset_on_pipeline_change_t1
     )
+    st.caption("⚡ **Performance Note:** Optimized for high-speed batch processing: supports bulk genomic annotation up to 50,000 distinct identifiers per batch.")
 with col_sample:
     st.write("")
     st.write("")

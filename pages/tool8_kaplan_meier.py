@@ -858,6 +858,7 @@ with col_up:
         type=["csv", "tsv", "txt"],
         on_change=reset_on_mode_change_t8
     )
+    st.caption("⚡ **Performance Note:** Engineered for targeted clinical panels: instantly processes up to 5,000 patient records and 1,000 biomarkers per run.")
 with col_demo:
     st.write("")
     st.write("")

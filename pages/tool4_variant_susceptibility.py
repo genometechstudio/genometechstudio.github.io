@@ -434,6 +434,7 @@ with col_up:
         type=["csv", "tsv", "txt", "vcf"],
         on_change=reset_on_mode_change_t4
     )
+    st.caption("⚡ **Performance Note:** Engineered for targeted clinical panels: instantly screens up to 50,000 variant rows per run.")
 with col_demo:
     st.write("")
     st.write("")

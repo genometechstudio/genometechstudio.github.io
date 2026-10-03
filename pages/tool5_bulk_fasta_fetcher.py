@@ -330,6 +330,7 @@ with col_up:
         type=["csv", "txt", "tsv"],
         on_change=reset_on_mode_change_t5
     )
+    st.caption("⚡ **Performance Note:** Optimized for rapid API retrieval: dynamically fetches and computes biophysics for up to 5,000 IDs per batch.")
 with col_demo:
     st.write("")
     st.write("")

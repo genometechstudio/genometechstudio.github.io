@@ -302,6 +302,7 @@ with col_up:
         type=["fasta", "fa", "txt", "csv"],
         on_change=reset_on_mode_change_t2
     )
+    st.caption("⚡ **Performance Note:** Optimized for high-speed batch processing: supports up to 1,000 target sequences (max 3,000 bp each).")
 with col_demo:
     st.write("")
     st.write("")

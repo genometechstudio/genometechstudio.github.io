@@ -791,6 +791,7 @@ with col_up:
         type=["csv", "tsv", "txt"],
         on_change=reset_on_mode_change_t7
     )
+    st.caption("⚡ **Performance Note:** Engineered for precise clinical comparisons: calculates significance for up to 50 distinct permutation groups per run.")
 with col_demo:
     st.write("")
     st.write("")

@@ -394,6 +394,7 @@ with col_up:
         type=["vcf", "txt", "tsv"],
         on_change=reset_on_mode_change_t3
     )
+    st.caption("⚡ **Performance Note:** Engineered for massive genomic data: safely streams and processes unlimited rows from large VCF files without memory limits.")
 with col_demo:
     st.write("")
     st.write("")
