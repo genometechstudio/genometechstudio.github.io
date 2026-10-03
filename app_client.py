@@ -906,6 +906,16 @@ else:
         progress_val = 100
     progress_val = max(0, min(100, progress_val))
 
+    # --- HIDE STREAMLIT'S DEFAULT SIDEBAR NAVIGATION ---
+    st.markdown(
+        """
+        <style>
+            [data-testid="stSidebarNav"] {display: none;}
+        </style>
+        """,
+        unsafe_allow_html=True,
+    )
+
     # --- SIDEBAR: PREVIOUS PROJECT HISTORY & REFRESH ---
     with st.sidebar:
         st.markdown(
