@@ -258,6 +258,183 @@
 
                     <a href="https://genometech-checkout.streamlit.app/?tier=1" target="_blank" rel="noopener noreferrer" class="w-full block text-center bg-cyan-500/10 text-cyan-400 border border-cyan-500/30 py-2.5 rounded-lg hover:bg-cyan-500 hover:text-slate-900 transition text-sm font-bold shadow-[0_0_10px_rgba(34,211,238,0.1)]" style="text-decoration: none;">Select Modules</a>
                 </div>
+                <!-- Pricing Section CSS (You can place this in your <head> or in your main CSS file) -->
+<style>
+  .genostack-pricing-section {
+    font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, Helvetica, Arial, sans-serif;
+    display: flex;
+    justify-content: center;
+    padding: 40px 20px;
+    background-color: #f8f9fa;
+  }
+  
+  .pricing-card {
+    background: #ffffff;
+    border-radius: 12px;
+    box-shadow: 0 8px 24px rgba(0,0,0,0.08);
+    max-width: 450px;
+    width: 100%;
+    overflow: hidden;
+    border: 1px solid #e1e4e8;
+  }
+
+  .pricing-header {
+    background-color: #2c3e50;
+    color: white;
+    padding: 30px 20px;
+    text-align: center;
+  }
+
+  .pricing-header h2 {
+    margin: 0;
+    font-size: 22px;
+    font-weight: 600;
+  }
+
+  .price-wrap {
+    margin-top: 15px;
+  }
+
+  .price {
+    font-size: 42px;
+    font-weight: bold;
+    color: #ffffff;
+  }
+
+  .original-price {
+    text-decoration: line-through;
+    color: #95a5a6;
+    font-size: 18px;
+    margin-left: 10px;
+  }
+
+  .pricing-body {
+    padding: 30px;
+  }
+
+  .feature-list {
+    list-style: none;
+    padding: 0;
+    margin: 0 0 25px 0;
+  }
+
+  .feature-list li {
+    padding: 10px 0;
+    border-bottom: 1px solid #f1f2f6;
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    color: #34495e;
+  }
+
+  .feature-list li:last-child {
+    border-bottom: none;
+  }
+
+  .check {
+    color: #27ae60;
+    font-weight: bold;
+    margin-right: 10px;
+  }
+
+  .feature-name {
+    flex-grow: 1;
+  }
+
+  .feature-value {
+    color: #7f8c8d;
+    font-size: 14px;
+  }
+
+  .limits-box {
+    background-color: #f1f8ff;
+    border: 1px solid #c8e1ff;
+    border-radius: 8px;
+    padding: 20px;
+    margin-top: 10px;
+  }
+
+  .limits-box h4 {
+    margin: 0 0 10px 0;
+    color: #0366d6;
+    font-size: 15px;
+  }
+
+  .limit-item {
+    font-size: 14px;
+    color: #24292e;
+    margin-bottom: 12px;
+  }
+
+  .limit-item:last-child {
+    margin-bottom: 0;
+  }
+
+  .limit-item strong {
+    display: block;
+    color: #24292e;
+  }
+
+  .overage {
+    color: #586069;
+    font-size: 13px;
+  }
+</style>
+
+<!-- Pricing Card HTML -->
+<section class="genostack-pricing-section">
+  <div class="pricing-card">
+    <div class="pricing-header">
+      <h2>Tier 1: Full Variant Calling Bundle</h2>
+      <p style="margin: 5px 0 0 0; color: #bdc3c7; font-size: 14px;">WGS / WES Standard Processing</p>
+      <div class="price-wrap">
+        <span class="price">$380</span>
+        <span class="original-price">$500</span>
+      </div>
+    </div>
+    
+    <div class="pricing-body">
+      <ul class="feature-list">
+        <li>
+          <span class="check">✓</span>
+          <span class="feature-name">FastQC & Trimming</span>
+          <span class="feature-value">($50 Value)</span>
+        </li>
+        <li>
+          <span class="check">✓</span>
+          <span class="feature-name">BWA-MEM Alignment</span>
+          <span class="feature-value">($150 Value)</span>
+        </li>
+        <li>
+          <span class="check">✓</span>
+          <span class="feature-name">BCFtools Variant Calling</span>
+          <span class="feature-value">($100 Value)</span>
+        </li>
+        <li>
+          <span class="check">✓</span>
+          <span class="feature-name">CSV Clinical Annotation</span>
+          <span class="feature-value">($80 Value)</span>
+        </li>
+      </ul>
+
+      <div class="limits-box">
+        <h4>Base Package Sample Limits</h4>
+        
+        <div class="limit-item">
+          <strong>Whole Exome (WES) / Targeted:</strong>
+          Up to 10 samples included
+          <div class="overage">+$15 per additional sample</div>
+        </div>
+        
+        <div class="limit-item">
+          <strong>Whole Genome (WGS):</strong>
+          Up to 3 samples included
+          <div class="overage">+$40 per additional sample</div>
+        </div>
+      </div>
+    </div>
+  </div>
+</section>
 
                 <!-- Tier 2 -->
                 <div class="bg-slate-900 border border-slate-800 p-6 rounded-xl hover:border-purple-500/50 transition flex flex-col relative overflow-hidden">
