@@ -233,169 +233,73 @@
             <div class="grid md:grid-cols-2 lg:grid-cols-3 gap-6">
 
                 <style>
-  /* Rainbow Halo Wrapper for the Horizontal Box */
-  .limits-halo-wrapper {
-    max-width: 1350px;
-    margin: 0 auto 40px auto; /* Adds space below the box before the tiers start */
-    border-radius: 16px;
-    padding: 2px; /* This creates the border thickness for the halo */
-    background: linear-gradient(135deg, #ff007f, #7928ca, #0070f3, #00dfd8, #7928ca);
-    background-size: 300% 300%;
-    animation: rainbowShift 8s ease infinite;
-    box-shadow: 0 10px 30px rgba(0, 112, 243, 0.2);
-    font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, Helvetica, Arial, sans-serif;
-  }
-
-  /* Deep Bluish Inner Rectangle */
-  .limits-inner-box {
-    background: #0d1726;
-    border-radius: 14px;
-    padding: 24px 30px;
-    display: flex;
-    flex-direction: column;
-  }
-
-  .limits-header {
-    text-align: center;
-    margin-bottom: 20px;
-    border-bottom: 1px solid rgba(255,255,255,0.05);
-    padding-bottom: 15px;
-  }
-
-  .limits-header h3 {
-    margin: 0 0 5px 0;
-    color: #38bdf8;
-    font-size: 18px;
-    font-weight: 700;
-    letter-spacing: 0.5px;
+  .compute-limits-horizontal-banner {
+    max-width: 1100px;
+    margin: 20px auto 40px auto; /* Centers the banner and adds space below */
+    background: rgba(15, 23, 42, 0.4);
+    border: 1px solid rgba(56, 189, 248, 0.3);
+    border-radius: 50px; /* Pill shape like the policy banner */
+    padding: 12px 25px;
     display: flex;
     align-items: center;
     justify-content: center;
-    gap: 8px;
+    flex-wrap: wrap;
+    gap: 15px;
+    font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, Helvetica, Arial, sans-serif;
   }
 
-  .limits-header p {
-    margin: 0;
-    color: #94a3b8;
-    font-size: 13px;
-  }
-
-  /* Horizontal Layout for the 4 Tiers */
-  .limits-grid {
-    display: grid;
-    grid-template-columns: repeat(auto-fit, minmax(220px, 1fr));
-    gap: 20px;
-  }
-
-  .limit-tier-block {
-    background: rgba(15, 28, 48, 0.6);
-    border: 1px solid rgba(56, 189, 248, 0.15);
-    border-radius: 8px;
-    padding: 15px;
-  }
-
-  .limit-tier-name {
-    color: #f8fafc;
-    font-size: 14px;
+  .limits-banner-title {
+    color: #38bdf8;
     font-weight: 600;
-    margin-bottom: 10px;
+    font-size: 14px;
     display: flex;
     align-items: center;
-    justify-content: space-between;
+    gap: 8px;
+    margin-right: 10px;
   }
 
-  .limit-tier-name span {
-    font-size: 11px;
-    color: #38bdf8;
-    background: rgba(56, 189, 248, 0.1);
-    padding: 2px 6px;
-    border-radius: 4px;
+  .limits-banner-items {
+    display: flex;
+    gap: 15px;
+    flex-wrap: wrap;
+    align-items: center;
   }
 
-  .limit-detail {
-    margin-bottom: 8px;
-  }
-  
-  .limit-detail:last-child {
-    margin-bottom: 0;
-  }
-
-  .limit-base {
-    display: block;
-    color: #cbd5e1;
+  .limit-pill {
     font-size: 13px;
-    font-weight: 500;
+    color: #cbd5e1;
+    background: rgba(255, 255, 255, 0.03);
+    padding: 4px 12px;
+    border-radius: 20px;
+    border: 1px solid rgba(255, 255, 255, 0.05);
+    white-space: nowrap;
   }
 
-  .limit-overage {
-    display: block;
-    color: #64748b;
-    font-size: 12px;
-    margin-top: 2px;
+  .limit-pill strong {
+    color: #f8fafc;
+    margin-right: 4px;
   }
 
-  /* Ensures the rainbow animation works if not already in your CSS */
-  @keyframes rainbowShift {
-    0% { background-position: 0% 50%; }
-    50% { background-position: 100% 50%; }
-    100% { background-position: 0% 50%; }
+  .limit-pill .overage {
+    color: #94a3b8;
+    font-size: 11px;
+    margin-left: 6px;
+    font-style: italic;
   }
 </style>
 
 <!-- Horizontal Compute Limits Banner -->
-<div class="limits-halo-wrapper">
-  <div class="limits-inner-box">
-    
-    <div class="limits-header">
-      <h3>⚡ Standard Compute Limits & Overage Rates</h3>
-      <p>Cloud compute allocations included in the base bundle price of each processing tier.</p>
-    </div>
-
-    <div class="limits-grid">
-      <!-- Tier 1 Limits -->
-      <div class="limit-tier-block">
-        <div class="limit-tier-name">Tier 1 <span>DNA</span></div>
-        <div class="limit-detail">
-          <span class="limit-base">WES/Targeted: Up to 10 samples</span>
-          <span class="limit-overage">+$15 per extra sample</span>
-        </div>
-        <div class="limit-detail">
-          <span class="limit-base">WGS: Up to 3 samples</span>
-          <span class="limit-overage">+$40 per extra sample</span>
-        </div>
-      </div>
-
-      <!-- Tier 2 Limits -->
-      <div class="limit-tier-block">
-        <div class="limit-tier-name">Tier 2 <span>RNA</span></div>
-        <div class="limit-detail">
-          <span class="limit-base">Bulk RNA-Seq: Up to 12 samples</span>
-          <span class="limit-overage">+$15 per extra sample</span>
-        </div>
-      </div>
-
-      <!-- Tier 4 Limits -->
-      <div class="limit-tier-block">
-        <div class="limit-tier-name">Tier 4 <span>Single-Cell</span></div>
-        <div class="limit-detail">
-          <span class="limit-base">scRNA-Seq: Up to 4 libraries</span>
-          <span class="limit-overage">+$50 per extra library</span>
-        </div>
-      </div>
-
-      <!-- Tier 5 Limits -->
-      <div class="limit-tier-block">
-        <div class="limit-tier-name">Tier 5 <span>Microbiome</span></div>
-        <div class="limit-detail">
-          <span class="limit-base">16S Amplicon: Up to 50 samples</span>
-          <span class="limit-overage">+$2 per extra sample</span>
-        </div>
-      </div>
-      
-    </div>
+<div class="compute-limits-horizontal-banner">
+  <div class="limits-banner-title">
+    ⚡ Compute Limits per Tier:
+  </div>
+  <div class="limits-banner-items">
+    <div class="limit-pill"><strong>T1:</strong> WES (10) / WGS (3) <span class="overage">+$15-$40/extra</span></div>
+    <div class="limit-pill"><strong>T2:</strong> RNA-Seq (12) <span class="overage">+$15/extra</span></div>
+    <div class="limit-pill"><strong>T4:</strong> scRNA-Seq (4) <span class="overage">+$50/extra</span></div>
+    <div class="limit-pill"><strong>T5:</strong> 16S (50) <span class="overage">+$2/extra</span></div>
   </div>
 </div>
-<!-- End of Compute Limits Banner -->
                 
                 
                 <!-- Tier 1 -->
