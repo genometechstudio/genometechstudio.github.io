@@ -231,6 +231,507 @@
             </div>
 
             <div class="grid md:grid-cols-2 lg:grid-cols-3 gap-6">
+
+            <style>
+  /* Base Section with Dark Cosmic Navy Background */
+  .modular-matrix-section {
+    font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, Helvetica, Arial, sans-serif;
+    padding: 70px 20px;
+    background: radial-gradient(circle at 50% 10%, #152238 0%, #080d16 100%);
+    color: #e2e8f0;
+    position: relative;
+    overflow: hidden;
+  }
+
+  /* Rainbow Halo Ambient Light */
+  .modular-matrix-section::before {
+    content: "";
+    position: absolute;
+    top: 5%;
+    left: 50%;
+    transform: translateX(-50%);
+    width: 800px;
+    height: 450px;
+    background: radial-gradient(circle, rgba(255,0,128,0.15), rgba(0,255,200,0.15), rgba(0,128,255,0.15), transparent 70%);
+    filter: blur(80px);
+    pointer-events: none;
+    z-index: 0;
+  }
+
+  .matrix-header {
+    text-align: center;
+    margin-bottom: 40px;
+    position: relative;
+    z-index: 1;
+  }
+
+  .matrix-header h2 {
+    font-size: 38px;
+    font-weight: 800;
+    margin: 0 0 10px 0;
+    background: linear-gradient(135deg, #ffffff 30%, #60a5fa 100%);
+    -webkit-background-clip: text;
+    -webkit-text-fill-color: transparent;
+  }
+
+  .matrix-header p {
+    font-size: 16px;
+    color: #94a3b8;
+    max-width: 650px;
+    margin: 0 auto;
+    line-height: 1.5;
+  }
+
+  /* Common Overview Box Above Tiers */
+  .overview-wrapper {
+    max-width: 1350px;
+    margin: 0 auto 50px auto;
+    position: relative;
+    z-index: 1;
+    border-radius: 18px;
+    padding: 2px; /* Halo border container */
+    background: linear-gradient(135deg, #ff007f, #7928ca, #0070f3, #00dfd8, #7928ca);
+    background-size: 300% 300%;
+    animation: rainbowShift 8s ease infinite;
+    box-shadow: 0 10px 35px rgba(0, 112, 243, 0.25);
+  }
+
+  .overview-box {
+    background: #0d1726;
+    border-radius: 16px;
+    padding: 30px;
+  }
+
+  .overview-box h3 {
+    margin: 0 0 8px 0;
+    font-size: 20px;
+    color: #38bdf8;
+    display: flex;
+    align-items: center;
+    gap: 8px;
+  }
+
+  .overview-box p.desc {
+    margin: 0 0 24px 0;
+    color: #94a3b8;
+    font-size: 14px;
+    line-height: 1.5;
+  }
+
+  .overview-grid {
+    display: grid;
+    grid-template-columns: repeat(auto-fit, minmax(240px, 1fr));
+    gap: 16px;
+  }
+
+  .overview-item {
+    background: rgba(22, 36, 59, 0.7);
+    border: 1px solid rgba(56, 189, 248, 0.2);
+    border-radius: 10px;
+    padding: 16px;
+  }
+
+  .overview-item h4 {
+    margin: 0 0 6px 0;
+    font-size: 15px;
+    color: #f1f5f9;
+  }
+
+  .overview-item .tag {
+    display: inline-block;
+    padding: 2px 8px;
+    font-size: 11px;
+    font-weight: 600;
+    border-radius: 4px;
+    margin-bottom: 8px;
+    background: rgba(56, 189, 248, 0.15);
+    color: #38bdf8;
+  }
+
+  .overview-item ul {
+    margin: 0;
+    padding-left: 16px;
+    font-size: 12px;
+    color: #cbd5e1;
+    line-height: 1.6;
+  }
+
+  /* Grid for Pricing Cards */
+  .pricing-grid {
+    display: grid;
+    grid-template-columns: repeat(auto-fit, minmax(290px, 1fr));
+    gap: 28px;
+    max-width: 1350px;
+    margin: 0 auto;
+    position: relative;
+    z-index: 1;
+  }
+
+  /* Rainbow Halo Card Container */
+  .card-halo-wrapper {
+    position: relative;
+    border-radius: 18px;
+    padding: 2px; /* Halo thickness */
+    background: linear-gradient(135deg, rgba(255, 0, 128, 0.4), rgba(0, 223, 216, 0.4), rgba(121, 40, 202, 0.4));
+    transition: transform 0.3s ease, box-shadow 0.3s ease;
+  }
+
+  .card-halo-wrapper:hover {
+    transform: translateY(-8px);
+    background: linear-gradient(135deg, #ff007f, #00dfd8, #0070f3, #7928ca);
+    box-shadow: 0 15px 35px rgba(0, 223, 216, 0.25), 0 0 25px rgba(255, 0, 128, 0.2);
+  }
+
+  .card-halo-wrapper.special {
+    background: linear-gradient(135deg, #f59e0b, #ec4899, #8b5cf6, #3b82f6);
+    background-size: 200% 200%;
+    animation: rainbowShift 6s ease infinite;
+    box-shadow: 0 12px 30px rgba(236, 72, 153, 0.25);
+  }
+
+  /* Dark Bluish Inner Card */
+  .pricing-card {
+    background: #0f1c30;
+    border-radius: 16px;
+    overflow: hidden;
+    height: 100%;
+    display: flex;
+    flex-direction: column;
+  }
+
+  /* Special Badge */
+  .badge {
+    position: absolute;
+    top: 14px;
+    right: 14px;
+    background: linear-gradient(135deg, #ec4899, #8b5cf6);
+    color: #ffffff;
+    font-weight: 700;
+    font-size: 11px;
+    padding: 4px 10px;
+    border-radius: 20px;
+    letter-spacing: 0.5px;
+    box-shadow: 0 2px 8px rgba(0, 0, 0, 0.4);
+    z-index: 2;
+  }
+
+  .card-header {
+    background: linear-gradient(180deg, #15243d 0%, #0f1c30 100%);
+    padding: 28px 20px 20px 20px;
+    text-align: center;
+    border-bottom: 1px solid rgba(255, 255, 255, 0.06);
+  }
+
+  .card-header h3 {
+    margin: 0;
+    font-size: 22px;
+    font-weight: 700;
+    color: #f8fafc;
+  }
+
+  .card-subtitle {
+    margin: 6px 0 0 0;
+    color: #94a3b8;
+    font-size: 13px;
+    font-weight: 500;
+  }
+
+  .price-wrap {
+    margin-top: 16px;
+    display: flex;
+    justify-content: center;
+    align-items: baseline;
+    gap: 8px;
+  }
+
+  .price {
+    font-size: 38px;
+    font-weight: 800;
+    color: #38bdf8;
+    letter-spacing: -0.5px;
+  }
+
+  .original-price {
+    text-decoration: line-through;
+    color: #64748b;
+    font-size: 16px;
+  }
+
+  .card-body {
+    padding: 24px;
+    flex-grow: 1;
+    display: flex;
+    flex-direction: column;
+  }
+
+  .feature-list {
+    list-style: none;
+    padding: 0;
+    margin: 0 0 22px 0;
+    flex-grow: 1;
+  }
+
+  .feature-list li {
+    padding: 9px 0;
+    border-bottom: 1px solid rgba(255, 255, 255, 0.05);
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    font-size: 13px;
+    color: #cbd5e1;
+  }
+
+  .feature-list li:last-child {
+    border-bottom: none;
+  }
+
+  .check {
+    color: #34d399;
+    font-weight: bold;
+    margin-right: 8px;
+  }
+
+  .feature-name {
+    flex-grow: 1;
+  }
+
+  .feature-value {
+    color: #64748b;
+    font-size: 12px;
+  }
+
+  /* Limits Card at the bottom */
+  .limits-box {
+    background: rgba(15, 23, 42, 0.7);
+    border: 1px solid rgba(56, 189, 248, 0.25);
+    border-radius: 8px;
+    padding: 14px;
+    margin-top: auto;
+  }
+
+  .limits-box h4 {
+    margin: 0 0 6px 0;
+    color: #38bdf8;
+    font-size: 13px;
+    text-transform: uppercase;
+    letter-spacing: 0.5px;
+  }
+
+  .limit-item {
+    font-size: 12px;
+    color: #cbd5e1;
+    margin-bottom: 6px;
+  }
+
+  .limit-item:last-child {
+    margin-bottom: 0;
+  }
+
+  .limit-item strong {
+    color: #f1f5f9;
+  }
+
+  .overage {
+    color: #94a3b8;
+    font-size: 11px;
+  }
+
+  /* Animated Rainbow Gradient Keyframes */
+  @keyframes rainbowShift {
+    0% { background-position: 0% 50%; }
+    50% { background-position: 100% 50%; }
+    100% { background-position: 0% 50%; }
+  }
+</style>
+
+<section class="modular-matrix-section">
+  <div class="matrix-header">
+    <h2>The Modular Matrix</h2>
+    <p>High-performance, reproducible bioinformatics pipelines packaged into standardized compute tiers.</p>
+  </div>
+
+  <!-- COMMON SUMMARY BOX ABOVE ALL TIERS -->
+  <div class="overview-wrapper">
+    <div class="overview-box">
+      <h3>⚡ Standard Service Guarantee Across All Tiers</h3>
+      <p class="desc">
+        Every bundle is a completely hands-off service: we take your raw FASTQ or count files, execute industry-standard pipelines on secure cloud instances, perform comprehensive multi-metric quality control, and deliver publication-ready tables and visualization matrices.
+      </p>
+
+      <div class="overview-grid">
+        <div class="overview-item">
+          <span class="tag">Tier 1 • DNA</span>
+          <h4>Variant Calling (WGS/WES)</h4>
+          <ul>
+            <li>FastQC, Trimming & Alignment</li>
+            <li>BCFtools SNV & InDel Discovery</li>
+            <li>VEP/ClinVar Annotated CSVs</li>
+            <li>Plugs directly into Omics Express</li>
+          </ul>
+        </div>
+
+        <div class="overview-item">
+          <span class="tag">Tier 2 • RNA</span>
+          <h4>Bulk Transcriptomics</h4>
+          <ul>
+            <li>STAR Splice-Aware Alignment</li>
+            <li>FeatureCounts Gene Quantitation</li>
+            <li>DESeq2 Differential Expression</li>
+            <li>Volcano & Clustered Heatmap Plots</li>
+          </ul>
+        </div>
+
+        <div class="overview-item">
+          <span class="tag">Tier 4 • Single-Cell</span>
+          <h4>Single-Cell Profiling</h4>
+          <ul>
+            <li>10x / Count Matrix Preprocessing</li>
+            <li>Seurat Graph-Based Clustering</li>
+            <li>Cell-Type Biomarker Annotation</li>
+            <li>Interactive 2D UMAP Projections</li>
+          </ul>
+        </div>
+
+        <div class="overview-item">
+          <span class="tag">Tier 5 • Metagenomics</span>
+          <h4>Microbiome (16S rRNA)</h4>
+          <ul>
+            <li>QIIME2 DADA2 Denoising</li>
+            <li>SILVA/Greengenes Taxa Profiling</li>
+            <li>Shannon & Bray-Curtis Diversity</li>
+            <li>Relative Abundance Stacked Charts</li>
+          </ul>
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <!-- 4 TIERS PRICING GRID -->
+  <div class="pricing-grid">
+
+    <!-- TIER 1 -->
+    <div class="card-halo-wrapper">
+      <div class="pricing-card">
+        <div class="card-header">
+          <h3>Tier 1</h3>
+          <p class="card-subtitle">Variant Calling (WGS / WES)</p>
+          <div class="price-wrap">
+            <span class="price">$380</span>
+            <span class="original-price">$500</span>
+          </div>
+        </div>
+        <div class="card-body">
+          <ul class="feature-list">
+            <li><span class="check">✓</span><span class="feature-name">FastQC & Trimming</span><span class="feature-value">($50)</span></li>
+            <li><span class="check">✓</span><span class="feature-name">BWA-MEM Alignment</span><span class="feature-value">($150)</span></li>
+            <li><span class="check">✓</span><span class="feature-name">BCFtools Variant Calling</span><span class="feature-value">($100)</span></li>
+            <li><span class="check">✓</span><span class="feature-name">CSV Clinical Annotation</span><span class="feature-value">($80)</span></li>
+          </ul>
+          <div class="limits-box">
+            <h4>Base Compute Limits</h4>
+            <div class="limit-item">
+              <strong>WES / Targeted:</strong> Up to 10 samples
+              <div class="overage">+$15 / extra sample</div>
+            </div>
+            <div class="limit-item">
+              <strong>WGS:</strong> Up to 3 samples
+              <div class="overage">+$40 / extra sample</div>
+            </div>
+          </div>
+        </div>
+      </div>
+    </div>
+
+    <!-- TIER 2 (FEATURED WITH SPECIAL BADGE) -->
+    <div class="card-halo-wrapper special">
+      <div class="badge">💎 Founding Lab Special</div>
+      <div class="pricing-card">
+        <div class="card-header">
+          <h3>Tier 2</h3>
+          <p class="card-subtitle">Transcriptomics (RNA-Seq)</p>
+          <div class="price-wrap">
+            <span class="price">$410</span>
+            <span class="original-price">$550</span>
+          </div>
+        </div>
+        <div class="card-body">
+          <ul class="feature-list">
+            <li><span class="check">✓</span><span class="feature-name">STAR Read Alignment</span><span class="feature-value">($150)</span></li>
+            <li><span class="check">✓</span><span class="feature-name">FeatureCounts Quant</span><span class="feature-value">($80)</span></li>
+            <li><span class="check">✓</span><span class="feature-name">DESeq2 Differential Math</span><span class="feature-value">($120)</span></li>
+            <li><span class="check">✓</span><span class="feature-name">Volcano & Heatmap Vis</span><span class="feature-value">($60)</span></li>
+          </ul>
+          <div class="limits-box">
+            <h4>Base Compute Limits</h4>
+            <div class="limit-item">
+              <strong>Bulk RNA-Seq:</strong> Up to 12 samples
+              <div class="overage">+$15 / extra sample</div>
+            </div>
+          </div>
+        </div>
+      </div>
+    </div>
+
+    <!-- TIER 4 -->
+    <div class="card-halo-wrapper">
+      <div class="pricing-card">
+        <div class="card-header">
+          <h3>Tier 4</h3>
+          <p class="card-subtitle">Single-Cell Profiling</p>
+          <div class="price-wrap">
+            <span class="price">$450</span>
+            <span class="original-price">$600</span>
+          </div>
+        </div>
+        <div class="card-body">
+          <ul class="feature-list">
+            <li><span class="check">✓</span><span class="feature-name">Matrix Processing</span><span class="feature-value">($150)</span></li>
+            <li><span class="check">✓</span><span class="feature-name">Seurat Clustering</span><span class="feature-value">($120)</span></li>
+            <li><span class="check">✓</span><span class="feature-name">Cell Type ID Maps</span><span class="feature-value">($100)</span></li>
+            <li><span class="check">✓</span><span class="feature-name">UMAP Projections</span><span class="feature-value">($80)</span></li>
+          </ul>
+          <div class="limits-box">
+            <h4>Base Compute Limits</h4>
+            <div class="limit-item">
+              <strong>scRNA-Seq:</strong> Up to 4 samples / libraries
+              <div class="overage">+$50 / extra library</div>
+            </div>
+          </div>
+        </div>
+      </div>
+    </div>
+
+    <!-- TIER 5 -->
+    <div class="card-halo-wrapper">
+      <div class="pricing-card">
+        <div class="card-header">
+          <h3>Tier 5</h3>
+          <p class="card-subtitle">Microbiome (16S rRNA)</p>
+          <div class="price-wrap">
+            <span class="price">$400</span>
+            <span class="original-price">$550</span>
+          </div>
+        </div>
+        <div class="card-body">
+          <ul class="feature-list">
+            <li><span class="check">✓</span><span class="feature-name">QIIME2 Execution</span><span class="feature-value">($150)</span></li>
+            <li><span class="check">✓</span><span class="feature-name">Taxonomic Class.</span><span class="feature-value">($100)</span></li>
+            <li><span class="check">✓</span><span class="feature-name">Alpha/Beta Diversity</span><span class="feature-value">($80)</span></li>
+            <li><span class="check">✓</span><span class="feature-name">Abundance Charts</span><span class="feature-value">($70)</span></li>
+          </ul>
+          <div class="limits-box">
+            <h4>Base Compute Limits</h4>
+            <div class="limit-item">
+              <strong>16S Amplicon:</strong> Up to 50 samples
+              <div class="overage">+$2 / extra sample</div>
+            </div>
+          </div>
+        </div>
+      </div>
+    </div>
+
+  </div>
+</section>
                 
                 <!-- Tier 1 -->
                 <div class="bg-slate-900 border border-slate-800 p-6 rounded-xl hover:border-cyan-500/50 transition flex flex-col relative overflow-hidden">
@@ -258,183 +759,6 @@
 
                     <a href="https://genometech-checkout.streamlit.app/?tier=1" target="_blank" rel="noopener noreferrer" class="w-full block text-center bg-cyan-500/10 text-cyan-400 border border-cyan-500/30 py-2.5 rounded-lg hover:bg-cyan-500 hover:text-slate-900 transition text-sm font-bold shadow-[0_0_10px_rgba(34,211,238,0.1)]" style="text-decoration: none;">Select Modules</a>
                 </div>
-                <!-- Pricing Section CSS (You can place this in your <head> or in your main CSS file) -->
-<style>
-  .genostack-pricing-section {
-    font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, Helvetica, Arial, sans-serif;
-    display: flex;
-    justify-content: center;
-    padding: 40px 20px;
-    background-color: #f8f9fa;
-  }
-  
-  .pricing-card {
-    background: #ffffff;
-    border-radius: 12px;
-    box-shadow: 0 8px 24px rgba(0,0,0,0.08);
-    max-width: 450px;
-    width: 100%;
-    overflow: hidden;
-    border: 1px solid #e1e4e8;
-  }
-
-  .pricing-header {
-    background-color: #2c3e50;
-    color: white;
-    padding: 30px 20px;
-    text-align: center;
-  }
-
-  .pricing-header h2 {
-    margin: 0;
-    font-size: 22px;
-    font-weight: 600;
-  }
-
-  .price-wrap {
-    margin-top: 15px;
-  }
-
-  .price {
-    font-size: 42px;
-    font-weight: bold;
-    color: #ffffff;
-  }
-
-  .original-price {
-    text-decoration: line-through;
-    color: #95a5a6;
-    font-size: 18px;
-    margin-left: 10px;
-  }
-
-  .pricing-body {
-    padding: 30px;
-  }
-
-  .feature-list {
-    list-style: none;
-    padding: 0;
-    margin: 0 0 25px 0;
-  }
-
-  .feature-list li {
-    padding: 10px 0;
-    border-bottom: 1px solid #f1f2f6;
-    display: flex;
-    justify-content: space-between;
-    align-items: center;
-    color: #34495e;
-  }
-
-  .feature-list li:last-child {
-    border-bottom: none;
-  }
-
-  .check {
-    color: #27ae60;
-    font-weight: bold;
-    margin-right: 10px;
-  }
-
-  .feature-name {
-    flex-grow: 1;
-  }
-
-  .feature-value {
-    color: #7f8c8d;
-    font-size: 14px;
-  }
-
-  .limits-box {
-    background-color: #f1f8ff;
-    border: 1px solid #c8e1ff;
-    border-radius: 8px;
-    padding: 20px;
-    margin-top: 10px;
-  }
-
-  .limits-box h4 {
-    margin: 0 0 10px 0;
-    color: #0366d6;
-    font-size: 15px;
-  }
-
-  .limit-item {
-    font-size: 14px;
-    color: #24292e;
-    margin-bottom: 12px;
-  }
-
-  .limit-item:last-child {
-    margin-bottom: 0;
-  }
-
-  .limit-item strong {
-    display: block;
-    color: #24292e;
-  }
-
-  .overage {
-    color: #586069;
-    font-size: 13px;
-  }
-</style>
-
-<!-- Pricing Card HTML -->
-<section class="genostack-pricing-section">
-  <div class="pricing-card">
-    <div class="pricing-header">
-      <h2>Tier 1: Full Variant Calling Bundle</h2>
-      <p style="margin: 5px 0 0 0; color: #bdc3c7; font-size: 14px;">WGS / WES Standard Processing</p>
-      <div class="price-wrap">
-        <span class="price">$380</span>
-        <span class="original-price">$500</span>
-      </div>
-    </div>
-    
-    <div class="pricing-body">
-      <ul class="feature-list">
-        <li>
-          <span class="check">✓</span>
-          <span class="feature-name">FastQC & Trimming</span>
-          <span class="feature-value">($50 Value)</span>
-        </li>
-        <li>
-          <span class="check">✓</span>
-          <span class="feature-name">BWA-MEM Alignment</span>
-          <span class="feature-value">($150 Value)</span>
-        </li>
-        <li>
-          <span class="check">✓</span>
-          <span class="feature-name">BCFtools Variant Calling</span>
-          <span class="feature-value">($100 Value)</span>
-        </li>
-        <li>
-          <span class="check">✓</span>
-          <span class="feature-name">CSV Clinical Annotation</span>
-          <span class="feature-value">($80 Value)</span>
-        </li>
-      </ul>
-
-      <div class="limits-box">
-        <h4>Base Package Sample Limits</h4>
-        
-        <div class="limit-item">
-          <strong>Whole Exome (WES) / Targeted:</strong>
-          Up to 10 samples included
-          <div class="overage">+$15 per additional sample</div>
-        </div>
-        
-        <div class="limit-item">
-          <strong>Whole Genome (WGS):</strong>
-          Up to 3 samples included
-          <div class="overage">+$40 per additional sample</div>
-        </div>
-      </div>
-    </div>
-  </div>
-</section>
 
                 <!-- Tier 2 -->
                 <div class="bg-slate-900 border border-slate-800 p-6 rounded-xl hover:border-purple-500/50 transition flex flex-col relative overflow-hidden">
