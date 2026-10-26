@@ -237,7 +237,7 @@
             </div>
 
             <!-- POLICY BANNER -->
-            <div class="flex flex-col sm:flex-row items-center justify-center gap-2 mb-10 text-sm text-slate-300 bg-slate-900/80 py-3 px-6 rounded-full border border-slate-700 mx-auto w-fit shadow-lg shadow-slate-900/50">
+            <div class="flex flex-col sm:flex-row items-center justify-center gap-2 mb-6 text-sm text-slate-300 bg-slate-900/80 py-3 px-6 rounded-full border border-slate-700 mx-auto w-fit shadow-lg shadow-slate-900/50">
                 <div class="flex items-center gap-2">
                     <svg class="w-5 h-5 text-emerald-400" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M13 16h-1v-4h-1m1-4h.01M21 12a9 9 0 11-18 0 9 9 0 0118 0z"></path></svg>
                     <span class="font-bold text-white">Agency Policy:</span>
@@ -245,88 +245,33 @@
                 <span>All GenoStack services require a 30% non-refundable compute advance. Includes secure Client Portal tracking and 1 revision round.</span>
             </div>
 
+            <!-- COMPUTE LIMITS BANNER (MUST BE ABOVE THE GRID DIV!) -->
+            <div class="compute-limits-horizontal-banner">
+              <div class="limits-banner-title">
+                ⚡ Compute Limits per Tier:
+              </div>
+              <div class="limits-banner-items">
+                <div class="limit-pill">
+                    <strong>T1:</strong> WES (10) / WGS (3) 
+                    <span class="overage price-val" data-usd="+$15-$40/extra" data-inr="+₹499-₹1,299/extra">+$15-$40/extra</span>
+                </div>
+                <div class="limit-pill">
+                    <strong>T2:</strong> RNA-Seq (12) 
+                    <span class="overage price-val" data-usd="+$15/extra" data-inr="+₹499/extra">+$15/extra</span>
+                </div>
+                <div class="limit-pill">
+                    <strong>T4:</strong> scRNA-Seq (4) 
+                    <span class="overage price-val" data-usd="+$50/extra" data-inr="+₹1,499/extra">+$50/extra</span>
+                </div>
+                <div class="limit-pill">
+                    <strong>T5:</strong> 16S (50) 
+                    <span class="overage price-val" data-usd="+$2/extra" data-inr="+₹79/extra">+$2/extra</span>
+                </div>
+              </div>
+            </div>
+
+            <!-- NOW OPEN THE 3-COLUMN GRID FOR TIER 1, TIER 2, TIER 4, TIER 5 -->
             <div class="grid md:grid-cols-2 lg:grid-cols-3 gap-6">
-
-                <style>
-  .compute-limits-horizontal-banner {
-    max-width: 1100px;
-    margin: 20px auto 40px auto; /* Centers the banner and adds space below */
-    background: rgba(15, 23, 42, 0.4);
-    border: 1px solid rgba(56, 189, 248, 0.3);
-    border-radius: 50px; /* Pill shape like the policy banner */
-    padding: 12px 25px;
-    display: flex;
-    align-items: center;
-    justify-content: center;
-    flex-wrap: wrap;
-    gap: 15px;
-    font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, Helvetica, Arial, sans-serif;
-  }
-
-  .limits-banner-title {
-    color: #38bdf8;
-    font-weight: 600;
-    font-size: 14px;
-    display: flex;
-    align-items: center;
-    gap: 8px;
-    margin-right: 10px;
-  }
-
-  .limits-banner-items {
-    display: flex;
-    gap: 15px;
-    flex-wrap: wrap;
-    align-items: center;
-  }
-
-  .limit-pill {
-    font-size: 13px;
-    color: #cbd5e1;
-    background: rgba(255, 255, 255, 0.03);
-    padding: 4px 12px;
-    border-radius: 20px;
-    border: 1px solid rgba(255, 255, 255, 0.05);
-    white-space: nowrap;
-  }
-
-  .limit-pill strong {
-    color: #f8fafc;
-    margin-right: 4px;
-  }
-
-  .limit-pill .overage {
-    color: #94a3b8;
-    font-size: 11px;
-    margin-left: 6px;
-    font-style: italic;
-  }
-</style>
-
-<!-- Horizontal Compute Limits Banner -->
-<div class="compute-limits-horizontal-banner">
-  <div class="limits-banner-title">
-    ⚡ Compute Limits per Tier:
-  </div>
-  <div class="limits-banner-items">
-    <div class="limit-pill">
-      <strong>T1:</strong> WES (10) / WGS (3) 
-      <span class="overage price-val" data-usd="+$15-$40/extra" data-inr="+₹499-₹1,299/extra">+$15-$40/extra</span>
-    </div>
-    <div class="limit-pill">
-      <strong>T2:</strong> RNA-Seq (12) 
-      <span class="overage price-val" data-usd="+$15/extra" data-inr="+₹499/extra">+$15/extra</span>
-    </div>
-    <div class="limit-pill">
-      <strong>T4:</strong> scRNA-Seq (4) 
-      <span class="overage price-val" data-usd="+$50/extra" data-inr="+₹1,499/extra">+$50/extra</span>
-    </div>
-    <div class="limit-pill">
-      <strong>T5:</strong> 16S (50) 
-      <span class="overage price-val" data-usd="+$2/extra" data-inr="+₹79/extra">+$2/extra</span>
-    </div>
-  </div>
-</div>
                 
                 
                 <!-- Tier 1 -->
@@ -1008,5 +953,94 @@
             }
         </script>
     </footer>
+
+    <!-- STANDALONE CURRENCY SWITCHER SCRIPT -->
+    <script>
+      window.setGenomeCurrency = function(curr) {
+        try {
+          localStorage.setItem('gt_currency', curr);
+        } catch (e) {}
+
+        const btnUsd = document.getElementById('btn-usd');
+        const btnInr = document.getElementById('btn-inr');
+        const taxBadge = document.getElementById('inr-tax-badge');
+
+        const activeClasses = ['bg-cyan-500', 'text-slate-950', 'shadow-[0_0_12px_rgba(34,211,238,0.4)]'];
+        const inactiveClasses = ['text-slate-400', 'hover:text-white'];
+
+        if (btnUsd && btnInr) {
+          if (curr === 'INR') {
+            btnInr.classList.add(...activeClasses);
+            btnInr.classList.remove(...inactiveClasses);
+            btnUsd.classList.remove(...activeClasses);
+            btnUsd.classList.add(...inactiveClasses);
+          } else {
+            btnUsd.classList.add(...activeClasses);
+            btnUsd.classList.remove(...inactiveClasses);
+            btnInr.classList.remove(...activeClasses);
+            btnInr.classList.add(...inactiveClasses);
+          }
+        }
+
+        if (taxBadge) {
+          if (curr === 'INR') {
+            taxBadge.classList.remove('hidden');
+          } else {
+            taxBadge.classList.add('hidden');
+          }
+        }
+
+        // Flip all price numbers on index.html
+        document.querySelectorAll('.price-val').forEach(function(el) {
+          const targetVal = curr === 'INR' ? el.getAttribute('data-inr') : el.getAttribute('data-usd');
+          if (targetVal) {
+            el.textContent = targetVal;
+          }
+        });
+
+        // Append &currency=INR or &currency=USD to all Streamlit checkout/tool links
+        document.querySelectorAll('.currency-nav-link').forEach(function(link) {
+          try {
+            const url = new URL(link.href, window.location.origin);
+            url.searchParams.set('currency', curr);
+            link.href = url.toString();
+          } catch (e) {}
+        });
+      };
+
+      // Also attach click listeners directly in case inline onclick is blocked
+      document.addEventListener('DOMContentLoaded', function() {
+        const btnUsd = document.getElementById('btn-usd');
+        const btnInr = document.getElementById('btn-inr');
+
+        if (btnUsd) {
+          btnUsd.addEventListener('click', function() {
+            window.setGenomeCurrency('USD');
+          });
+        }
+        if (btnInr) {
+          btnInr.addEventListener('click', function() {
+            window.setGenomeCurrency('INR');
+          });
+        }
+
+        let savedCurr = null;
+        try {
+          savedCurr = localStorage.getItem('gt_currency');
+        } catch (e) {}
+
+        if (savedCurr) {
+          window.setGenomeCurrency(savedCurr);
+        } else {
+          const tz = Intl.DateTimeFormat().resolvedOptions().timeZone || '';
+          if (tz.indexOf('Calcutta') !== -1 || tz.indexOf('Kolkata') !== -1) {
+            window.setGenomeCurrency('INR');
+          } else {
+            window.setGenomeCurrency('USD');
+          }
+        }
+      });
+    </script>
 </body>
+</html>
 </html>
