@@ -245,29 +245,50 @@
                 <span>All GenoStack services require a 30% non-refundable compute advance. Includes secure Client Portal tracking and 1 revision round.</span>
             </div>
 
-            <!-- COMPUTE LIMITS BANNER (MUST BE ABOVE THE GRID DIV!) -->
-            <div class="compute-limits-horizontal-banner">
-              <div class="limits-banner-title">
-                ⚡ Compute Limits per Tier:
-              </div>
-              <div class="limits-banner-items">
-                <div class="limit-pill">
-                    <strong>T1:</strong> WES (10) / WGS (3) 
-                    <span class="overage price-val" data-usd="+$15-$40/extra" data-inr="+₹499-₹1,299/extra">+$15-$40/extra</span>
+            <!-- COMPUTE LIMITS BANNER (Pure Tailwind + Color-Coded Tier Pills) -->
+            <div class="flex flex-col lg:flex-row items-center justify-center gap-3 mb-12 text-xs sm:text-sm bg-slate-900/80 py-3 px-5 rounded-2xl lg:rounded-full border border-cyan-500/30 mx-auto w-fit shadow-[0_0_25px_rgba(34,211,238,0.08)] backdrop-blur-sm">
+                
+                <!-- Banner Title -->
+                <div class="flex items-center gap-2 text-cyan-400 font-bold tracking-wide pr-1">
+                    <span class="flex h-2 w-2 relative">
+                        <span class="animate-ping absolute inline-flex h-full w-full rounded-full bg-cyan-400 opacity-75"></span>
+                        <span class="relative inline-flex rounded-full h-2 w-2 bg-cyan-500"></span>
+                    </span>
+                    <span>⚡ Base Sample Limits:</span>
                 </div>
-                <div class="limit-pill">
-                    <strong>T2:</strong> RNA-Seq (12) 
-                    <span class="overage price-val" data-usd="+$15/extra" data-inr="+₹499/extra">+$15/extra</span>
+
+                <!-- Color-Coded Tier Badges -->
+                <div class="flex flex-wrap items-center justify-center gap-2.5">
+                    
+                    <!-- T1: Cyan -->
+                    <div class="flex items-center gap-1.5 bg-slate-950/90 border border-cyan-500/30 px-3 py-1.5 rounded-full hover:border-cyan-400 transition">
+                        <span class="text-cyan-400 font-extrabold">T1:</span>
+                        <span class="text-slate-200 font-medium">WES (10) / WGS (3)</span>
+                        <span class="text-[11px] bg-cyan-500/15 text-cyan-300 px-2 py-0.5 rounded-full font-mono price-val" data-usd="+$15-$40/extra" data-inr="+₹499-₹1,299/extra">+$15-$40/extra</span>
+                    </div>
+
+                    <!-- T2: Purple -->
+                    <div class="flex items-center gap-1.5 bg-slate-950/90 border border-purple-500/30 px-3 py-1.5 rounded-full hover:border-purple-400 transition">
+                        <span class="text-purple-400 font-extrabold">T2:</span>
+                        <span class="text-slate-200 font-medium">RNA-Seq (12)</span>
+                        <span class="text-[11px] bg-purple-500/15 text-purple-300 px-2 py-0.5 rounded-full font-mono price-val" data-usd="+$15/extra" data-inr="+₹499/extra">+$15/extra</span>
+                    </div>
+
+                    <!-- T4: Emerald -->
+                    <div class="flex items-center gap-1.5 bg-slate-950/90 border border-emerald-500/30 px-3 py-1.5 rounded-full hover:border-emerald-400 transition">
+                        <span class="text-emerald-400 font-extrabold">T4:</span>
+                        <span class="text-slate-200 font-medium">scRNA-Seq (4)</span>
+                        <span class="text-[11px] bg-emerald-500/15 text-emerald-300 px-2 py-0.5 rounded-full font-mono price-val" data-usd="+$50/extra" data-inr="+₹1,499/extra">+$50/extra</span>
+                    </div>
+
+                    <!-- T5: Amber -->
+                    <div class="flex items-center gap-1.5 bg-slate-950/90 border border-amber-500/30 px-3 py-1.5 rounded-full hover:border-amber-400 transition">
+                        <span class="text-amber-400 font-extrabold">T5:</span>
+                        <span class="text-slate-200 font-medium">16S (50)</span>
+                        <span class="text-[11px] bg-amber-500/15 text-amber-300 px-2 py-0.5 rounded-full font-mono price-val" data-usd="+$2/extra" data-inr="+₹79/extra">+$2/extra</span>
+                    </div>
+
                 </div>
-                <div class="limit-pill">
-                    <strong>T4:</strong> scRNA-Seq (4) 
-                    <span class="overage price-val" data-usd="+$50/extra" data-inr="+₹1,499/extra">+$50/extra</span>
-                </div>
-                <div class="limit-pill">
-                    <strong>T5:</strong> 16S (50) 
-                    <span class="overage price-val" data-usd="+$2/extra" data-inr="+₹79/extra">+$2/extra</span>
-                </div>
-              </div>
             </div>
 
             <!-- NOW OPEN THE 3-COLUMN GRID FOR TIER 1, TIER 2, TIER 4, TIER 5 -->
