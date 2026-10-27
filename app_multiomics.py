@@ -142,12 +142,39 @@ st.markdown("""
     }
 </style>
 
+# --- DUAL CURRENCY STATE INITIALIZATION (USD <-> INR) ---
+query_curr = st.query_params.get("currency", "USD").upper()
+if "currency" not in st.session_state:
+    st.session_state.currency = "INR" if query_curr == "INR" else "USD"
+
+# Sidebar Currency Switcher (keeps URL param and session state in sync)
+with st.sidebar:
+    st.markdown("### 🌍 Region & Currency")
+    selected_curr = st.radio(
+        "Select Pricing Mode:",
+        options=["USD", "INR"],
+        index=1 if st.session_state.currency == "INR" else 0,
+        format_func=lambda x: "🌐 Global ($ USD)" if x == "USD" else "🇮🇳 India (₹ INR • 0% Fee UPI)",
+        horizontal=True,
+    )
+    if selected_curr != st.session_state.currency:
+        st.session_state.currency = selected_curr
+        st.query_params["currency"] = selected_curr
+        st.rerun()
+
+is_inr = (st.session_state.currency == "INR")
+price_display = "₹799 INR" if is_inr else "$40 USD"
+strike_display = "₹2,499" if is_inr else "$100"
+badge_suffix = "0% Fee Direct UPI" if is_inr else "First 20 Clients"
+
+# --- DYNAMIC NAVBAR ---
+st.markdown(f"""
 <div class="gts-navbar">
     <div>
         <a href="https://genometechstudio.github.io" class="gts-brand" style="text-decoration: none;">🧬 GenomeTech Studio</a>
         <span class="gts-sub">| OmicsExpress Automated Bioinformatics Suite</span>
     </div>
-    <span class="gts-badge">🔥 Founding Lab Offer: <s>$100</s> $40 USD (First 20 Clients)</span>
+    <span class="gts-badge">🔥 Founding Lab Offer: <s>{strike_display}</s> {price_display} ({badge_suffix})</span>
 </div>
 """, unsafe_allow_html=True)
 
