@@ -2,7 +2,7 @@ import streamlit as st
 import os
 
 # ==========================================
-# 1. PAGE CONFIGURATION
+# 1. PAGE CONFIGURATION 
 # ==========================================
 st.set_page_config(
     page_title="OmicsExpress Automated Suite | GenomeTech Studio",
