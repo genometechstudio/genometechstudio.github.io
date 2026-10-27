@@ -2,6 +2,7 @@ import streamlit as st
 import requests
 import json
 import os
+import urllib.parse
 import time
 from datetime import datetime
 
@@ -12,6 +13,22 @@ st.set_page_config(
     layout="wide",
     initial_sidebar_state="collapsed"
 )
+
+# ==========================================
+# 🇮🇳 INDIA DIRECT PAYMENT CONFIG (SAFE FOR PUBLIC GITHUB)
+# Remember to copy those 6 lines into app_checkout's Streamlit Secrets too!
+# ==========================================
+INDIA_UPI_ID = st.secrets.get("INDIA_UPI_ID", "BHARATPE2A0G0R8H8A59248@unitype")
+INDIA_PAYEE_NAME = st.secrets.get("INDIA_PAYEE_NAME", "GenomeTech Studio")
+INDIA_BANK_HOLDER = st.secrets.get("INDIA_BANK_HOLDER", "GenomeTech Studio")
+INDIA_BANK_ACC = st.secrets.get("INDIA_BANK_ACC", "Available on Proforma Invoice")
+INDIA_BANK_IFSC = st.secrets.get("INDIA_BANK_IFSC", "Available on Proforma Invoice")
+INDIA_BANK_NAME = st.secrets.get("INDIA_BANK_NAME", "Available on Proforma Invoice")
+
+# --- DUAL CURRENCY STATE INITIALIZATION (USD <-> INR) ---
+query_curr = st.query_params.get("currency", "USD").upper()
+if "currency" not in st.session_state:
+    st.session_state.currency = "INR" if query_curr == "INR" else "USD"
 
 # --- SECURITY: MASTER KEY & ANTI-REUSE GATEWAY ---
 if "checkout_unlocked" not in st.session_state:
@@ -39,58 +56,74 @@ SHEET_ID = "1un359_bf30-82K3C74hH7sX-uSH-jpx1yB12N7cB3v0"
 APPS_SCRIPT_URL = "https://script.google.com/macros/s/AKfycbz-pKMSgW-i32k9XAYEPaybbE5V4MV9Pm2boob3PFW10JwqahSPZjlFD1nIoS31KtLt/exec"
 MAIN_WEBSITE_URL = "https://genometechstudio.github.io"
 
-# --- TIER 1, 2, 4, 5 CONFIGURATION (EXACT MODULES, PRICES & YOUR RAZORPAY LINKS) ---
+# --- TIER 1, 2, 4, 5 CONFIGURATION (SYNCED WITH INDEX.HTML & BUILDER.HTML FOR USD + INR) ---
 TIER_CATALOG = {
     "Tier 1": {
         "name": "Tier 1: Variant Calling & Clinical Annotation",
         "logo": "🛡️",
+        "mrp_usd": 500,
         "full_price": 380,
         "advance_30": 114,
+        "mrp_inr": 16000,
+        "full_price_inr": 11999,
+        "advance_30_inr": 3600,
         "payment_link": "https://rzp.io/rzp/r0bsnBPe",
         "services": [
-            {"name": "FastQC & Trimming", "price": 50},
-            {"name": "BWA-MEM Alignment", "price": 150},
-            {"name": "BCFtools Variant Calling", "price": 100},
-            {"name": "CSV Clinical Annotation", "price": 80},
+            {"name": "FastQC & Trimming", "price": 70, "price_inr": 2499},
+            {"name": "BWA-MEM Alignment", "price": 190, "price_inr": 5999},
+            {"name": "BCFtools Variant Calling", "price": 130, "price_inr": 4499},
+            {"name": "CSV Clinical Annotation", "price": 110, "price_inr": 3003},
         ]
     },
     "Tier 2": {
         "name": "Tier 2: RNA-Seq Transcriptomics Suite",
         "logo": "🧬",
+        "mrp_usd": 550,
         "full_price": 410,
         "advance_30": 123,
+        "mrp_inr": 18000,
+        "full_price_inr": 12999,
+        "advance_30_inr": 3900,
         "payment_link": "https://rzp.io/rzp/ppWhefM",
         "services": [
-            {"name": "STAR Alignment", "price": 150},
-            {"name": "FeatureCounts Quant", "price": 80},
-            {"name": "DESeq2 Differential Math", "price": 120},
-            {"name": "Volcano & Heatmap Visualization", "price": 60},
+            {"name": "STAR Alignment", "price": 190, "price_inr": 5999},
+            {"name": "FeatureCounts Quant", "price": 110, "price_inr": 3499},
+            {"name": "DESeq2 Differential Math", "price": 160, "price_inr": 4999},
+            {"name": "Volcano & Heatmap Visualization", "price": 90, "price_inr": 3503},
         ]
     },
     "Tier 4": {
         "name": "Tier 4: Single-Cell RNA-Seq Profiling",
         "logo": "🔬",
+        "mrp_usd": 600,
         "full_price": 450,
         "advance_30": 135,
+        "mrp_inr": 20000,
+        "full_price_inr": 14999,
+        "advance_30_inr": 4500,
         "payment_link": "https://rzp.io/rzp/33zosVfX",
         "services": [
-            {"name": "Matrix Processing", "price": 150},
-            {"name": "Seurat Clustering", "price": 120},
-            {"name": "Cell Type ID Maps", "price": 100},
-            {"name": "UMAP Projections", "price": 80},
+            {"name": "Matrix Processing", "price": 190, "price_inr": 6499},
+            {"name": "Seurat Clustering", "price": 160, "price_inr": 5499},
+            {"name": "Cell Type ID Maps", "price": 140, "price_inr": 4499},
+            {"name": "UMAP Projections", "price": 110, "price_inr": 3503},
         ]
     },
     "Tier 5": {
         "name": "Tier 5: Microbiome 16S rRNA Profiling",
         "logo": "🦠",
+        "mrp_usd": 550,
         "full_price": 400,
         "advance_30": 120,
+        "mrp_inr": 17500,
+        "full_price_inr": 12499,
+        "advance_30_inr": 3750,
         "payment_link": "https://rzp.io/rzp/3BGvCKo1",
         "services": [
-            {"name": "QIIME2 Execution", "price": 150},
-            {"name": "Taxonomic Classification", "price": 100},
-            {"name": "Alpha/Beta Diversity", "price": 80},
-            {"name": "Abundance Charts", "price": 70},
+            {"name": "QIIME2 Execution", "price": 190, "price_inr": 5999},
+            {"name": "Taxonomic Classification", "price": 140, "price_inr": 4499},
+            {"name": "Alpha/Beta Diversity", "price": 120, "price_inr": 3999},
+            {"name": "Abundance Charts", "price": 100, "price_inr": 3003},
         ]
     }
 }
