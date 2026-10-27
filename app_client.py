@@ -3,6 +3,7 @@ import streamlit.components.v1 as components
 import pandas as pd
 import requests
 import json
+import urllib.parse
 import time
 import io
 import re
@@ -873,48 +874,79 @@ else:
     exact_rows = df_live[(email_series == email_clean) & ((cid_series == id_clean) | (pid_series == id_clean))]
     active_row = exact_rows.iloc[-1] if not exact_rows.empty else client_all_rows.iloc[-1]
 
+    # ==========================================
+# 🇮🇳 INDIA DIRECT PAYMENT CONFIG (SAFE FOR PUBLIC GITHUB)
+# Real bank details are stored privately in Streamlit Secrets!
+# ==========================================
+INDIA_UPI_ID = st.secrets.get("INDIA_UPI_ID", "BHARATPE2A0G0R8H8A59248@unitype")
+INDIA_PAYEE_NAME = st.secrets.get("INDIA_PAYEE_NAME", "GenomeTech Studio")
+INDIA_BANK_HOLDER = st.secrets.get("INDIA_BANK_HOLDER", "GenomeTech Studio")
+INDIA_BANK_ACC = st.secrets.get("INDIA_BANK_ACC", "Available on Proforma Invoice")
+INDIA_BANK_IFSC = st.secrets.get("INDIA_BANK_IFSC", "Available on Proforma Invoice")
+INDIA_BANK_NAME = st.secrets.get("INDIA_BANK_NAME", "Available on Proforma Invoice")
+
     # Extract live columns from Sheet
-    client_id_val = get_col_val(active_row, ["Client ID"], st.session_state.client_id.upper())
-    project_id_val = get_col_val(active_row, ["Project ID"], client_id_val)
-    tier_val = get_col_val(active_row, ["Tier Selected", "Tier"], "Custom Bioinformatics Pipeline")
-    modules_val = get_col_val(active_row, ["Modules Chosen", "Module"], "Standard Omics Execution")
-    status_val = get_col_val(active_row, ["Status"], "In Progress")
-    advance_status = get_col_val(active_row, ["Advance Paid (30%)"], "Paid")
-    
-    # Calculate Expected 70% Amount Base on Sheet Data
-    try:
-        total_usd = float(re.sub(r'[^\d.]', '', str(get_col_val(active_row, ["Total Price"], "0"))))
-    except ValueError:
-        total_usd = 0.0
-    expected_70_cents = int((total_usd * 0.70) * 100)
-    if expected_70_cents <= 0:
-        expected_70_cents = 100  # Fallback to prevent free unauthorized unlocks if sheet is blank
+client_id_val = get_col_val(active_row, ["Client ID"], st.session_state.client_id.upper())
+project_id_val = get_col_val(active_row, ["Project ID"], client_id_val)
+tier_val = get_col_val(active_row, ["Tier Selected", "Tier"], "Custom Bioinformatics Pipeline")
+modules_val = get_col_val(active_row, ["Modules Chosen", "Module"], "Standard Omics Execution")
+status_val = get_col_val(active_row, ["Status"], "In Progress")
+advance_status = get_col_val(active_row, ["Advance Paid (30%)"], "Paid")
 
-    raw_progress = get_col_val(active_row, ["Progress Percent", "Progress"], "0")
-    try:
-        progress_val = int(float(str(raw_progress).replace("%", "").strip()))
-    except Exception:
-        progress_val = 0
+# --- AUTO-DETECT CURRENCY (INR vs USD) FROM GOOGLE SHEET OR URL ---
+raw_total_str = str(get_col_val(active_row, ["Total Price"], "0"))
+sheet_currency_col = str(get_col_val(active_row, ["Currency"], "")).upper()
+url_currency = st.query_params.get("currency", "").upper()
 
-    initial_link = get_col_val(active_row, ["Initial Deliverables Link", "Deliverable Link"], "")
-    
-    # Dynamically pull the 70% payment link from the Google Sheet column
-    payment_70_link = get_col_val(active_row, ["Remaining Payment (70%) Link"], "")
+# It is an INR project if "Total Price" contains ₹ / INR, or "Currency" column is INR, or URL has ?currency=INR
+is_inr_project = (
+    ("₹" in raw_total_str)
+    or ("INR" in raw_total_str.upper())
+    or ("RS" in raw_total_str.upper())
+    or (sheet_currency_col == "INR")
+    or (url_currency == "INR")
+)
 
-    payment_70_status = get_col_val(active_row, ["70% Payment Status"], "")
-    final_link = get_col_val(active_row, ["Final Deliverables Link"], "")
-    redo_req_existing = get_col_val(active_row, ["Redo Request Text"], "")
-    feedback_existing = get_col_val(active_row, ["Client Feedback"], "")
-    redo_file_link = get_col_val(active_row, ["Redo File Link", "Redo Deliverable Link", "Redo Deliverables Link"], "")
+# Calculate Expected 30% & 70% Amounts Based on Sheet Data
+try:
+    total_amount = float(re.sub(r'[^\d.]', '', raw_total_str))
+except ValueError:
+    total_amount = 0.0
 
-    # --- MASTER CODE IN SHEET COLUMNS DETECTION ---
-    master_in_initial = has_master_code(initial_link)
-    master_in_final = has_master_code(final_link) or has_master_code(payment_70_status)
-    master_in_redo = has_master_code(redo_file_link)
+# Keep total_usd variable name for backward compatibility with your existing Stripe/Razorpay logic
+total_usd = total_amount
+expected_70_amount = round(total_amount * 0.70, 2)
+expected_70_inr = int(round(total_amount * 0.70))
 
-    if master_in_initial or master_in_final or master_in_redo or bool(initial_link or final_link or redo_file_link):
-        progress_val = 100
-    progress_val = max(0, min(100, progress_val))
+expected_70_cents = int((total_usd * 0.70) * 100)
+if expected_70_cents <= 0:
+    expected_70_cents = 100  # Fallback to prevent free unauthorized unlocks if sheet is blank
+
+raw_progress = get_col_val(active_row, ["Progress Percent", "Progress"], "0")
+try:
+    progress_val = int(float(str(raw_progress).replace("%", "").strip()))
+except Exception:
+    progress_val = 0
+
+initial_link = get_col_val(active_row, ["Initial Deliverables Link", "Deliverable Link"], "")
+
+# Dynamically pull the 70% payment link from the Google Sheet column
+payment_70_link = get_col_val(active_row, ["Remaining Payment (70%) Link"], "")
+
+payment_70_status = get_col_val(active_row, ["70% Payment Status"], "")
+final_link = get_col_val(active_row, ["Final Deliverables Link"], "")
+redo_req_existing = get_col_val(active_row, ["Redo Request Text"], "")
+feedback_existing = get_col_val(active_row, ["Client Feedback"], "")
+redo_file_link = get_col_val(active_row, ["Redo File Link", "Redo Deliverable Link", "Redo Deliverables Link"], "")
+
+# --- MASTER CODE IN SHEET COLUMNS DETECTION ---
+master_in_initial = has_master_code(initial_link)
+master_in_final = has_master_code(final_link) or has_master_code(payment_70_status)
+master_in_redo = has_master_code(redo_file_link)
+
+if master_in_initial or master_in_final or master_in_redo or bool(initial_link or final_link or redo_file_link):
+    progress_val = 100
+progress_val = max(0, min(100, progress_val))
 
     # --- HIDE STREAMLIT'S DEFAULT SIDEBAR NAVIGATION ---
     st.markdown(
@@ -1035,10 +1067,41 @@ else:
             )
 
             if not is_unlocked:
-                if payment_70_link.startswith("http"):
-                    pay_button_html = f'<a href="{payment_70_link}" target="_blank" rel="noopener noreferrer" class="pay-btn">💳 Pay Remaining 70% Balance Now (${(expected_70_cents/100):.2f}) ↗</a>'
+                # --- DUAL CURRENCY PAYMENT GATE (INR DIRECT UPI/NEFT vs USD RAZORPAY) ---
+                if is_inr_project:
+                    import urllib.parse
+                    upi_note = f"GTS 70Pct {project_id_val}"
+                    upi_uri = (
+                        f"upi://pay?pa={urllib.parse.quote(INDIA_UPI_ID)}"
+                        f"&pn={urllib.parse.quote(INDIA_PAYEE_NAME)}"
+                        f"&am={expected_70_inr}"
+                        f"&cu=INR"
+                        f"&tn={urllib.parse.quote(upi_note)}"
+                    )
+                    qr_img_url = f"https://api.qrserver.com/v1/create-qr-code/?size=220x220&margin=10&data={urllib.parse.quote(upi_uri)}"
+
+                    pay_button_html = (
+                        f'<div style="background:rgba(15,23,42,0.9); border:1px solid rgba(16,185,129,0.4); border-radius:14px; padding:18px; margin:14px 0; text-align:center;">'
+                        f'<div style="color:#34d399; font-weight:800; font-size:1.05rem; margin-bottom:4px;">🇮🇳 Pay Remaining 70% Balance: ₹{expected_70_inr:,} INR</div>'
+                        f'<div style="color:#94a3b8; font-size:0.78rem; margin-bottom:12px;">✓ 0% Gateway Fee via Direct UPI / NEFT • ✓ 0% GST (Exempt under ₹20L Threshold)</div>'
+                        f'<img src="{qr_img_url}" alt="UPI QR Code" style="width:190px; height:190px; border-radius:12px; border:3px solid #10b981; padding:6px; background:#ffffff; margin:0 auto 10px auto; display:block;">'
+                        f'<div style="color:#e2e8f0; font-size:0.84rem; font-family:monospace; background:rgba(255,255,255,0.05); display:inline-block; padding:5px 12px; border-radius:6px; border:1px solid rgba(255,255,255,0.1); margin-bottom:6px;">'
+                        f'UPI ID: <b>{INDIA_UPI_ID}</b>'
+                        f'</div>'
+                        f'<div style="color:#94a3b8; font-size:0.76rem;">Scan with Google Pay, PhonePe, Paytm, or BHIM. Amount (<b>₹{expected_70_inr:,}</b>) is pre-filled automatically.</div>'
+                        f'</div>'
+                    )
+                    unlock_instruction_text = "After completing your UPI or NEFT transfer, copy your <b>12-digit UPI UTR / Reference No.</b> (or Payment ID) and paste it below to immediately unlock your deliverables."
+                    input_label_text = f"Paste 12-Digit UPI UTR / Reference No. (₹{expected_70_inr:,} INR) or Payment ID"
+                    input_placeholder_text = "e.g., 430189234512 (12-digit UPI UTR) or pay_Pxyz... or GTS-DEMO-..."
                 else:
-                    pay_button_html = '<div style="background:rgba(251,191,36,0.15); border:1px solid #fbbf24; color:#fde68a; padding:12px; border-radius:10px; text-align:center; font-weight:700; margin:10px 0;">⚠️ Your 70% balance payment link is being generated by our team. Please check back shortly!</div>'
+                    if payment_70_link.startswith("http"):
+                        pay_button_html = f'<a href="{payment_70_link}" target="_blank" rel="noopener noreferrer" class="pay-btn">💳 Pay Remaining 70% Balance Now (${(expected_70_cents/100):.2f} USD) ↗</a>'
+                    else:
+                        pay_button_html = '<div style="background:rgba(251,191,36,0.15); border:1px solid #fbbf24; color:#fde68a; padding:12px; border-radius:10px; text-align:center; font-weight:700; margin:10px 0;">⚠️ Your 70% balance payment link is being generated by our team. Please check back shortly!</div>'
+                    unlock_instruction_text = "After completing payment, copy your <b>Payment ID</b> and paste it in the box below to immediately unlock your deliverable files."
+                    input_label_text = "Paste Payment ID to Unlock Deliverable Files"
+                    input_placeholder_text = "e.g., pay_Pxyz123456789 or GTS-DEMO-..."
 
                 locked_card_html = (
                     f'<div class="portal-card">'
@@ -1046,26 +1109,38 @@ else:
                     f'<img src="{preview_img_url}" class="locked-preview-img" alt="Encrypted Preview">'
                     f'<div class="locked-preview-overlay">'
                     f'<span style="background:rgba(16,185,129,0.25); border:1px solid #10b981; color:#6ee7b7; padding:4px 12px; border-radius:999px; font-size:0.78rem; font-weight:700; margin-bottom:8px;">🔒 100% COMPLETE — PREVIEW LOCKED</span>'
-                    f'<div style="color:#ffffff; font-weight:800; font-size:1.05rem; max-width:480px;">Your file is complete! To unlock full resolution files, please pay the remaining 70% balance below and copy your Payment ID to unlock.</div>'
+                    f'<div style="color:#ffffff; font-weight:800; font-size:1.05rem; max-width:480px;">Your file is complete! To unlock full resolution files, please pay the remaining 70% balance below and enter your reference number to unlock.</div>'
                     f'</div>'
                     f'</div>'
                     f'{pay_button_html}'
-                    f'<div style="font-size:0.8rem; color:#94a3b8; text-align:center; margin-bottom:8px;">After completing payment, copy your <b>Payment ID</b> and paste it in the box below to immediately unlock your deliverable files.</div>'
+                    f'<div style="font-size:0.8rem; color:#94a3b8; text-align:center; margin-bottom:8px;">{unlock_instruction_text}</div>'
                     f'</div>'
                 )
                 st.markdown(locked_card_html, unsafe_allow_html=True)
 
+                # Optional NEFT / Bank Transfer Details Expander for Indian University Grants
+                if is_inr_project:
+                    with st.expander("🏦 Paying via University Grant / Direct NEFT / IMPS? View Bank Details"):
+                        st.markdown(f"""
+                        * **Beneficiary Name:** `{INDIA_BANK_HOLDER}`
+                        * **Bank Name:** `{INDIA_BANK_NAME}`
+                        * **Account Number:** `{INDIA_BANK_ACC}`
+                        * **IFSC Code:** `{INDIA_BANK_IFSC}`
+                        * **Exact 70% Balance Due:** `₹{expected_70_inr:,} INR` *(0% GST — Exempt under ₹20L threshold)*
+                        """)
+
                 with st.form("unlock_deliverable_form"):
                     unlock_code_in = st.text_input(
-                        "Paste Payment ID to Unlock Deliverable Files",
-                        placeholder="e.g., pay_Pxyz123456789 or GTS-DEMO-..."
+                        input_label_text,
+                        placeholder=input_placeholder_text
                     )
                     unlock_submit = st.form_submit_button("🔓 Verify & Unlock Full Files", use_container_width=True)
 
                     if unlock_submit:
                         entered_key = unlock_code_in.strip()
                         if not entered_key:
-                            st.warning("Please enter a key.")
+                            st.warning("Please enter a valid Payment ID or 12-digit UPI UTR.")
+
                         # 1. INFINITE MASTER KEY CHECK
                         elif entered_key == "GTS-MASTER-UNLIMITED" or has_master_code(entered_key):
                             st.session_state.unlocked_projects.add(project_id_val)
@@ -1081,34 +1156,51 @@ else:
                                 st.session_state.unlocked_projects.add(project_id_val)
                                 st.rerun()
 
-                        # 3. RAZORPAY API VERIFICATION (Amount-Checked & One-Time Use)
+                        # 3. INDIAN DIRECT UPI UTR (12-DIGIT RRN) OR NEFT UTR VERIFICATION (One-Time Use)
+                        elif is_inr_project and (
+                            (entered_key.isdigit() and len(entered_key) == 12 and entered_key[0] != "0")
+                            or (len(entered_key) >= 11 and entered_key[:4].isalpha() and any(c.isdigit() for c in entered_key))
+                        ):
+                            burned, burn_date = is_key_burned(entered_key)
+                            if burned:
+                                st.error(f"❌ Security Lock: This UTR / Reference Number ({entered_key}) was already claimed on {burn_date}.")
+                            else:
+                                burn_key(entered_key)
+                                st.session_state.unlocked_projects.add(project_id_val)
+                                st.rerun()
+
+                        # 4. RAZORPAY API VERIFICATION (Supports Both USD & INR Receipts)
                         elif entered_key.startswith("pay_") and len(entered_key) >= 14:
                             burned, burn_date = is_key_burned(entered_key)
                             if burned:
                                 st.error(f"❌ Security Lock: This Receipt ID was already claimed on {burn_date}. Keys cannot be shared.")
                             else:
                                 try:
-                                    # Authenticate with Razorpay Servers
                                     client = razorpay.Client(auth=(st.secrets["razorpay"]["key_id"], st.secrets["razorpay"]["key_secret"]))
                                     payment = client.payment.fetch(entered_key)
                                     
-                                    # Verify the transaction was successful
                                     if payment["status"] in ["captured", "authorized"]:
-                                        # Verify exact amount matches expected 70% calculation (allowing $1 variance)
-                                        if payment["amount"] >= (expected_70_cents - 100) and payment["currency"] == "USD":
+                                        paid_curr = payment.get("currency", "USD").upper()
+                                        if paid_curr == "USD" and payment["amount"] >= (expected_70_cents - 100):
+                                            burn_key(entered_key)
+                                            st.session_state.unlocked_projects.add(project_id_val)
+                                            st.rerun()
+                                        elif paid_curr == "INR" and payment["amount"] >= ((expected_70_inr - 50) * 100):
                                             burn_key(entered_key)
                                             st.session_state.unlocked_projects.add(project_id_val)
                                             st.rerun()
                                         else:
-                                            st.error(f"❌ Invalid Payment Amount. Expected roughly ${(expected_70_cents/100):.2f} USD, but found {payment['amount']/100:.2f} {payment['currency']}.")
+                                            st.error(f"❌ Invalid Payment Amount. Found {payment['amount']/100:.2f} {paid_curr}.")
                                     else:
                                         st.error(f"❌ Payment Status: {payment['status'].upper()}. This transaction is not complete.")
-                                        
                                 except Exception as e:
                                     st.error("❌ Invalid Payment ID. The bank API could not verify this transaction.")
-                                    
+
                         else:
-                            st.error("❌ Invalid Key Format or Unauthorized Demo Key.")
+                            if is_inr_project:
+                                st.error("❌ Invalid Format. Please enter a valid 12-digit UPI UTR number (e.g., 430189234512), NEFT UTR, or Razorpay Payment ID.")
+                            else:
+                                st.error("❌ Invalid Key Format or Unauthorized Demo Key.")
 
             else:
                 raw_deliverable = final_link if final_link else initial_link
