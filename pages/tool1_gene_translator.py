@@ -443,14 +443,25 @@ if df_input is not None:
             }
 
 # ==========================================
-# DISPLAY PREVIEW, PAYWALL, DOWNLOAD & REMARKS (DUAL CURRENCY USD + INR)
+# 🇮🇳 INDIA DIRECT PAYMENT CONFIG (PULLS PRIVATELY FROM STREAMLIT SECRETS)
+# Safe for Public GitHub! Make sure these 6 keys are in this app's Streamlit Secrets.
+# ==========================================
+INDIA_UPI_ID = st.secrets.get("INDIA_UPI_ID", "BHARATPE2A0G0R8H8A59248@unitype")
+INDIA_PAYEE_NAME = st.secrets.get("INDIA_PAYEE_NAME", "GenomeTech Studio")
+INDIA_BANK_HOLDER = st.secrets.get("INDIA_BANK_HOLDER", "GenomeTech Studio")
+INDIA_BANK_ACC = st.secrets.get("INDIA_BANK_ACC", "Available on Proforma Invoice")
+INDIA_BANK_IFSC = st.secrets.get("INDIA_BANK_IFSC", "Available on Proforma Invoice")
+INDIA_BANK_NAME = st.secrets.get("INDIA_BANK_NAME", "Available on Proforma Invoice")
+
+# ==========================================
+# DISPLAY PREVIEW, PAYWALL, DOWNLOAD & REMARKS (TOOL #1 — DUAL CURRENCY USD + INR)
 # ==========================================
 if "result_df_t1" in st.session_state:
     res_df = st.session_state["result_df_t1"]
     unmap_df = st.session_state["unmapped_df_t1"]
     stats = st.session_state["stats_t1"]
 
-    # Ensure currency is available
+    # Ensure currency state is initialized
     if "currency" not in st.session_state:
         url_curr = str(st.query_params.get("currency", "USD")).strip().upper()
         st.session_state.currency = "INR" if url_curr == "INR" else "USD"
@@ -497,7 +508,7 @@ if "result_df_t1" in st.session_state:
         if is_inr:
             paywall_price_display = "₹799 INR"
             paywall_strike_display = "₹2,499"
-            paywall_desc = f"Your first 5 rows are verified above. Complete the ₹799 OmicsExpress checkout via Direct UPI or NEFT to immediately download the complete merged table with genomic coordinates, Entrez/UniProt IDs, and unmapped ID audit report."
+            paywall_desc = "Your first 5 rows are verified above. Complete the <b>₹799 INR</b> OmicsExpress checkout via Direct UPI or NEFT to immediately download the complete merged table with genomic coordinates, Entrez/UniProt IDs, and unmapped ID audit report."
             
             # Generate BharatPe UPI QR for ₹799
             import urllib.parse
@@ -541,7 +552,7 @@ if "result_df_t1" in st.session_state:
         else:
             paywall_price_display = "$40 USD"
             paywall_strike_display = "$100 USD"
-            paywall_desc = f"Your first 5 rows are verified above. Complete the $40 OmicsExpress checkout to immediately download the complete merged table with genomic coordinates, Entrez/UniProt IDs, and unmapped ID audit report."
+            paywall_desc = "Your first 5 rows are verified above. Complete the $40 OmicsExpress checkout to immediately download the complete merged table with genomic coordinates, Entrez/UniProt IDs, and unmapped ID audit report."
             
             st.markdown(f"""
             <div class="paywall-overlay">
@@ -559,92 +570,102 @@ if "result_df_t1" in st.session_state:
         # --- START API & ANTI-REUSE GATEWAY UPGRADE ---
         u_col1, u_col2, u_col3 = st.columns([1, 2, 1])
         with u_col2:
-            input_label_str = "🔑 Completed payment via UPI or Razorpay? Paste your 12-digit UPI UTR or Payment ID:" if is_inr else "🔑 Completed payment? Paste your Razorpay Payment ID or Founder Key:"
-            input_placeholder_str = "e.g., 430189234512 (UPI UTR) or pay_XXXXXXXXXXXXXX or GTS-DEMO-..." if is_inr else "pay_XXXXXXXXXXXXXX or GTS-DEMO-..."
+            input_label_t1 = (
+                "🔑 Completed payment via UPI or Razorpay? Paste your 12-digit UPI UTR or Payment ID:"
+                if is_inr
+                else "🔑 Completed payment? Paste your Razorpay Payment ID or Founder Key:"
+            )
+            input_placeholder_t1 = (
+                "e.g., 430189234512 (UPI UTR) or pay_XXXXXXXXXXXXXX or GTS-DEMO-..."
+                if is_inr
+                else "pay_XXXXXXXXXXXXXX or GTS-DEMO-..."
+            )
             
             entered_key = st.text_input(
-                input_label_str,
-                placeholder=input_placeholder_str
+                input_label_t1,
+                placeholder=input_placeholder_t1,
+                key="unlock_input_t1"
             ).strip()
             
-            if st.button("Unlock Full Download", use_container_width=True):
+            if st.button("Unlock Full Download", key="unlock_btn_t1", use_container_width=True):
                 if not entered_key:
-                    st.warning("Please enter a key or UTR reference.")
+                    st.warning("Please enter a key or 12-digit UPI UTR.")
                 else:
-                    try:
-                        import razorpay
-                        DB_FILE = "used_keys.json"
-                        AUTHORIZED_DEMO_KEYS = ["GTS-DEMO-BRAJ", "GTS-DEMO-VAN", "GTS-DEMO-RADHE"]
-                        
-                        def is_key_burned(key_to_check):
-                            if not os.path.exists(DB_FILE):
-                                with open(DB_FILE, 'w') as f:
-                                    json.dump({"used_keys": {}}, f)
-                            with open(DB_FILE, 'r') as f:
-                                data = json.load(f)
-                            return key_to_check in data["used_keys"], data.get("used_keys", {}).get(key_to_check, "")
-                            
-                        def burn_key(key_to_burn):
-                            with open(DB_FILE, 'r') as f:
-                                data = json.load(f)
-                            data["used_keys"][key_to_burn] = time.strftime("%Y-%m-%d %H:%M:%S")
+                    import json
+                    import os
+                    import time
+                    
+                    DB_FILE = "used_keys.json"
+                    AUTHORIZED_DEMO_KEYS = ["GTS-DEMO-BRAJ", "GTS-DEMO-VAN", "GTS-DEMO-RADHE"]
+                    
+                    def is_key_burned(key_to_check):
+                        if not os.path.exists(DB_FILE):
                             with open(DB_FILE, 'w') as f:
-                                json.dump(data, f)
+                                json.dump({"used_keys": {}}, f)
+                        with open(DB_FILE, 'r') as f:
+                            data = json.load(f)
+                        return key_to_check in data["used_keys"], data.get("used_keys", {}).get(key_to_check, "")
+                        
+                    def burn_key(key_to_burn):
+                        with open(DB_FILE, 'r') as f:
+                            data = json.load(f)
+                        data["used_keys"][key_to_burn] = time.strftime("%Y-%m-%d %H:%M:%S")
+                        with open(DB_FILE, 'w') as f:
+                            json.dump(data, f)
 
-                        # 1. INFINITE MASTER KEY CHECK
-                        if entered_key == "GTS-MASTER-UNLIMITED" or has_master_code(entered_key):
+                    # 1. INFINITE MASTER KEY CHECK
+                    if entered_key == "GTS-MASTER-UNLIMITED":
+                        st.session_state["is_unlocked_t1"] = True
+                        st.rerun()
+
+                    # 2. AUTHORIZED DEMO KEY CHECK (One-Time Use)
+                    elif entered_key in AUTHORIZED_DEMO_KEYS:
+                        burned, burn_date = is_key_burned(entered_key)
+                        if burned:
+                            st.error(f"❌ Security Lock: This Demo Key was already claimed on {burn_date}.")
+                        else:
+                            burn_key(entered_key)
                             st.session_state["is_unlocked_t1"] = True
                             st.rerun()
 
-                        # 2. AUTHORIZED DEMO KEY CHECK (One-Time Use)
-                        elif entered_key in AUTHORIZED_DEMO_KEYS:
-                            burned, burn_date = is_key_burned(entered_key)
-                            if burned:
-                                st.error(f"❌ Security Lock: This Demo Key was already claimed on {burn_date}.")
-                            else:
-                                burn_key(entered_key)
-                                st.session_state["is_unlocked_t1"] = True
-                                st.rerun()
-
-                        # 3. INDIAN DIRECT UPI UTR (12-DIGIT RRN) OR NEFT VERIFICATION
-                        elif is_inr and (
-                            (entered_key.isdigit() and len(entered_key) == 12 and entered_key[0] != "0")
-                            or (len(entered_key) >= 11 and entered_key[:4].isalpha() and any(c.isdigit() for c in entered_key))
-                        ):
-                            burned, burn_date = is_key_burned(entered_key)
-                            if burned:
-                                st.error(f"❌ Security Lock: This UTR / Reference ({entered_key}) was already claimed on {burn_date}.")
-                            else:
-                                burn_key(entered_key)
-                                st.session_state["is_unlocked_t1"] = True
-                                st.rerun()
-
-                        # 4. RAZORPAY API VERIFICATION (Amount-Checked & One-Time Use)
-                        elif entered_key.startswith("pay_") and len(entered_key) >= 14:
-                            burned, burn_date = is_key_burned(entered_key)
-                            if burned:
-                                st.error(f"❌ Security Lock: This Receipt ID was already claimed on {burn_date}. Keys cannot be shared.")
-                            else:
-                                try:
-                                    client = razorpay.Client(auth=(st.secrets["razorpay"]["key_id"], st.secrets["razorpay"]["key_secret"]))
-                                    payment = client.payment.fetch(entered_key)
-                                    
-                                    if payment["status"] in ["captured", "authorized"]:
-                                        # Check for $40 USD (4000 cents) OR ₹799 INR (79900 paise)
-                                        if (payment["amount"] >= 4000 and payment["currency"] == "USD") or (payment["amount"] >= 79900 and payment["currency"] == "INR"):
-                                            burn_key(entered_key)
-                                            st.session_state["is_unlocked_t1"] = True
-                                            st.rerun()
-                                        else:
-                                            st.error(f"❌ Invalid Payment Amount. Expected $40.00 USD or ₹799 INR, but found {payment['amount']/100:.2f} {payment['currency']}.")
-                                    else:
-                                        st.error(f"❌ Payment Status: {payment['status'].upper()}. This transaction is not complete.")
-                                except Exception as e:
-                                    st.error("❌ Invalid Payment ID. The bank API could not verify this transaction.")
+                    # 3. INDIAN DIRECT UPI UTR (12-DIGIT RRN) OR NEFT VERIFICATION (One-Time Use)
+                    elif is_inr and (
+                        (entered_key.isdigit() and len(entered_key) == 12 and entered_key[0] != "0")
+                        or (len(entered_key) >= 11 and entered_key[:4].isalpha() and any(c.isdigit() for c in entered_key))
+                    ):
+                        burned, burn_date = is_key_burned(entered_key)
+                        if burned:
+                            st.error(f"❌ Security Lock: This UTR / Reference ({entered_key}) was already claimed on {burn_date}.")
                         else:
-                            st.error("❌ Invalid Key Format, UPI UTR, or Unauthorized Demo Key.")
-                    except ImportError:
-                        st.error("Razorpay module not found. Please ensure 'razorpay' is in your requirements.txt")
+                            burn_key(entered_key)
+                            st.session_state["is_unlocked_t1"] = True
+                            st.rerun()
+
+                    # 4. RAZORPAY API VERIFICATION (Amount-Checked & One-Time Use)
+                    elif entered_key.startswith("pay_") and len(entered_key) >= 14:
+                        burned, burn_date = is_key_burned(entered_key)
+                        if burned:
+                            st.error(f"❌ Security Lock: This Receipt ID was already claimed on {burn_date}. Keys cannot be shared.")
+                        else:
+                            try:
+                                import razorpay
+                                client = razorpay.Client(auth=(st.secrets["razorpay"]["key_id"], st.secrets["razorpay"]["key_secret"]))
+                                payment = client.payment.fetch(entered_key)
+                                
+                                if payment["status"] in ["captured", "authorized"]:
+                                    # Check for $40 USD (4000 cents) OR ₹799 INR (79900 paise)
+                                    if (payment["amount"] >= 4000 and payment["currency"] == "USD") or (payment["amount"] >= 79900 and payment["currency"] == "INR"):
+                                        burn_key(entered_key)
+                                        st.session_state["is_unlocked_t1"] = True
+                                        st.rerun()
+                                    else:
+                                        st.error(f"❌ Invalid Payment Amount. Expected $40.00 USD or ₹799 INR, but found {payment['amount']/100:.2f} {payment['currency']}.")
+                                else:
+                                    st.error(f"❌ Payment Status: {payment['status'].upper()}. This transaction is not complete.")
+                            except Exception as e:
+                                st.error("❌ Invalid Payment ID. The bank API could not verify this transaction.")
+                    else:
+                        st.error("❌ Invalid Key Format, UPI UTR, or Unauthorized Demo Key.")
         # --- END API & ANTI-REUSE GATEWAY UPGRADE ---
 
     st.markdown("---")
@@ -659,9 +680,10 @@ if "result_df_t1" in st.session_state:
     )
 
     with st.expander("💬 Send Remarks or Questions Directly to GenomeTech Team (via Email)"):
-        client_email = st.text_input("Your Lab / Institutional Email:")
-        client_remark = st.text_area("Your Remarks or Questions about this Run:")
-        if st.button("Prepare Direct Email"):
+        client_email = st.text_input("Your Lab / Institutional Email:", key="rem_email_t1")
+        client_remark = st.text_area("Your Remarks or Questions about this Run:", key="rem_text_t1")
+        if st.button("Prepare Direct Email", key="rem_btn_t1"):
+            import urllib.parse
             subject = urllib.parse.quote(f"OmicsExpress Tool #1 Remark - {client_email}")
             body = urllib.parse.quote(
                 f"Client Email: {client_email}\n"
