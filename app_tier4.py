@@ -172,29 +172,43 @@ with top_right:
 
 st.markdown("<hr style='border-color: rgba(239, 68, 68, 0.3); margin: 0.85rem 0 1.2rem 0;'>", unsafe_allow_html=True)
 
+# --- DUAL CURRENCY CHECK (Syncs with ?currency=INR or session state) ---
+if "currency" not in st.session_state:
+    url_curr = str(st.query_params.get("currency", "USD")).strip().upper()
+    st.session_state.currency = "INR" if url_curr == "INR" else "USD"
+
+is_inr = (st.session_state.get("currency", "USD") == "INR")
+
+# Dynamic Module & Bundle Price Labels for Tier 4 (Single-Cell Profiling)
+t4_bundle_price = "₹14,999" if is_inr else "$450"
+t4_m1_price = "₹6,499" if is_inr else "$190"  # Module 1: Matrix Processing
+t4_m2_price = "₹5,499" if is_inr else "$160"  # Module 2: Seurat Clustering
+t4_m3_price = "₹4,499" if is_inr else "$140"  # Module 3: Cell Type ID Maps
+t4_m4_price = "₹3,503" if is_inr else "$110"  # Module 4: UMAP Projections
+
 # --- CONCISE OVERVIEW: WHAT WE DELIVER + FILES & LANGUAGES USED ---
 st.markdown(
-    '<div class="t4-card" style="background:linear-gradient(90deg, rgba(12,25,52,0.94), rgba(127,29,29,0.28));">'
-    '<div style="font-size:1.1rem; font-weight:800; color:#f87171; margin-bottom:6px;">🔬 What You Receive in Tier 4 (Live Demo Dataset: 10x Genomics Single-Cell PBMCs)</div>'
-    '<div style="font-size:0.9rem; color:#e2e8f0; line-height:1.55; margin-bottom:14px;">'
-    'This live interactive dashboard demonstrates the exact output generated in our <b>Tier 4 Single-Cell Profiling Bundle ($450)</b>. '
-    'Starting from raw 10x Genomics reads, we perform matrix processing, quality filtering, Seurat graph-based clustering, cell type ID mapping, and 2D UMAP projections.'
-    '</div>'
-    '<div style="display:grid; grid-template-columns:repeat(auto-fit, minmax(210px, 1fr)); gap:10px; font-size:0.83rem;">'
-    '<div style="background:rgba(4,8,18,0.65); border:1px solid rgba(239,68,68,0.3); padding:10px 12px; border-radius:10px;">'
-    '<b style="color:#fca5a5;">📂 Matrix Processing:</b><br><span style="color:#cbd5e1;">Bcl/Fastq ➔ Filtered count matrix <code>.h5</code> & barcodes</span>'
-    '</div>'
-    '<div style="background:rgba(4,8,18,0.65); border:1px solid rgba(59,130,246,0.35); padding:10px 12px; border-radius:10px;">'
-    '<b style="color:#93c5fd;">🧬 Seurat Clustering:</b><br><span style="color:#cbd5e1;">PCA reduction, SNN graph & Leiden cluster markers</span>'
-    '</div>'
-    '<div style="background:rgba(4,8,18,0.65); border:1px solid rgba(239,68,68,0.3); padding:10px 12px; border-radius:10px;">'
-    '<b style="color:#fca5a5;">🗺️ Cell Maps & UMAP:</b><br><span style="color:#cbd5e1;">Annotated Cell Type Metadata <code>.csv</code> + UMAP plots</span>'
-    '</div>'
-    '<div style="background:rgba(4,8,18,0.65); border:1px solid rgba(59,130,246,0.35); padding:10px 12px; border-radius:10px;">'
-    '<b style="color:#93c5fd;">💻 Languages & Stack:</b><br><span style="color:#cbd5e1;"><code>Python</code> (Scanpy), <code>R</code> (Seurat v5), & Cell Ranger</span>'
-    '</div>'
-    '</div>'
-    '</div>',
+    f'<div class="t4-card" style="background:linear-gradient(90deg, rgba(12,25,52,0.94), rgba(127,29,29,0.28));">'
+    f'<div style="font-size:1.1rem; font-weight:800; color:#f87171; margin-bottom:6px;">🔬 What You Receive in Tier 4 (Live Demo Dataset: 10x Genomics Single-Cell PBMCs)</div>'
+    f'<div style="font-size:0.9rem; color:#e2e8f0; line-height:1.55; margin-bottom:14px;">'
+    f'This live interactive dashboard demonstrates the exact output generated in our <b>Tier 4 Single-Cell Profiling Bundle ({t4_bundle_price})</b>. '
+    f'Starting from raw 10x Genomics reads, we perform matrix processing, quality filtering, Seurat graph-based clustering, cell type ID mapping, and 2D UMAP projections.'
+    f'</div>'
+    f'<div style="display:grid; grid-template-columns:repeat(auto-fit, minmax(210px, 1fr)); gap:10px; font-size:0.83rem;">'
+    f'<div style="background:rgba(4,8,18,0.65); border:1px solid rgba(239,68,68,0.3); padding:10px 12px; border-radius:10px;">'
+    f'<b style="color:#fca5a5;">📂 Matrix Processing:</b><br><span style="color:#cbd5e1;">Bcl/Fastq ➔ Filtered count matrix <code>.h5</code> & barcodes</span>'
+    f'</div>'
+    f'<div style="background:rgba(4,8,18,0.65); border:1px solid rgba(59,130,246,0.35); padding:10px 12px; border-radius:10px;">'
+    f'<b style="color:#93c5fd;">🧬 Seurat Clustering:</b><br><span style="color:#cbd5e1;">PCA reduction, SNN graph & Leiden cluster markers</span>'
+    f'</div>'
+    f'<div style="background:rgba(4,8,18,0.65); border:1px solid rgba(239,68,68,0.3); padding:10px 12px; border-radius:10px;">'
+    f'<b style="color:#fca5a5;">🗺️ Cell Maps & UMAP:</b><br><span style="color:#cbd5e1;">Annotated Cell Type Metadata <code>.csv</code> + UMAP plots</span>'
+    f'</div>'
+    f'<div style="background:rgba(4,8,18,0.65); border:1px solid rgba(59,130,246,0.35); padding:10px 12px; border-radius:10px;">'
+    f'<b style="color:#93c5fd;">💻 Languages & Stack:</b><br><span style="color:#cbd5e1;"><code>Python</code> (Scanpy), <code>R</code> (Seurat v5), & Cell Ranger</span>'
+    f'</div>'
+    f'</div>'
+    f'</div>',
     unsafe_allow_html=True
 )
 
@@ -202,49 +216,49 @@ st.markdown(
 k1, k2, k3, k4 = st.columns(4)
 with k1:
     st.markdown(
-        '<div class="t4-kpi">'
-        '<div style="font-size:0.76rem; text-transform:uppercase; color:#93c5fd; font-weight:700;">Processed Cells</div>'
-        '<div style="font-size:1.95rem; font-weight:900; color:#ffffff; margin:4px 0;">8,450</div>'
-        '<div style="font-size:0.78rem; color:#fca5a5;">Matrix Processing ($150)</div>'
-        '</div>',
+        f'<div class="t4-kpi">'
+        f'<div style="font-size:0.76rem; text-transform:uppercase; color:#93c5fd; font-weight:700;">Processed Cells</div>'
+        f'<div style="font-size:1.95rem; font-weight:900; color:#ffffff; margin:4px 0;">8,450</div>'
+        f'<div style="font-size:0.78rem; color:#fca5a5;">Matrix Processing ({t4_m1_price})</div>'
+        f'</div>',
         unsafe_allow_html=True
     )
 with k2:
     st.markdown(
-        '<div class="t4-kpi">'
-        '<div style="font-size:0.76rem; text-transform:uppercase; color:#93c5fd; font-weight:700;">Seurat Clusters</div>'
-        '<div style="font-size:1.95rem; font-weight:900; color:#ffffff; margin:4px 0;">6 Groups</div>'
-        '<div style="font-size:0.78rem; color:#fca5a5;">Seurat Clustering ($120)</div>'
-        '</div>',
+        f'<div class="t4-kpi">'
+        f'<div style="font-size:0.76rem; text-transform:uppercase; color:#93c5fd; font-weight:700;">Seurat Clusters</div>'
+        f'<div style="font-size:1.95rem; font-weight:900; color:#ffffff; margin:4px 0;">6 Groups</div>'
+        f'<div style="font-size:0.78rem; color:#fca5a5;">Seurat Clustering ({t4_m2_price})</div>'
+        f'</div>',
         unsafe_allow_html=True
     )
 with k3:
     st.markdown(
-        '<div class="t4-kpi">'
-        '<div style="font-size:0.76rem; text-transform:uppercase; color:#93c5fd; font-weight:700;">Cell Type Maps</div>'
-        '<div style="font-size:1.95rem; font-weight:900; color:#ffffff; margin:4px 0;">Annotated</div>'
-        '<div style="font-size:0.78rem; color:#fca5a5;">Cell Type ID Maps ($100)</div>'
-        '</div>',
+        f'<div class="t4-kpi">'
+        f'<div style="font-size:0.76rem; text-transform:uppercase; color:#93c5fd; font-weight:700;">Cell Type Maps</div>'
+        f'<div style="font-size:1.95rem; font-weight:900; color:#ffffff; margin:4px 0;">Annotated</div>'
+        f'<div style="font-size:0.78rem; color:#fca5a5;">Cell Type ID Maps ({t4_m3_price})</div>'
+        f'</div>',
         unsafe_allow_html=True
     )
 with k4:
     st.markdown(
-        '<div class="t4-kpi">'
-        '<div style="font-size:0.76rem; text-transform:uppercase; color:#93c5fd; font-weight:700;">UMAP Projections</div>'
-        '<div style="font-size:1.95rem; font-weight:900; color:#ef4444; margin:4px 0;">2D Space</div>'
-        '<div style="font-size:0.78rem; color:#fca5a5;">UMAP Projections ($80)</div>'
-        '</div>',
+        f'<div class="t4-kpi">'
+        f'<div style="font-size:0.76rem; text-transform:uppercase; color:#93c5fd; font-weight:700;">UMAP Projections</div>'
+        f'<div style="font-size:1.95rem; font-weight:900; color:#ef4444; margin:4px 0;">2D Space</div>'
+        f'<div style="font-size:0.78rem; color:#fca5a5;">UMAP Projections ({t4_m4_price})</div>'
+        f'</div>',
         unsafe_allow_html=True
     )
 
 st.write("")
 
-# --- 4-MODULE DELIVERABLE TABS ---
+# --- 4-MODULE DELIVERABLE TABS (SYNCED USD & INR PRICING) ---
 tab1, tab2, tab3, tab4 = st.tabs([
-    "📋 Cell Type ID Maps & Metadata (Interactive)",
-    "🧼 Matrix Processing ($150)",
-    "🧬 Seurat Clustering ($120)",
-    "🗺️ UMAP Projections ($80)"
+    f"📋 Cell Type ID Maps & Metadata ({t4_m3_price})",
+    f"🧼 Matrix Processing ({t4_m1_price})",
+    f"🧬 Seurat Clustering ({t4_m2_price})",
+    f"🗺️ UMAP Projections ({t4_m4_price})"
 ])
 
 # =====================================================================
