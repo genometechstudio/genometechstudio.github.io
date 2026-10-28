@@ -171,6 +171,19 @@ with top_right:
 
 st.markdown("<hr style='border-color: rgba(239, 68, 68, 0.3); margin: 0.85rem 0 1.2rem 0;'>", unsafe_allow_html=True)
 
+# --- DUAL CURRENCY CHECK (Safe to keep here if this runs before the tabs) ---
+if "currency" not in st.session_state:
+    url_curr = str(st.query_params.get("currency", "USD")).strip().upper()
+    st.session_state.currency = "INR" if url_curr == "INR" else "USD"
+
+is_inr = (st.session_state.get("currency", "USD") == "INR")
+
+# Dynamic Module Price Labels for Tier 1 KPI Cards
+m1_price_str = "₹2,499" if is_inr else "$70"
+m2_price_str = "₹5,999" if is_inr else "$190"
+m3_price_str = "₹4,499" if is_inr else "$130"
+m4_price_str = "₹3,003" if is_inr else "$110"
+
 # --- CONCISE OVERVIEW: WHAT WE DELIVER + FILES & LANGUAGES USED ---
 st.markdown(
     '<div class="t1-card" style="background:linear-gradient(90deg, rgba(12,25,52,0.94), rgba(127,29,29,0.28));">'
@@ -201,50 +214,65 @@ st.markdown(
 k1, k2, k3, k4 = st.columns(4)
 with k1:
     st.markdown(
-        '<div class="t1-kpi">'
-        '<div style="font-size:0.76rem; text-transform:uppercase; color:#93c5fd; font-weight:700;">Clean Bases (Q30+)</div>'
-        '<div style="font-size:1.95rem; font-weight:900; color:#ffffff; margin:4px 0;">96.8%</div>'
-        '<div style="font-size:0.78rem; color:#fca5a5;">Module 1 • FastQC & Trimming ($50)</div>'
-        '</div>',
+        f'<div class="t1-kpi">'
+        f'<div style="font-size:0.76rem; text-transform:uppercase; color:#93c5fd; font-weight:700;">Clean Bases (Q30+)</div>'
+        f'<div style="font-size:1.95rem; font-weight:900; color:#ffffff; margin:4px 0;">96.8%</div>'
+        f'<div style="font-size:0.78rem; color:#fca5a5;">Module 1 • FastQC & Trimming ({m1_price_str})</div>'
+        f'</div>',
         unsafe_allow_html=True
     )
 with k2:
     st.markdown(
-        '<div class="t1-kpi">'
-        '<div style="font-size:0.76rem; text-transform:uppercase; color:#93c5fd; font-weight:700;">GRCh38 Mapped Reads</div>'
-        '<div style="font-size:1.95rem; font-weight:900; color:#ffffff; margin:4px 0;">99.4%</div>'
-        '<div style="font-size:0.78rem; color:#fca5a5;">Module 2 • BWA-MEM Alignment ($150)</div>'
-        '</div>',
+        f'<div class="t1-kpi">'
+        f'<div style="font-size:0.76rem; text-transform:uppercase; color:#93c5fd; font-weight:700;">GRCh38 Mapped Reads</div>'
+        f'<div style="font-size:1.95rem; font-weight:900; color:#ffffff; margin:4px 0;">99.4%</div>'
+        f'<div style="font-size:0.78rem; color:#fca5a5;">Module 2 • BWA-MEM Alignment ({m2_price_str})</div>'
+        f'</div>',
         unsafe_allow_html=True
     )
 with k3:
     st.markdown(
-        '<div class="t1-kpi">'
-        '<div style="font-size:0.76rem; text-transform:uppercase; color:#93c5fd; font-weight:700;">Mean Target Depth</div>'
-        '<div style="font-size:1.95rem; font-weight:900; color:#ffffff; margin:4px 0;">168x</div>'
-        '<div style="font-size:0.78rem; color:#fca5a5;">Module 3 • BCFtools Calling ($100)</div>'
-        '</div>',
+        f'<div class="t1-kpi">'
+        f'<div style="font-size:0.76rem; text-transform:uppercase; color:#93c5fd; font-weight:700;">Mean Target Depth</div>'
+        f'<div style="font-size:1.95rem; font-weight:900; color:#ffffff; margin:4px 0;">168x</div>'
+        f'<div style="font-size:0.78rem; color:#fca5a5;">Module 3 • BCFtools Calling ({m3_price_str})</div>'
+        f'</div>',
         unsafe_allow_html=True
     )
 with k4:
     st.markdown(
-        '<div class="t1-kpi">'
-        '<div style="font-size:0.76rem; text-transform:uppercase; color:#93c5fd; font-weight:700;">Actionable Variants</div>'
-        '<div style="font-size:1.95rem; font-weight:900; color:#ef4444; margin:4px 0;">14</div>'
-        '<div style="font-size:0.78rem; color:#fca5a5;">Module 4 • CSV Annotation ($80)</div>'
-        '</div>',
+        f'<div class="t1-kpi">'
+        f'<div style="font-size:0.76rem; text-transform:uppercase; color:#93c5fd; font-weight:700;">Actionable Variants</div>'
+        f'<div style="font-size:1.95rem; font-weight:900; color:#ef4444; margin:4px 0;">14</div>'
+        f'<div style="font-size:0.78rem; color:#fca5a5;">Module 4 • CSV Annotation ({m4_price_str})</div>'
+        f'</div>',
         unsafe_allow_html=True
     )
 
 st.write("")
 
-# --- 4-MODULE DELIVERABLE TABS ---
-tab1, tab2, tab3, tab4 = st.tabs([
-    "📋 Module 4: Clinical Variant CSV (Interactive)",
-    "🧼 Module 1: FastQC & Trimming ($50)",
-    "🎯 Module 2: BWA-MEM Alignment ($150)",
-    "🧬 Module 3: BCFtools Variant Calling ($100)"
-])
+# --- DUAL CURRENCY CHECK (Ensure is_inr is available in app_tier1.py) ---
+if "currency" not in st.session_state:
+    url_curr = str(st.query_params.get("currency", "USD")).strip().upper()
+    st.session_state.currency = "INR" if url_curr == "INR" else "USD"
+
+is_inr = (st.session_state.get("currency", "USD") == "INR")
+
+# --- 4-MODULE DELIVERABLE TABS (SYNCED USD & INR PRICING) ---
+if is_inr:
+    tab1, tab2, tab3, tab4 = st.tabs([
+        "📋 Module 4: Clinical Variant CSV (₹3,003)",
+        "🧼 Module 1: FastQC & Trimming (₹2,499)",
+        "🎯 Module 2: BWA-MEM Alignment (₹5,999)",
+        "🧬 Module 3: BCFtools Variant Calling (₹4,499)"
+    ])
+else:
+    tab1, tab2, tab3, tab4 = st.tabs([
+        "📋 Module 4: Clinical Variant CSV ($110)",
+        "🧼 Module 1: FastQC & Trimming ($70)",
+        "🎯 Module 2: BWA-MEM Alignment ($190)",
+        "🧬 Module 3: BCFtools Variant Calling ($130)"
+    ])
 
 # =====================================================================
 # TAB 1: INTERACTIVE CLINICAL ANNOTATION DELIVERABLE (MODULE 4)
