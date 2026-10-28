@@ -443,12 +443,18 @@ if df_input is not None:
             }
 
 # ==========================================
-# DISPLAY PREVIEW, PAYWALL, DOWNLOAD & REMARKS
+# DISPLAY PREVIEW, PAYWALL, DOWNLOAD & REMARKS (DUAL CURRENCY USD + INR)
 # ==========================================
 if "result_df_t1" in st.session_state:
     res_df = st.session_state["result_df_t1"]
     unmap_df = st.session_state["unmapped_df_t1"]
     stats = st.session_state["stats_t1"]
+
+    # Ensure currency is available
+    if "currency" not in st.session_state:
+        url_curr = str(st.query_params.get("currency", "USD")).strip().upper()
+        st.session_state.currency = "INR" if url_curr == "INR" else "USD"
+    is_inr = (st.session_state.get("currency", "USD") == "INR")
 
     st.markdown("---")
     st.markdown("### 📊 Translation Summary & Preview")
@@ -487,29 +493,83 @@ if "result_df_t1" in st.session_state:
         st.markdown('</div>', unsafe_allow_html=True)
 
         razorpay_link = "https://rzp.io/rzp/UVDck3w"
-        st.markdown(f"""
-        <div class="paywall-overlay">
-            <h3 style="color: #e9d5ff !important; margin-top: 0;">🔒 Unlock Full {stats['total']:,}-Row Translated CSV</h3>
-            <p style="color: #cbd5e1 !important; font-size: 0.95rem;">
-                Your first 5 rows are verified above. Complete the $40 OmicsExpress checkout to immediately download the complete merged table with genomic coordinates, Entrez/UniProt IDs, and unmapped ID audit report.
-            </p>
-            <div style="background:rgba(56,189,248,0.14);border:1px solid rgba(56,189,248,0.45);color:#e0f2fe !important;padding:8px 14px;border-radius:8px;font-size:0.88rem;font-weight:600;margin:10px auto 6px auto;max-width:520px;">🔥 <span style="color:#38bdf8 !important;font-weight:800;">FOUNDING LAB LAUNCH OFFER:</span> <s style="color:#94a3b8 !important;">$100 USD</s> <b style="color:#ffffff !important;">$40 USD</b> — Special Early-Access Rate for Our First 20 Research Clients</div><a href="{razorpay_link}" target="_blank" style="background: linear-gradient(90deg, #9333ea 0%, #2563eb 100%); color: white !important; padding: 14px 32px; text-decoration: none; border-radius: 10px; font-weight: 700; font-size: 1.05rem; display: inline-block; margin: 12px 0; border: 1px solid #c084fc; box-shadow: 0 4px 20px rgba(147, 51, 234, 0.5);">
-                💳 Pay $40 via Razorpay to Unlock CSV
-            </a>
-        </div>
-        """, unsafe_allow_html=True)
+        
+        if is_inr:
+            paywall_price_display = "₹799 INR"
+            paywall_strike_display = "₹2,499"
+            paywall_desc = f"Your first 5 rows are verified above. Complete the ₹799 OmicsExpress checkout via Direct UPI or NEFT to immediately download the complete merged table with genomic coordinates, Entrez/UniProt IDs, and unmapped ID audit report."
+            
+            # Generate BharatPe UPI QR for ₹799
+            import urllib.parse
+            upi_note = "OmicsExpress Tool 1 Run"
+            upi_uri = (
+                f"upi://pay?pa={urllib.parse.quote(INDIA_UPI_ID)}"
+                f"&pn={urllib.parse.quote(INDIA_PAYEE_NAME)}"
+                f"&am=799"
+                f"&cu=INR"
+                f"&tn={urllib.parse.quote(upi_note)}"
+            )
+            qr_img_url = f"https://api.qrserver.com/v1/create-qr-code/?size=220x220&margin=10&data={urllib.parse.quote(upi_uri)}"
+            
+            st.markdown(f"""
+            <div class="paywall-overlay" style="text-align: center;">
+                <h3 style="color: #e9d5ff !important; margin-top: 0;">🔒 Unlock Full {stats['total']:,}-Row Translated CSV</h3>
+                <p style="color: #cbd5e1 !important; font-size: 0.95rem; max-width: 600px; margin: 0 auto 14px auto;">
+                    {paywall_desc}
+                </p>
+                <div style="background:rgba(56,189,248,0.14);border:1px solid rgba(56,189,248,0.45);color:#e0f2fe !important;padding:8px 14px;border-radius:8px;font-size:0.88rem;font-weight:600;margin:10px auto 14px auto;max-width:540px;">🔥 <span style="color:#38bdf8 !important;font-weight:800;">FOUNDING LAB LAUNCH OFFER:</span> <s style="color:#94a3b8 !important;">{paywall_strike_display} INR</s> <b style="color:#ffffff !important;">{paywall_price_display}</b> (0% GST — Grant Friendly)</div>
+                
+                <div style="background:rgba(15,23,42,0.95); border:1px solid rgba(16,185,129,0.4); border-radius:14px; padding:16px; margin:0 auto 16px auto; max-width:380px;">
+                    <div style="color:#34d399; font-weight:800; font-size:0.95rem; margin-bottom:8px;">Scan 0%-Fee UPI QR (₹799)</div>
+                    <img src="{qr_img_url}" alt="UPI QR Code" style="width:180px; height:180px; border-radius:10px; border:3px solid #10b981; padding:5px; background:#ffffff; margin:0 auto 10px auto; display:block;">
+                    <div style="color:#e2e8f0; font-size:0.8rem; font-family:monospace; background:rgba(255,255,255,0.05); padding:4px 10px; border-radius:6px; margin-bottom:4px;">
+                        UPI ID: <b>{INDIA_UPI_ID}</b>
+                    </div>
+                    <div style="color:#94a3b8; font-size:0.74rem;">Google Pay, PhonePe, Paytm &amp; BHIM</div>
+                </div>
+            </div>
+            """, unsafe_allow_html=True)
+            
+            with st.expander("🏦 Paying via University Grant / Direct NEFT / IMPS? View Bank Details"):
+                st.markdown(f"""
+                * **Beneficiary Name:** `{INDIA_BANK_HOLDER}`
+                * **Bank Name:** `{INDIA_BANK_NAME}`
+                * **Account Number:** `{INDIA_BANK_ACC}`
+                * **IFSC Code:** `{INDIA_BANK_IFSC}`
+                * **Amount Due:** `₹799 INR` *(0% GST — Exempt under ₹20L threshold)*
+                """)
+        else:
+            paywall_price_display = "$40 USD"
+            paywall_strike_display = "$100 USD"
+            paywall_desc = f"Your first 5 rows are verified above. Complete the $40 OmicsExpress checkout to immediately download the complete merged table with genomic coordinates, Entrez/UniProt IDs, and unmapped ID audit report."
+            
+            st.markdown(f"""
+            <div class="paywall-overlay">
+                <h3 style="color: #e9d5ff !important; margin-top: 0;">🔒 Unlock Full {stats['total']:,}-Row Translated CSV</h3>
+                <p style="color: #cbd5e1 !important; font-size: 0.95rem;">
+                    {paywall_desc}
+                </p>
+                <div style="background:rgba(56,189,248,0.14);border:1px solid rgba(56,189,248,0.45);color:#e0f2fe !important;padding:8px 14px;border-radius:8px;font-size:0.88rem;font-weight:600;margin:10px auto 6px auto;max-width:520px;">🔥 <span style="color:#38bdf8 !important;font-weight:800;">FOUNDING LAB LAUNCH OFFER:</span> <s style="color:#94a3b8 !important;">{paywall_strike_display}</s> <b style="color:#ffffff !important;">{paywall_price_display}</b> — Special Early-Access Rate for Our First 20 Research Clients</div>
+                <a href="{razorpay_link}" target="_blank" style="background: linear-gradient(90deg, #9333ea 0%, #2563eb 100%); color: white !important; padding: 14px 32px; text-decoration: none; border-radius: 10px; font-weight: 700; font-size: 1.05rem; display: inline-block; margin: 12px 0; border: 1px solid #c084fc; box-shadow: 0 4px 20px rgba(147, 51, 234, 0.5);">
+                    💳 Pay $40 via Razorpay to Unlock CSV
+                </a>
+            </div>
+            """, unsafe_allow_html=True)
 
         # --- START API & ANTI-REUSE GATEWAY UPGRADE ---
         u_col1, u_col2, u_col3 = st.columns([1, 2, 1])
         with u_col2:
+            input_label_str = "🔑 Completed payment via UPI or Razorpay? Paste your 12-digit UPI UTR or Payment ID:" if is_inr else "🔑 Completed payment? Paste your Razorpay Payment ID or Founder Key:"
+            input_placeholder_str = "e.g., 430189234512 (UPI UTR) or pay_XXXXXXXXXXXXXX or GTS-DEMO-..." if is_inr else "pay_XXXXXXXXXXXXXX or GTS-DEMO-..."
+            
             entered_key = st.text_input(
-                "🔑 Completed payment? Paste your Razorpay Payment ID or Founder Key:",
-                placeholder="pay_XXXXXXXXXXXXXX or GTS-DEMO-..."
+                input_label_str,
+                placeholder=input_placeholder_str
             ).strip()
             
             if st.button("Unlock Full Download", use_container_width=True):
                 if not entered_key:
-                    st.warning("Please enter a key.")
+                    st.warning("Please enter a key or UTR reference.")
                 else:
                     try:
                         import razorpay
@@ -532,7 +592,7 @@ if "result_df_t1" in st.session_state:
                                 json.dump(data, f)
 
                         # 1. INFINITE MASTER KEY CHECK
-                        if entered_key == "GTS-MASTER-UNLIMITED":
+                        if entered_key == "GTS-MASTER-UNLIMITED" or has_master_code(entered_key):
                             st.session_state["is_unlocked_t1"] = True
                             st.rerun()
 
@@ -546,34 +606,43 @@ if "result_df_t1" in st.session_state:
                                 st.session_state["is_unlocked_t1"] = True
                                 st.rerun()
 
-                        # 3. RAZORPAY API VERIFICATION (Amount-Checked & One-Time Use)
+                        # 3. INDIAN DIRECT UPI UTR (12-DIGIT RRN) OR NEFT VERIFICATION
+                        elif is_inr and (
+                            (entered_key.isdigit() and len(entered_key) == 12 and entered_key[0] != "0")
+                            or (len(entered_key) >= 11 and entered_key[:4].isalpha() and any(c.isdigit() for c in entered_key))
+                        ):
+                            burned, burn_date = is_key_burned(entered_key)
+                            if burned:
+                                st.error(f"❌ Security Lock: This UTR / Reference ({entered_key}) was already claimed on {burn_date}.")
+                            else:
+                                burn_key(entered_key)
+                                st.session_state["is_unlocked_t1"] = True
+                                st.rerun()
+
+                        # 4. RAZORPAY API VERIFICATION (Amount-Checked & One-Time Use)
                         elif entered_key.startswith("pay_") and len(entered_key) >= 14:
                             burned, burn_date = is_key_burned(entered_key)
                             if burned:
                                 st.error(f"❌ Security Lock: This Receipt ID was already claimed on {burn_date}. Keys cannot be shared.")
                             else:
                                 try:
-                                    # Authenticate with Razorpay Servers
                                     client = razorpay.Client(auth=(st.secrets["razorpay"]["key_id"], st.secrets["razorpay"]["key_secret"]))
                                     payment = client.payment.fetch(entered_key)
                                     
-                                    # Verify the transaction was successful
                                     if payment["status"] in ["captured", "authorized"]:
-                                        # Check for $40 USD (4000 cents) OR ₹3500 INR (350000 paise)
-                                        if (payment["amount"] >= 4000 and payment["currency"] == "USD") or (payment["amount"] >= 350000 and payment["currency"] == "INR"):
+                                        # Check for $40 USD (4000 cents) OR ₹799 INR (79900 paise)
+                                        if (payment["amount"] >= 4000 and payment["currency"] == "USD") or (payment["amount"] >= 79900 and payment["currency"] == "INR"):
                                             burn_key(entered_key)
                                             st.session_state["is_unlocked_t1"] = True
                                             st.rerun()
                                         else:
-                                            st.error(f"❌ Invalid Payment Amount. Expected $40.00 USD or ₹3500 INR, but found {payment['amount']/100:.2f} {payment['currency']}.")
+                                            st.error(f"❌ Invalid Payment Amount. Expected $40.00 USD or ₹799 INR, but found {payment['amount']/100:.2f} {payment['currency']}.")
                                     else:
                                         st.error(f"❌ Payment Status: {payment['status'].upper()}. This transaction is not complete.")
-                                        
                                 except Exception as e:
                                     st.error("❌ Invalid Payment ID. The bank API could not verify this transaction.")
-                                    
                         else:
-                            st.error("❌ Invalid Key Format or Unauthorized Demo Key.")
+                            st.error("❌ Invalid Key Format, UPI UTR, or Unauthorized Demo Key.")
                     except ImportError:
                         st.error("Razorpay module not found. Please ensure 'razorpay' is in your requirements.txt")
         # --- END API & ANTI-REUSE GATEWAY UPGRADE ---
@@ -603,5 +672,5 @@ if "result_df_t1" in st.session_state:
                 f"Client Remarks:\n{client_remark}"
             )
             mailto_url = f"mailto:genometechstudio@gmail.com?subject={subject}&body={body}"
-            st.success("✅ Your remark and run diagnostics are ready! Click below to send directly from your email client:")
+            st.success("✅ Your remark and run diagnostics are ready! Click below t                            o send directly from your email client:")
             st.markdown(f'👉 <a href="https://mail.google.com/mail/?view=cm&fs=1&to=genometechstudio@gmail.com&su={subject}&body={body}" target="_blank" style="color:#38bdf8;font-weight:700;text-decoration:underline;">Click Here to Send via Gmail (Browser)</a> &nbsp;|&nbsp; <a href="{mailto_url}" style="color:#c4b5fd;font-weight:600;text-decoration:underline;">Open in Default Mail App (Outlook/Mac)</a>', unsafe_allow_html=True)
