@@ -173,6 +173,19 @@ with top_right:
 
 st.markdown("<hr style='border-color: rgba(239, 68, 68, 0.3); margin: 0.85rem 0 1.2rem 0;'>", unsafe_allow_html=True)
 
+# --- DUAL CURRENCY CHECK (Syncs with ?currency=INR or session state) ---
+if "currency" not in st.session_state:
+    url_curr = str(st.query_params.get("currency", "USD")).strip().upper()
+    st.session_state.currency = "INR" if url_curr == "INR" else "USD"
+
+is_inr = (st.session_state.get("currency", "USD") == "INR")
+
+# Dynamic Module Price Labels for Tier 2 (RNA-Seq Transcriptomics)
+t2_m1_price = "₹5,999" if is_inr else "$190"  # Module 1: STAR Read Alignment
+t2_m2_price = "₹3,499" if is_inr else "$110"  # Module 2: FeatureCounts Quant
+t2_m3_price = "₹4,999" if is_inr else "$160"  # Module 3: DESeq2 Differential Math
+t2_m4_price = "₹3,503" if is_inr else "$90"   # Module 4: Volcano & Heatmap Vis
+
 # --- CONCISE OVERVIEW: WHAT WE DELIVER + FILES & LANGUAGES USED ---
 st.markdown(
     '<div class="t2-card" style="background:linear-gradient(90deg, rgba(12,25,52,0.94), rgba(127,29,29,0.28));">'
@@ -203,49 +216,49 @@ st.markdown(
 k1, k2, k3, k4 = st.columns(4)
 with k1:
     st.markdown(
-        '<div class="t2-kpi">'
-        '<div style="font-size:0.76rem; text-transform:uppercase; color:#93c5fd; font-weight:700;">Uniquely Mapped Reads</div>'
-        '<div style="font-size:1.95rem; font-weight:900; color:#ffffff; margin:4px 0;">94.6%</div>'
-        '<div style="font-size:0.78rem; color:#fca5a5;">Module 1 • STAR Alignment ($150)</div>'
-        '</div>',
+        f'<div class="t2-kpi">'
+        f'<div style="font-size:0.76rem; text-transform:uppercase; color:#93c5fd; font-weight:700;">Uniquely Mapped Reads</div>'
+        f'<div style="font-size:1.95rem; font-weight:900; color:#ffffff; margin:4px 0;">94.6%</div>'
+        f'<div style="font-size:0.78rem; color:#fca5a5;">Module 1 • STAR Alignment ({t2_m1_price})</div>'
+        f'</div>',
         unsafe_allow_html=True
     )
 with k2:
     st.markdown(
-        '<div class="t2-kpi">'
-        '<div style="font-size:0.76rem; text-transform:uppercase; color:#93c5fd; font-weight:700;">Quantified Human Genes</div>'
-        '<div style="font-size:1.95rem; font-weight:900; color:#ffffff; margin:4px 0;">19,840</div>'
-        '<div style="font-size:0.78rem; color:#fca5a5;">Module 2 • FeatureCounts Quant ($80)</div>'
-        '</div>',
+        f'<div class="t2-kpi">'
+        f'<div style="font-size:0.76rem; text-transform:uppercase; color:#93c5fd; font-weight:700;">Quantified Human Genes</div>'
+        f'<div style="font-size:1.95rem; font-weight:900; color:#ffffff; margin:4px 0;">19,840</div>'
+        f'<div style="font-size:0.78rem; color:#fca5a5;">Module 2 • FeatureCounts Quant ({t2_m2_price})</div>'
+        f'</div>',
         unsafe_allow_html=True
     )
 with k3:
     st.markdown(
-        '<div class="t2-kpi">'
-        '<div style="font-size:0.76rem; text-transform:uppercase; color:#93c5fd; font-weight:700;">Significant DEGs (padj &lt; 0.05)</div>'
-        '<div style="font-size:1.95rem; font-weight:900; color:#ef4444; margin:4px 0;">1,428</div>'
-        '<div style="font-size:0.78rem; color:#fca5a5;">Module 3 • DESeq2 Math ($120)</div>'
-        '</div>',
+        f'<div class="t2-kpi">'
+        f'<div style="font-size:0.76rem; text-transform:uppercase; color:#93c5fd; font-weight:700;">Significant DEGs (padj &lt; 0.05)</div>'
+        f'<div style="font-size:1.95rem; font-weight:900; color:#ef4444; margin:4px 0;">1,428</div>'
+        f'<div style="font-size:0.78rem; color:#fca5a5;">Module 3 • DESeq2 Math ({t2_m3_price})</div>'
+        f'</div>',
         unsafe_allow_html=True
     )
 with k4:
     st.markdown(
-        '<div class="t2-kpi">'
-        '<div style="font-size:0.76rem; text-transform:uppercase; color:#93c5fd; font-weight:700;">Top Biomarker Panel</div>'
-        '<div style="font-size:1.95rem; font-weight:900; color:#ffffff; margin:4px 0;">11 Genes</div>'
-        '<div style="font-size:0.78rem; color:#fca5a5;">Module 4 • Volcano & Heatmap ($60)</div>'
-        '</div>',
+        f'<div class="t2-kpi">'
+        f'<div style="font-size:0.76rem; text-transform:uppercase; color:#93c5fd; font-weight:700;">Top Biomarker Panel</div>'
+        f'<div style="font-size:1.95rem; font-weight:900; color:#ffffff; margin:4px 0;">11 Genes</div>'
+        f'<div style="font-size:0.78rem; color:#fca5a5;">Module 4 • Volcano & Heatmap ({t2_m4_price})</div>'
+        f'</div>',
         unsafe_allow_html=True
     )
 
 st.write("")
 
-# --- 4-MODULE DELIVERABLE TABS ---
+# --- 4-MODULE DELIVERABLE TABS (SYNCED USD & INR PRICING) ---
 tab1, tab2, tab3, tab4 = st.tabs([
-    "📊 Module 3: DESeq2 Differential Math ($120)",
-    "🌋 Module 4: Volcano & Expression Vis ($60)",
-    "🎯 Module 1: STAR Read Alignment ($150)",
-    "🧮 Module 2: FeatureCounts Quant ($80)"
+    f"📊 Module 3: DESeq2 Differential Math ({t2_m3_price})",
+    f"🌋 Module 4: Volcano & Expression Vis ({t2_m4_price})",
+    f"🎯 Module 1: STAR Read Alignment ({t2_m1_price})",
+    f"🧮 Module 2: FeatureCounts Quant ({t2_m2_price})"
 ])
 
 # =====================================================================
