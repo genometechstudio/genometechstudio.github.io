@@ -166,29 +166,43 @@ with top_right:
 
 st.markdown("<hr style='border-color: rgba(239, 68, 68, 0.3); margin: 0.85rem 0 1.2rem 0;'>", unsafe_allow_html=True)
 
+# --- DUAL CURRENCY CHECK (Syncs with ?currency=INR or session state) ---
+if "currency" not in st.session_state:
+    url_curr = str(st.query_params.get("currency", "USD")).strip().upper()
+    st.session_state.currency = "INR" if url_curr == "INR" else "USD"
+
+is_inr = (st.session_state.get("currency", "USD") == "INR")
+
+# Dynamic Module & Bundle Price Labels for Tier 5 (Microbiome 16S rRNA)
+t5_bundle_price = "₹12,499" if is_inr else "$400"
+t5_m1_price = "₹5,999" if is_inr else "$190"  # Module 1: QIIME2 Execution
+t5_m2_price = "₹4,499" if is_inr else "$140"  # Module 2: Taxonomic Classification
+t5_m3_price = "₹3,999" if is_inr else "$120"  # Module 3: Alpha/Beta Diversity
+t5_m4_price = "₹3,003" if is_inr else "$100"  # Module 4: Abundance Charts
+
 # --- CONCISE OVERVIEW: WHAT WE DELIVER + FILES & LANGUAGES USED ---
 st.markdown(
-    '<div class="t5-card" style="background:linear-gradient(90deg, rgba(12,25,52,0.94), rgba(127,29,29,0.28));">'
-    '<div style="font-size:1.1rem; font-weight:800; color:#f87171; margin-bottom:6px;">🔬 What You Receive in Tier 5 (Live Demo Dataset: Gut Microbiome Dysbiosis Cohort)</div>'
-    '<div style="font-size:0.9rem; color:#e2e8f0; line-height:1.55; margin-bottom:14px;">'
-    'This live interactive dashboard demonstrates the exact output generated in our <b>Tier 5 Microbiome 16S rRNA Profiling Bundle ($400)</b>. '
-    'Starting from raw amplicon FASTQ reads, we execute QIIME2 DADA2 denoising, taxonomic classification against Silva/Greengenes, alpha & beta diversity metrics, and differential abundance stacked bar plots.'
-    '</div>'
-    '<div style="display:grid; grid-template-columns:repeat(auto-fit, minmax(210px, 1fr)); gap:10px; font-size:0.83rem;">'
-    '<div style="background:rgba(4,8,18,0.65); border:1px solid rgba(239,68,68,0.3); padding:10px 12px; border-radius:10px;">'
-    '<b style="color:#fca5a5;">📂 QIIME2 Execution:</b><br><span style="color:#cbd5e1;">Demux fastq ➔ DADA2 ASVs ➔ Feature table <code>.qza</code> artifacts</span>'
-    '</div>'
-    '<div style="background:rgba(4,8,18,0.65); border:1px solid rgba(59,130,246,0.35); padding:10px 12px; border-radius:10px;">'
-    '<b style="color:#93c5fd;">🧬 Taxonomic Class.:</b><br><span style="color:#cbd5e1;">Naive Bayes classifier ➔ Phylum to Genus <code>.tsv</code> mapping</span>'
-    '</div>'
-    '<div style="background:rgba(4,8,18,0.65); border:1px solid rgba(239,68,68,0.3); padding:10px 12px; border-radius:10px;">'
-    '<b style="color:#fca5a5;">📊 Diversity & Abundance:</b><br><span style="color:#cbd5e1;">Shannon/Chao1 metrics, Bray-Curtis PCoA & stacked bar charts</span>'
-    '</div>'
-    '<div style="background:rgba(4,8,18,0.65); border:1px solid rgba(59,130,246,0.35); padding:10px 12px; border-radius:10px;">'
-    '<b style="color:#93c5fd;">💻 Languages & Stack:</b><br><span style="color:#cbd5e1;"><code>QIIME2</code>, <code>Python</code> (Pandas / Seaborn), & <code>R</code></span>'
-    '</div>'
-    '</div>'
-    '</div>',
+    f'<div class="t5-card" style="background:linear-gradient(90deg, rgba(12,25,52,0.94), rgba(127,29,29,0.28));">'
+    f'<div style="font-size:1.1rem; font-weight:800; color:#f87171; margin-bottom:6px;">🔬 What You Receive in Tier 5 (Live Demo Dataset: Gut Microbiome Dysbiosis Cohort)</div>'
+    f'<div style="font-size:0.9rem; color:#e2e8f0; line-height:1.55; margin-bottom:14px;">'
+    f'This live interactive dashboard demonstrates the exact output generated in our <b>Tier 5 Microbiome 16S rRNA Profiling Bundle ({t5_bundle_price})</b>. '
+    f'Starting from raw amplicon FASTQ reads, we execute QIIME2 DADA2 denoising, taxonomic classification against Silva/Greengenes, alpha & beta diversity metrics, and differential abundance stacked bar plots.'
+    f'</div>'
+    f'<div style="display:grid; grid-template-columns:repeat(auto-fit, minmax(210px, 1fr)); gap:10px; font-size:0.83rem;">'
+    f'<div style="background:rgba(4,8,18,0.65); border:1px solid rgba(239,68,68,0.3); padding:10px 12px; border-radius:10px;">'
+    f'<b style="color:#fca5a5;">📂 QIIME2 Execution:</b><br><span style="color:#cbd5e1;">Demux fastq ➔ DADA2 ASVs ➔ Feature table <code>.qza</code> artifacts</span>'
+    f'</div>'
+    f'<div style="background:rgba(4,8,18,0.65); border:1px solid rgba(59,130,246,0.35); padding:10px 12px; border-radius:10px;">'
+    f'<b style="color:#93c5fd;">🧬 Taxonomic Class.:</b><br><span style="color:#cbd5e1;">Naive Bayes classifier ➔ Phylum to Genus <code>.tsv</code> mapping</span>'
+    f'</div>'
+    f'<div style="background:rgba(4,8,18,0.65); border:1px solid rgba(239,68,68,0.3); padding:10px 12px; border-radius:10px;">'
+    f'<b style="color:#fca5a5;">📊 Diversity & Abundance:</b><br><span style="color:#cbd5e1;">Shannon/Chao1 metrics, Bray-Curtis PCoA & stacked bar charts</span>'
+    f'</div>'
+    f'<div style="background:rgba(4,8,18,0.65); border:1px solid rgba(59,130,246,0.35); padding:10px 12px; border-radius:10px;">'
+    f'<b style="color:#93c5fd;">💻 Languages & Stack:</b><br><span style="color:#cbd5e1;"><code>QIIME2</code>, <code>Python</code> (Pandas / Seaborn), & <code>R</code></span>'
+    f'</div>'
+    f'</div>'
+    f'</div>',
     unsafe_allow_html=True
 )
 
@@ -196,49 +210,49 @@ st.markdown(
 k1, k2, k3, k4 = st.columns(4)
 with k1:
     st.markdown(
-        '<div class="t5-kpi">'
-        '<div style="font-size:0.76rem; text-transform:uppercase; color:#93c5fd; font-weight:700;">Denoised Reads</div>'
-        '<div style="font-size:1.95rem; font-weight:900; color:#ffffff; margin:4px 0;">97.4%</div>'
-        '<div style="font-size:0.78rem; color:#fca5a5;">QIIME2 Execution ($150)</div>'
-        '</div>',
+        f'<div class="t5-kpi">'
+        f'<div style="font-size:0.76rem; text-transform:uppercase; color:#93c5fd; font-weight:700;">Denoised Reads</div>'
+        f'<div style="font-size:1.95rem; font-weight:900; color:#ffffff; margin:4px 0;">97.4%</div>'
+        f'<div style="font-size:0.78rem; color:#fca5a5;">QIIME2 Execution ({t5_m1_price})</div>'
+        f'</div>',
         unsafe_allow_html=True
     )
 with k2:
     st.markdown(
-        '<div class="t5-kpi">'
-        '<div style="font-size:0.76rem; text-transform:uppercase; color:#93c5fd; font-weight:700;">Classified Genera</div>'
-        '<div style="font-size:1.95rem; font-weight:900; color:#ffffff; margin:4px 0;">340+</div>'
-        '<div style="font-size:0.78rem; color:#fca5a5;">Taxonomic Class. ($100)</div>'
-        '</div>',
+        f'<div class="t5-kpi">'
+        f'<div style="font-size:0.76rem; text-transform:uppercase; color:#93c5fd; font-weight:700;">Classified Genera</div>'
+        f'<div style="font-size:1.95rem; font-weight:900; color:#ffffff; margin:4px 0;">340+</div>'
+        f'<div style="font-size:0.78rem; color:#fca5a5;">Taxonomic Class. ({t5_m2_price})</div>'
+        f'</div>',
         unsafe_allow_html=True
     )
 with k3:
     st.markdown(
-        '<div class="t5-kpi">'
-        '<div style="font-size:0.76rem; text-transform:uppercase; color:#93c5fd; font-weight:700;">Alpha Diversity</div>'
-        '<div style="font-size:1.95rem; font-weight:900; color:#ffffff; margin:4px 0;">p &lt; 0.01</div>'
-        '<div style="font-size:0.78rem; color:#fca5a5;">Alpha/Beta Diversity ($80)</div>'
-        '</div>',
+        f'<div class="t5-kpi">'
+        f'<div style="font-size:0.76rem; text-transform:uppercase; color:#93c5fd; font-weight:700;">Alpha Diversity</div>'
+        f'<div style="font-size:1.95rem; font-weight:900; color:#ffffff; margin:4px 0;">p &lt; 0.01</div>'
+        f'<div style="font-size:0.78rem; color:#fca5a5;">Alpha/Beta Diversity ({t5_m3_price})</div>'
+        f'</div>',
         unsafe_allow_html=True
     )
 with k4:
     st.markdown(
-        '<div class="t5-kpi">'
-        '<div style="font-size:0.76rem; text-transform:uppercase; color:#93c5fd; font-weight:700;">Dysbiosis Ratio</div>'
-        '<div style="font-size:1.95rem; font-weight:900; color:#ef4444; margin:4px 0;">4.8x</div>'
-        '<div style="font-size:0.78rem; color:#fca5a5;">Abundance Charts ($70)</div>'
-        '</div>',
+        f'<div class="t5-kpi">'
+        f'<div style="font-size:0.76rem; text-transform:uppercase; color:#93c5fd; font-weight:700;">Dysbiosis Ratio</div>'
+        f'<div style="font-size:1.95rem; font-weight:900; color:#ef4444; margin:4px 0;">4.8x</div>'
+        f'<div style="font-size:0.78rem; color:#fca5a5;">Abundance Charts ({t5_m4_price})</div>'
+        f'</div>',
         unsafe_allow_html=True
     )
 
 st.write("")
 
-# --- 4-MODULE DELIVERABLE TABS ---
+# --- 4-MODULE DELIVERABLE TABS (SYNCED USD & INR PRICING) ---
 tab1, tab2, tab3, tab4 = st.tabs([
-    "📋 Taxonomic Class. & Abundance Table (Interactive)",
-    "🧼 QIIME2 Execution ($150)",
-    "🧬 Alpha/Beta Diversity ($80)",
-    "📊 Abundance Charts ($70)"
+    f"📋 Taxonomic Class. & Abundance Table ({t5_m2_price})",
+    f"🧼 QIIME2 Execution ({t5_m1_price})",
+    f"🧬 Alpha/Beta Diversity ({t5_m3_price})",
+    f"📊 Abundance Charts ({t5_m4_price})"
 ])
 
 # =====================================================================
