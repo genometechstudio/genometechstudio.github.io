@@ -672,5 +672,5 @@ if "result_df_t1" in st.session_state:
                 f"Client Remarks:\n{client_remark}"
             )
             mailto_url = f"mailto:genometechstudio@gmail.com?subject={subject}&body={body}"
-            st.success("✅ Your remark and run diagnostics are ready! Click below t                            o send directly from your email client:")
+            st.success("✅ Your remark and run diagnostics are ready! Click below to send directly from your email client:")
             st.markdown(f'👉 <a href="https://mail.google.com/mail/?view=cm&fs=1&to=genometechstudio@gmail.com&su={subject}&body={body}" target="_blank" style="color:#38bdf8;font-weight:700;text-decoration:underline;">Click Here to Send via Gmail (Browser)</a> &nbsp;|&nbsp; <a href="{mailto_url}" style="color:#c4b5fd;font-weight:600;text-decoration:underline;">Open in Default Mail App (Outlook/Mac)</a>', unsafe_allow_html=True)
