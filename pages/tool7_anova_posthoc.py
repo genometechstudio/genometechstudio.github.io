@@ -3,6 +3,9 @@ import pandas as pd
 import numpy as np
 import scipy.stats as sp_stats
 import math
+import os
+import time
+import json
 import html
 import urllib.parse
 
@@ -1055,7 +1058,18 @@ if df_input is not None and not df_input.empty:
                 }
 
 # ==========================================
-# DISPLAY TABULAR RESULTS, 4-PLOT SUITE, PAYWALL & REMARKS
+# 🇮🇳 INDIA DIRECT PAYMENT CONFIG (PULLS PRIVATELY FROM STREAMLIT SECRETS)
+# Safe for Public GitHub! Make sure these 6 keys are in this app's Streamlit Secrets.
+# ==========================================
+INDIA_UPI_ID = st.secrets.get("INDIA_UPI_ID", "BHARATPE2A0G0R8H8A59248@unitype")
+INDIA_PAYEE_NAME = st.secrets.get("INDIA_PAYEE_NAME", "GenomeTech Studio")
+INDIA_BANK_HOLDER = st.secrets.get("INDIA_BANK_HOLDER", "GenomeTech Studio")
+INDIA_BANK_ACC = st.secrets.get("INDIA_BANK_ACC", "Available on Proforma Invoice")
+INDIA_BANK_IFSC = st.secrets.get("INDIA_BANK_IFSC", "Available on Proforma Invoice")
+INDIA_BANK_NAME = st.secrets.get("INDIA_BANK_NAME", "Available on Proforma Invoice")
+
+# ==========================================
+# DISPLAY TABULAR RESULTS, 4-PLOT SUITE, PAYWALL & REMARKS (TOOL #7 — DUAL CURRENCY USD + INR)
 # ==========================================
 if "posthoc_df_t7" in st.session_state:
     ph_df = st.session_state["posthoc_df_t7"]
@@ -1067,6 +1081,12 @@ if "posthoc_df_t7" in st.session_state:
     svg_profile = st.session_state["svg_profile_t7"]
     html_rep = st.session_state["html_report_t7"]
     stats = st.session_state["stats_t7"]
+
+    # Ensure currency state is initialized
+    if "currency" not in st.session_state:
+        url_curr = str(st.query_params.get("currency", "USD")).strip().upper()
+        st.session_state.currency = "INR" if url_curr == "INR" else "USD"
+    is_inr = (st.session_state.get("currency", "USD") == "INR")
 
     st.markdown("---")
     st.markdown(f"### 📊 Omnibus ANOVA, Post-Hoc & 4-Panel Publication Suite (`{stats['feature']}`)")
@@ -1107,52 +1127,60 @@ if "posthoc_df_t7" in st.session_state:
                 "⬇️ 1. Pairwise Post-Hoc (.csv)",
                 data=ph_df.to_csv(index=False).encode("utf-8-sig"),
                 file_name=f"GenomeTech_PostHoc_{stats['feature']}.csv",
-                mime="text/csv"
+                mime="text/csv",
+                key="dl_ph_t7"
             )
             st.download_button(
                 "⬇️ 5. Fig 1A: Boxplot (.svg)",
                 data=svg_box.encode("utf-8"),
                 file_name=f"GenomeTech_Boxplot_{stats['feature']}.svg",
-                mime="image/svg+xml"
+                mime="image/svg+xml",
+                key="dl_box_t7"
             )
         with d2:
             st.download_button(
                 "⬇️ 2. Group Descriptives (.csv)",
                 data=desc_df.to_csv(index=False).encode("utf-8-sig"),
                 file_name=f"GenomeTech_Group_Descriptives_{stats['feature']}.csv",
-                mime="text/csv"
+                mime="text/csv",
+                key="dl_desc_t7"
             )
             st.download_button(
                 "⬇️ 6. Fig 1B: Bar Chart (.svg)",
                 data=svg_bar.encode("utf-8"),
                 file_name=f"GenomeTech_BarChart_{stats['feature']}.svg",
-                mime="image/svg+xml"
+                mime="image/svg+xml",
+                key="dl_bar_t7"
             )
         with d3:
             st.download_button(
                 "⬇️ 3. Batch ANOVA FDR (.csv)",
                 data=batch_df.to_csv(index=False).encode("utf-8-sig"),
                 file_name="GenomeTech_Batch_ANOVA_FDR_Screen.csv",
-                mime="text/csv"
+                mime="text/csv",
+                key="dl_batch_t7"
             )
             st.download_button(
                 "⬇️ 7. Fig 1C: 95% CI Forest (.svg)",
                 data=svg_forest.encode("utf-8"),
                 file_name=f"GenomeTech_ForestCI_{stats['feature']}.svg",
-                mime="image/svg+xml"
+                mime="image/svg+xml",
+                key="dl_forest_t7"
             )
         with d4:
             st.download_button(
                 "⬇️ 4. All-in-One Visual Report (.html)",
                 data=html_rep.encode("utf-8"),
                 file_name=f"GenomeTech_4Figure_Report_{stats['feature']}.html",
-                mime="text/html"
+                mime="text/html",
+                key="dl_html_t7"
             )
             st.download_button(
                 "⬇️ 8. Fig 1D: Z-Score Profile (.svg)",
                 data=svg_profile.encode("utf-8"),
                 file_name=f"GenomeTech_MultiGene_ZScore_Profile.svg",
-                mime="image/svg+xml"
+                mime="image/svg+xml",
+                key="dl_prof_t7"
             )
     else:
         st.markdown("**Live Preview (First 2 Pairwise Post-Hoc Comparisons Verified):**")
@@ -1169,33 +1197,85 @@ if "posthoc_df_t7" in st.session_state:
         st.markdown('</div>', unsafe_allow_html=True)
 
         razorpay_link = "https://rzp.io/rzp/UVDck3w"
-        st.markdown(f"""
-        <div class="paywall-overlay">
-            <h3 style="color: #e9d5ff !important; margin-top: 0;">🔒 Unlock All {stats['total_pairs']} Post-Hoc Pairs, 3 CSVs &amp; 4 Publication Figures</h3>
-            <p style="color: #cbd5e1 !important; font-size: 0.95rem;">
-                Your top 2 pairwise comparisons are verified above. Complete the $40 OmicsExpress checkout to unlock all 3 statistical CSV tables, all 4 publication figures (Boxplot, Mean ± SD Bar Chart, 95% CI Forest Plot, and Multi-Gene Trajectory), and the printable HTML report.
-            </p>
-            <div style="background:rgba(56,189,248,0.14);border:1px solid rgba(56,189,248,0.45);color:#e0f2fe !important;padding:8px 14px;border-radius:8px;font-size:0.88rem;font-weight:600;margin:10px auto 6px auto;max-width:520px;">🔥 <span style="color:#38bdf8 !important;font-weight:800;">FOUNDING LAB LAUNCH OFFER:</span> <s style="color:#94a3b8 !important;">$100 USD</s> <b style="color:#ffffff !important;">$40 USD</b> — Special Early-Access Rate for Our First 20 Research Clients</div><a href="{razorpay_link}" target="_blank" style="background: linear-gradient(90deg, #9333ea 0%, #2563eb 100%); color: white !important; padding: 14px 32px; text-decoration: none; border-radius: 10px; font-weight: 700; font-size: 1.05rem; display: inline-block; margin: 12px 0; border: 1px solid #c084fc; box-shadow: 0 4px 20px rgba(147, 51, 234, 0.5);">
-                💳 Pay $40 via Razorpay to Unlock Full Suite
-            </a>
-        </div>
-        """, unsafe_allow_html=True)
+
+        if is_inr:
+            import urllib.parse
+            upi_note = "OmicsExpress Tool 7 ANOVA"
+            upi_uri = (
+                f"upi://pay?pa={urllib.parse.quote(INDIA_UPI_ID)}"
+                f"&pn={urllib.parse.quote(INDIA_PAYEE_NAME)}"
+                f"&am=799"
+                f"&cu=INR"
+                f"&tn={urllib.parse.quote(upi_note)}"
+            )
+            qr_img_url = f"https://api.qrserver.com/v1/create-qr-code/?size=220x220&margin=10&data={urllib.parse.quote(upi_uri)}"
+
+            st.markdown(f"""
+            <div class="paywall-overlay" style="text-align: center;">
+                <h3 style="color: #e9d5ff !important; margin-top: 0;">🔒 Unlock All {stats['total_pairs']} Post-Hoc Pairs, 3 CSVs &amp; 4 Publication Figures</h3>
+                <p style="color: #cbd5e1 !important; font-size: 0.95rem; max-width: 620px; margin: 0 auto 14px auto;">
+                    Your top 2 pairwise comparisons are verified above. Complete the <b>₹799 INR</b> OmicsExpress checkout via Direct UPI or NEFT to unlock all 3 statistical CSV tables, all 4 publication figures (Boxplot, Mean ± SD Bar Chart, 95% CI Forest Plot, and Multi-Gene Trajectory), and the printable HTML report.
+                </p>
+                <div style="background:rgba(56,189,248,0.14);border:1px solid rgba(56,189,248,0.45);color:#e0f2fe !important;padding:8px 14px;border-radius:8px;font-size:0.88rem;font-weight:600;margin:10px auto 14px auto;max-width:540px;">🔥 <span style="color:#38bdf8 !important;font-weight:800;">FOUNDING LAB LAUNCH OFFER:</span> <s style="color:#94a3b8 !important;">₹2,499 INR</s> <b style="color:#ffffff !important;">₹799 INR</b> (0% GST — Grant Friendly)</div>
+                
+                <div style="background:rgba(15,23,42,0.95); border:1px solid rgba(16,185,129,0.4); border-radius:14px; padding:16px; margin:0 auto 16px auto; max-width:380px;">
+                    <div style="color:#34d399; font-weight:800; font-size:0.95rem; margin-bottom:8px;">Scan 0%-Fee UPI QR (₹799)</div>
+                    <img src="{qr_img_url}" alt="UPI QR Code" style="width:180px; height:180px; border-radius:10px; border:3px solid #10b981; padding:5px; background:#ffffff; margin:0 auto 10px auto; display:block;">
+                    <div style="color:#e2e8f0; font-size:0.8rem; font-family:monospace; background:rgba(255,255,255,0.05); padding:4px 10px; border-radius:6px; margin-bottom:4px;">
+                        UPI ID: <b>{INDIA_UPI_ID}</b>
+                    </div>
+                    <div style="color:#94a3b8; font-size:0.74rem;">Google Pay, PhonePe, Paytm &amp; BHIM</div>
+                </div>
+            </div>
+            """, unsafe_allow_html=True)
+
+            with st.expander("🏦 Paying via University Grant / Direct NEFT / IMPS? View Bank Details"):
+                st.markdown(f"""
+                * **Beneficiary Name:** `{INDIA_BANK_HOLDER}`
+                * **Bank Name:** `{INDIA_BANK_NAME}`
+                * **Account Number:** `{INDIA_BANK_ACC}`
+                * **IFSC Code:** `{INDIA_BANK_IFSC}`
+                * **Amount Due:** `₹799 INR` *(0% GST — Exempt under ₹20L threshold)*
+                """)
+        else:
+            st.markdown(f"""
+            <div class="paywall-overlay">
+                <h3 style="color: #e9d5ff !important; margin-top: 0;">🔒 Unlock All {stats['total_pairs']} Post-Hoc Pairs, 3 CSVs &amp; 4 Publication Figures</h3>
+                <p style="color: #cbd5e1 !important; font-size: 0.95rem;">
+                    Your top 2 pairwise comparisons are verified above. Complete the $40 OmicsExpress checkout to unlock all 3 statistical CSV tables, all 4 publication figures (Boxplot, Mean ± SD Bar Chart, 95% CI Forest Plot, and Multi-Gene Trajectory), and the printable HTML report.
+                </p>
+                <div style="background:rgba(56,189,248,0.14);border:1px solid rgba(56,189,248,0.45);color:#e0f2fe !important;padding:8px 14px;border-radius:8px;font-size:0.88rem;font-weight:600;margin:10px auto 6px auto;max-width:520px;">🔥 <span style="color:#38bdf8 !important;font-weight:800;">FOUNDING LAB LAUNCH OFFER:</span> <s style="color:#94a3b8 !important;">$100 USD</s> <b style="color:#ffffff !important;">$40 USD</b> — Special Early-Access Rate for Our First 20 Research Clients</div><a href="{razorpay_link}" target="_blank" style="background: linear-gradient(90deg, #9333ea 0%, #2563eb 100%); color: white !important; padding: 14px 32px; text-decoration: none; border-radius: 10px; font-weight: 700; font-size: 1.05rem; display: inline-block; margin: 12px 0; border: 1px solid #c084fc; box-shadow: 0 4px 20px rgba(147, 51, 234, 0.5);">
+                    💳 Pay $40 via Razorpay to Unlock Full Suite
+                </a>
+            </div>
+            """, unsafe_allow_html=True)
 
         # --- START API & ANTI-REUSE GATEWAY UPGRADE ---
         u_col1, u_col2, u_col3 = st.columns([1, 2, 1])
         with u_col2:
+            input_label_t7 = (
+                "🔑 Completed payment via UPI or Razorpay? Paste your 12-digit UPI UTR or Payment ID:"
+                if is_inr
+                else "🔑 Completed payment? Paste your Razorpay Payment ID or Founder Key:"
+            )
+            input_placeholder_t7 = (
+                "e.g., 430189234512 (UPI UTR) or pay_XXXXXXXXXXXXXX or GTS-DEMO-..."
+                if is_inr
+                else "pay_XXXXXXXXXXXXXX or GTS-DEMO-..."
+            )
+
             entered_key = st.text_input(
-                "🔑 Completed payment? Paste your Razorpay Payment ID or Founder Key:",
-                placeholder="pay_XXXXXXXXXXXXXX or GTS-DEMO-..."
+                input_label_t7,
+                placeholder=input_placeholder_t7,
+                key="unlock_input_t7"
             ).strip()
             
-            if st.button("Unlock Full Download", use_container_width=True):
+            if st.button("Unlock Full Download", key="unlock_btn_t7", use_container_width=True):
                 if not entered_key:
-                    st.warning("Please enter a key.")
+                    st.warning("Please enter a key or 12-digit UPI UTR.")
                 else:
                     import json
                     import os
-                    import razorpay
                     import time
                     
                     DB_FILE = "used_keys.json"
@@ -1231,26 +1311,38 @@ if "posthoc_df_t7" in st.session_state:
                             st.session_state["is_unlocked_t7"] = True
                             st.rerun()
 
-                    # 3. RAZORPAY API VERIFICATION (Amount-Checked & One-Time Use)
+                    # 3. INDIAN DIRECT UPI UTR (12-DIGIT RRN) OR NEFT UTR VERIFICATION (One-Time Use)
+                    elif is_inr and (
+                        (entered_key.isdigit() and len(entered_key) == 12 and entered_key[0] != "0")
+                        or (len(entered_key) >= 11 and entered_key[:4].isalpha() and any(c.isdigit() for c in entered_key))
+                    ):
+                        burned, burn_date = is_key_burned(entered_key)
+                        if burned:
+                            st.error(f"❌ Security Lock: This UTR / Reference ({entered_key}) was already claimed on {burn_date}.")
+                        else:
+                            burn_key(entered_key)
+                            st.session_state["is_unlocked_t7"] = True
+                            st.rerun()
+
+                    # 4. RAZORPAY API VERIFICATION (Amount-Checked & One-Time Use)
                     elif entered_key.startswith("pay_") and len(entered_key) >= 14:
                         burned, burn_date = is_key_burned(entered_key)
                         if burned:
                             st.error(f"❌ Security Lock: This Receipt ID was already claimed on {burn_date}. Keys cannot be shared.")
                         else:
                             try:
-                                # Authenticate with Razorpay Servers
+                                import razorpay
                                 client = razorpay.Client(auth=(st.secrets["razorpay"]["key_id"], st.secrets["razorpay"]["key_secret"]))
                                 payment = client.payment.fetch(entered_key)
                                 
-                                # Verify the transaction was successful
                                 if payment["status"] in ["captured", "authorized"]:
-                                    # Check for $40 USD (4000 cents) OR ₹3500 INR (350000 paise)
-                                    if (payment["amount"] >= 4000 and payment["currency"] == "USD") or (payment["amount"] >= 350000 and payment["currency"] == "INR"):
+                                    # Check for $40 USD (4000 cents) OR ₹799 INR (79900 paise)
+                                    if (payment["amount"] >= 4000 and payment["currency"] == "USD") or (payment["amount"] >= 79900 and payment["currency"] == "INR"):
                                         burn_key(entered_key)
                                         st.session_state["is_unlocked_t7"] = True
                                         st.rerun()
                                     else:
-                                        st.error(f"❌ Invalid Payment Amount. Expected $40.00 USD or ₹3500 INR, but found {payment['amount']/100:.2f} {payment['currency']}.")
+                                        st.error(f"❌ Invalid Payment Amount. Expected $40.00 USD or ₹799 INR, but found {payment['amount']/100:.2f} {payment['currency']}.")
                                 else:
                                     st.error(f"❌ Payment Status: {payment['status'].upper()}. This transaction is not complete.")
                                     
@@ -1258,7 +1350,7 @@ if "posthoc_df_t7" in st.session_state:
                                 st.error("❌ Invalid Payment ID. The bank API could not verify this transaction.")
                                 
                     else:
-                        st.error("❌ Invalid Key Format or Unauthorized Demo Key.")
+                        st.error("❌ Invalid Key Format, UPI UTR, or Unauthorized Demo Key.")
         # --- END API & ANTI-REUSE GATEWAY UPGRADE ---
 
     # ==========================================
@@ -1281,9 +1373,10 @@ if "posthoc_df_t7" in st.session_state:
     )
 
     with st.expander("💬 Send Remarks or Questions Directly to GenomeTech Team (via Email)"):
-        client_email = st.text_input("Your Lab / Institutional Email:")
-        client_remark = st.text_area("Your Remarks or Questions about this ANOVA & Post-Hoc Run:")
-        if st.button("Prepare Direct Email"):
+        client_email = st.text_input("Your Lab / Institutional Email:", key="rem_email_t7")
+        client_remark = st.text_area("Your Remarks or Questions about this ANOVA & Post-Hoc Run:", key="rem_text_t7")
+        if st.button("Prepare Direct Email", key="rem_btn_t7"):
+            import urllib.parse
             subject = urllib.parse.quote(f"OmicsExpress Tool #7 Remark - {client_email}")
             body = urllib.parse.quote(
                 f"Client Email: {client_email}\n"
@@ -1296,4 +1389,3 @@ if "posthoc_df_t7" in st.session_state:
             mailto_url = f"mailto:genometechstudio@gmail.com?subject={subject}&body={body}"
             st.success("✅ Your remark and biostatistical diagnostics are ready! Click below to send directly from your email client:")
             st.markdown(f'👉 <a href="https://mail.google.com/mail/?view=cm&fs=1&to=genometechstudio@gmail.com&su={subject}&body={body}" target="_blank" style="color:#38bdf8;font-weight:700;text-decoration:underline;">Click Here to Send via Gmail (Browser)</a> &nbsp;|&nbsp; <a href="{mailto_url}" style="color:#c4b5fd;font-weight:600;text-decoration:underline;">Open in Default Mail App (Outlook/Mac)</a>', unsafe_allow_html=True)
-            
