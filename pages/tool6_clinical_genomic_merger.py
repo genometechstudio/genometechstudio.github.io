@@ -1,6 +1,9 @@
 import streamlit as st
 import pandas as pd
 import numpy as np
+import os
+import json
+import time
 import re
 import urllib.parse
 
@@ -545,13 +548,30 @@ if df_clin_raw is not None and df_gen_raw is not None:
             }
 
 # ==========================================
-# DISPLAY TABULAR RESULTS, PAYWALL & REMARKS
+# 🇮🇳 INDIA DIRECT PAYMENT CONFIG (PULLS PRIVATELY FROM STREAMLIT SECRETS)
+# Safe for Public GitHub! Make sure these 6 keys are in this app's Streamlit Secrets.
+# ==========================================
+INDIA_UPI_ID = st.secrets.get("INDIA_UPI_ID", "BHARATPE2A0G0R8H8A59248@unitype")
+INDIA_PAYEE_NAME = st.secrets.get("INDIA_PAYEE_NAME", "GenomeTech Studio")
+INDIA_BANK_HOLDER = st.secrets.get("INDIA_BANK_HOLDER", "GenomeTech Studio")
+INDIA_BANK_ACC = st.secrets.get("INDIA_BANK_ACC", "Available on Proforma Invoice")
+INDIA_BANK_IFSC = st.secrets.get("INDIA_BANK_IFSC", "Available on Proforma Invoice")
+INDIA_BANK_NAME = st.secrets.get("INDIA_BANK_NAME", "Available on Proforma Invoice")
+
+# ==========================================
+# DISPLAY TABULAR RESULTS, PAYWALL & REMARKS (TOOL #6 — DUAL CURRENCY USD + INR)
 # ==========================================
 if "merged_df_t6" in st.session_state:
     res_df = st.session_state["merged_df_t6"]
     deseq_df = st.session_state["deseq_df_t6"]
     aud_df = st.session_state["audit_df_t6"]
     stats = st.session_state["stats_t6"]
+
+    # Ensure currency state is initialized
+    if "currency" not in st.session_state:
+        url_curr = str(st.query_params.get("currency", "USD")).strip().upper()
+        st.session_state.currency = "INR" if url_curr == "INR" else "USD"
+    is_inr = (st.session_state.get("currency", "USD") == "INR")
 
     st.markdown("---")
     st.markdown("### 📊 Cohort Alignment Summary & Master Merged Table Preview")
@@ -572,21 +592,24 @@ if "merged_df_t6" in st.session_state:
                 "⬇️ 1. Master Merged Clinical + Genomic Table (.csv)",
                 data=res_df.to_csv(index=False).encode("utf-8-sig"),
                 file_name="GenomeTech_Master_Clinical_Genomic_Merged.csv",
-                mime="text/csv"
+                mime="text/csv",
+                key="dl_merged_t6"
             )
         with d2:
             st.download_button(
                 "⬇️ 2. DESeq2 / R Matrix (Genes × Matched Samples .csv)",
                 data=deseq_df.to_csv(index=False).encode("utf-8-sig"),
                 file_name="GenomeTech_DESeq2_Genes_x_MatchedSamples.csv",
-                mime="text/csv"
+                mime="text/csv",
+                key="dl_deseq_t6"
             )
         with d3:
             st.download_button(
                 "⬇️ 3. Barcode Crosswalk & Orphan Audit Log (.csv)",
                 data=aud_df.to_csv(index=False).encode("utf-8-sig"),
                 file_name="GenomeTech_Sample_Barcode_Audit.csv",
-                mime="text/csv"
+                mime="text/csv",
+                key="dl_audit_t6"
             )
     else:
         st.markdown("**Live Preview (First 4 Harmonized & Merged Patient-Genomic Records):**")
@@ -598,33 +621,85 @@ if "merged_df_t6" in st.session_state:
         st.markdown('</div>', unsafe_allow_html=True)
 
         razorpay_link = "https://rzp.io/rzp/UVDck3w"
-        st.markdown(f"""
-        <div class="paywall-overlay">
-            <h3 style="color: #e9d5ff !important; margin-top: 0;">🔒 Unlock Full {stats['final_rows']}-Sample Master Table & DESeq2 Matrix</h3>
-            <p style="color: #cbd5e1 !important; font-size: 0.95rem;">
-                Your first 4 aligned patient records are verified above ({stats['rescued']} mismatched barcodes automatically rescued). Complete the $40 OmicsExpress checkout to download all 3 synchronized files.
-            </p>
-            <div style="background:rgba(56,189,248,0.14);border:1px solid rgba(56,189,248,0.45);color:#e0f2fe !important;padding:8px 14px;border-radius:8px;font-size:0.88rem;font-weight:600;margin:10px auto 6px auto;max-width:520px;">🔥 <span style="color:#38bdf8 !important;font-weight:800;">FOUNDING LAB LAUNCH OFFER:</span> <s style="color:#94a3b8 !important;">$100 USD</s> <b style="color:#ffffff !important;">$40 USD</b> — Special Early-Access Rate for Our First 20 Research Clients</div><a href="{razorpay_link}" target="_blank" style="background: linear-gradient(90deg, #9333ea 0%, #2563eb 100%); color: white !important; padding: 14px 32px; text-decoration: none; border-radius: 10px; font-weight: 700; font-size: 1.05rem; display: inline-block; margin: 12px 0; border: 1px solid #c084fc; box-shadow: 0 4px 20px rgba(147, 51, 234, 0.5);">
-                💳 Pay $40 via Razorpay to Unlock All 3 CSVs
-            </a>
-        </div>
-        """, unsafe_allow_html=True)
+
+        if is_inr:
+            import urllib.parse
+            upi_note = "OmicsExpress Tool 6 Merger"
+            upi_uri = (
+                f"upi://pay?pa={urllib.parse.quote(INDIA_UPI_ID)}"
+                f"&pn={urllib.parse.quote(INDIA_PAYEE_NAME)}"
+                f"&am=799"
+                f"&cu=INR"
+                f"&tn={urllib.parse.quote(upi_note)}"
+            )
+            qr_img_url = f"https://api.qrserver.com/v1/create-qr-code/?size=220x220&margin=10&data={urllib.parse.quote(upi_uri)}"
+
+            st.markdown(f"""
+            <div class="paywall-overlay" style="text-align: center;">
+                <h3 style="color: #e9d5ff !important; margin-top: 0;">🔒 Unlock Full {stats['final_rows']}-Sample Master Table & DESeq2 Matrix</h3>
+                <p style="color: #cbd5e1 !important; font-size: 0.95rem; max-width: 620px; margin: 0 auto 14px auto;">
+                    Your first 4 aligned patient records are verified above ({stats['rescued']} mismatched barcodes automatically rescued). Complete the <b>₹799 INR</b> OmicsExpress checkout via Direct UPI or NEFT to download all 3 synchronized files.
+                </p>
+                <div style="background:rgba(56,189,248,0.14);border:1px solid rgba(56,189,248,0.45);color:#e0f2fe !important;padding:8px 14px;border-radius:8px;font-size:0.88rem;font-weight:600;margin:10px auto 14px auto;max-width:540px;">🔥 <span style="color:#38bdf8 !important;font-weight:800;">FOUNDING LAB LAUNCH OFFER:</span> <s style="color:#94a3b8 !important;">₹2,499 INR</s> <b style="color:#ffffff !important;">₹799 INR</b> (0% GST — Grant Friendly)</div>
+                
+                <div style="background:rgba(15,23,42,0.95); border:1px solid rgba(16,185,129,0.4); border-radius:14px; padding:16px; margin:0 auto 16px auto; max-width:380px;">
+                    <div style="color:#34d399; font-weight:800; font-size:0.95rem; margin-bottom:8px;">Scan 0%-Fee UPI QR (₹799)</div>
+                    <img src="{qr_img_url}" alt="UPI QR Code" style="width:180px; height:180px; border-radius:10px; border:3px solid #10b981; padding:5px; background:#ffffff; margin:0 auto 10px auto; display:block;">
+                    <div style="color:#e2e8f0; font-size:0.8rem; font-family:monospace; background:rgba(255,255,255,0.05); padding:4px 10px; border-radius:6px; margin-bottom:4px;">
+                        UPI ID: <b>{INDIA_UPI_ID}</b>
+                    </div>
+                    <div style="color:#94a3b8; font-size:0.74rem;">Google Pay, PhonePe, Paytm &amp; BHIM</div>
+                </div>
+            </div>
+            """, unsafe_allow_html=True)
+
+            with st.expander("🏦 Paying via University Grant / Direct NEFT / IMPS? View Bank Details"):
+                st.markdown(f"""
+                * **Beneficiary Name:** `{INDIA_BANK_HOLDER}`
+                * **Bank Name:** `{INDIA_BANK_NAME}`
+                * **Account Number:** `{INDIA_BANK_ACC}`
+                * **IFSC Code:** `{INDIA_BANK_IFSC}`
+                * **Amount Due:** `₹799 INR` *(0% GST — Exempt under ₹20L threshold)*
+                """)
+        else:
+            st.markdown(f"""
+            <div class="paywall-overlay">
+                <h3 style="color: #e9d5ff !important; margin-top: 0;">🔒 Unlock Full {stats['final_rows']}-Sample Master Table & DESeq2 Matrix</h3>
+                <p style="color: #cbd5e1 !important; font-size: 0.95rem;">
+                    Your first 4 aligned patient records are verified above ({stats['rescued']} mismatched barcodes automatically rescued). Complete the $40 OmicsExpress checkout to download all 3 synchronized files.
+                </p>
+                <div style="background:rgba(56,189,248,0.14);border:1px solid rgba(56,189,248,0.45);color:#e0f2fe !important;padding:8px 14px;border-radius:8px;font-size:0.88rem;font-weight:600;margin:10px auto 6px auto;max-width:520px;">🔥 <span style="color:#38bdf8 !important;font-weight:800;">FOUNDING LAB LAUNCH OFFER:</span> <s style="color:#94a3b8 !important;">$100 USD</s> <b style="color:#ffffff !important;">$40 USD</b> — Special Early-Access Rate for Our First 20 Research Clients</div><a href="{razorpay_link}" target="_blank" style="background: linear-gradient(90deg, #9333ea 0%, #2563eb 100%); color: white !important; padding: 14px 32px; text-decoration: none; border-radius: 10px; font-weight: 700; font-size: 1.05rem; display: inline-block; margin: 12px 0; border: 1px solid #c084fc; box-shadow: 0 4px 20px rgba(147, 51, 234, 0.5);">
+                    💳 Pay $40 via Razorpay to Unlock All 3 CSVs
+                </a>
+            </div>
+            """, unsafe_allow_html=True)
 
         # --- START API & ANTI-REUSE GATEWAY UPGRADE ---
         u_col1, u_col2, u_col3 = st.columns([1, 2, 1])
         with u_col2:
+            input_label_t6 = (
+                "🔑 Completed payment via UPI or Razorpay? Paste your 12-digit UPI UTR or Payment ID:"
+                if is_inr
+                else "🔑 Completed payment? Paste your Razorpay Payment ID or Founder Key:"
+            )
+            input_placeholder_t6 = (
+                "e.g., 430189234512 (UPI UTR) or pay_XXXXXXXXXXXXXX or GTS-DEMO-..."
+                if is_inr
+                else "pay_XXXXXXXXXXXXXX or GTS-DEMO-..."
+            )
+
             entered_key = st.text_input(
-                "🔑 Completed payment? Paste your Razorpay Payment ID or Founder Key:",
-                placeholder="pay_XXXXXXXXXXXXXX or GTS-DEMO-..."
+                input_label_t6,
+                placeholder=input_placeholder_t6,
+                key="unlock_input_t6"
             ).strip()
             
-            if st.button("Unlock Full Download", use_container_width=True):
+            if st.button("Unlock Full Download", key="unlock_btn_t6", use_container_width=True):
                 if not entered_key:
-                    st.warning("Please enter a key.")
+                    st.warning("Please enter a key or 12-digit UPI UTR.")
                 else:
                     import json
                     import os
-                    import razorpay
                     import time
                     
                     DB_FILE = "used_keys.json"
@@ -660,26 +735,38 @@ if "merged_df_t6" in st.session_state:
                             st.session_state["is_unlocked_t6"] = True
                             st.rerun()
 
-                    # 3. RAZORPAY API VERIFICATION (Amount-Checked & One-Time Use)
+                    # 3. INDIAN DIRECT UPI UTR (12-DIGIT RRN) OR NEFT UTR VERIFICATION (One-Time Use)
+                    elif is_inr and (
+                        (entered_key.isdigit() and len(entered_key) == 12 and entered_key[0] != "0")
+                        or (len(entered_key) >= 11 and entered_key[:4].isalpha() and any(c.isdigit() for c in entered_key))
+                    ):
+                        burned, burn_date = is_key_burned(entered_key)
+                        if burned:
+                            st.error(f"❌ Security Lock: This UTR / Reference ({entered_key}) was already claimed on {burn_date}.")
+                        else:
+                            burn_key(entered_key)
+                            st.session_state["is_unlocked_t6"] = True
+                            st.rerun()
+
+                    # 4. RAZORPAY API VERIFICATION (Amount-Checked & One-Time Use)
                     elif entered_key.startswith("pay_") and len(entered_key) >= 14:
                         burned, burn_date = is_key_burned(entered_key)
                         if burned:
                             st.error(f"❌ Security Lock: This Receipt ID was already claimed on {burn_date}. Keys cannot be shared.")
                         else:
                             try:
-                                # Authenticate with Razorpay Servers
+                                import razorpay
                                 client = razorpay.Client(auth=(st.secrets["razorpay"]["key_id"], st.secrets["razorpay"]["key_secret"]))
                                 payment = client.payment.fetch(entered_key)
                                 
-                                # Verify the transaction was successful
                                 if payment["status"] in ["captured", "authorized"]:
-                                    # Check for $40 USD (4000 cents) OR ₹3500 INR (350000 paise)
-                                    if (payment["amount"] >= 4000 and payment["currency"] == "USD") or (payment["amount"] >= 350000 and payment["currency"] == "INR"):
+                                    # Check for $40 USD (4000 cents) OR ₹799 INR (79900 paise)
+                                    if (payment["amount"] >= 4000 and payment["currency"] == "USD") or (payment["amount"] >= 79900 and payment["currency"] == "INR"):
                                         burn_key(entered_key)
                                         st.session_state["is_unlocked_t6"] = True
                                         st.rerun()
                                     else:
-                                        st.error(f"❌ Invalid Payment Amount. Expected $40.00 USD or ₹3500 INR, but found {payment['amount']/100:.2f} {payment['currency']}.")
+                                        st.error(f"❌ Invalid Payment Amount. Expected $40.00 USD or ₹799 INR, but found {payment['amount']/100:.2f} {payment['currency']}.")
                                 else:
                                     st.error(f"❌ Payment Status: {payment['status'].upper()}. This transaction is not complete.")
                                     
@@ -687,7 +774,7 @@ if "merged_df_t6" in st.session_state:
                                 st.error("❌ Invalid Payment ID. The bank API could not verify this transaction.")
                                 
                     else:
-                        st.error("❌ Invalid Key Format or Unauthorized Demo Key.")
+                        st.error("❌ Invalid Key Format, UPI UTR, or Unauthorized Demo Key.")
         # --- END API & ANTI-REUSE GATEWAY UPGRADE ---
 
     # ==========================================
@@ -699,14 +786,15 @@ if "merged_df_t6" in st.session_state:
     st.info(
         f"**Automated Clinical & Genomic Merger Diagnostics:**\n"
         f"* **Cohort Merge Strategy:** {stats['engine']}\n"
-        f"* **Barcode Harmonization & Tissue Rescue:** Aligned **{stats['matched']}** patients across **{stats['clin_in']}** clinical records and **{stats['gen_in']}** genomic assays (**{stats['rescued']}** mismatched barcodes rescued; tissue origin tags preserved in `Extracted_Specimen_Type`)[cite: 9].\n"
-        f"* **DESeq2 / R Synchronization & Orphan Audit:** Generated both a patient-row master table (`{stats['final_rows']} × {stats['final_cols']}`) and a `Genes × Matched_Samples` matrix with **0 column-order mismatches**, plus an audit log of **{stats['orphans']}** unmatched orphan ID(s)[cite: 9]."
+        f"* **Barcode Harmonization & Tissue Rescue:** Aligned **{stats['matched']}** patients across **{stats['clin_in']}** clinical records and **{stats['gen_in']}** genomic assays (**{stats['rescued']}** mismatched barcodes rescued; tissue origin tags preserved in `Extracted_Specimen_Type`).\n"
+        f"* **DESeq2 / R Synchronization & Orphan Audit:** Generated both a patient-row master table (`{stats['final_rows']} × {stats['final_cols']}`) and a `Genes × Matched_Samples` matrix with **0 column-order mismatches**, plus an audit log of **{stats['orphans']}** unmatched orphan ID(s)."
     )
 
     with st.expander("💬 Send Remarks or Questions Directly to GenomeTech Team (via Email)"):
-        client_email = st.text_input("Your Lab / Institutional Email:")
-        client_remark = st.text_area("Your Remarks or Questions about this Clinical-Genomic Merge Run:")
-        if st.button("Prepare Direct Email"):
+        client_email = st.text_input("Your Lab / Institutional Email:", key="rem_email_t6")
+        client_remark = st.text_area("Your Remarks or Questions about this Clinical-Genomic Merge Run:", key="rem_text_t6")
+        if st.button("Prepare Direct Email", key="rem_btn_t6"):
+            import urllib.parse
             subject = urllib.parse.quote(f"OmicsExpress Tool #6 Remark - {client_email}")
             body = urllib.parse.quote(
                 f"Client Email: {client_email}\n"
@@ -718,5 +806,5 @@ if "merged_df_t6" in st.session_state:
             )
             mailto_url = f"mailto:genometechstudio@gmail.com?subject={subject}&body={body}"
             st.success("✅ Your remark and alignment diagnostics are ready! Click below to send directly from your email client:")
-            st.markdown(f'👉 <a href="https://mail.google.com/mail/?view=cm&fs=1&to=genometechstudio@gmail.com&su={subject}&body={body}" target="_blank" style="color:#38bdf8;font-weight:700;text-decoration:underline;">Click Here to Send via Gmail (Browser)</a> &nbsp;|&nbsp; <a href="{mailto_url}" style="color:#c4b5fd;font-weight:600;text-decoration:underline;">Open in Default Mail App (Outlook/Mac)</a>', unsafe_allow_html=True)
+            st.markdown(f'👉 <a href="https://mail.google.com/mail/?view=cm&fs=1&to=genometechstudio@gmail.com&su={subject}&body={body}" target="_blank" style="color:#38bdf8;font-weight:700;text-decoration:underline;">Click Here to Send via Gmail (Browser)</a> &nbsp;|&nbsp; <a href="{mailto_url}" style="color:#c4b5fd;font-weight:600;text-decoration:underline;">Open in Default Mail App (Outlook/Mac)</a>', unsafe_allow_html=True)      st.markdown(f'👉 <a href="https://mail.google.com/mail/?view=cm&fs=1&to=genometechstudio@gmail.com&su={subject}&body={body}" target="_blank" style="color:#38bdf8;font-weight:700;text-decoration:underline;">Click Here to Send via Gmail (Browser)</a> &nbsp;|&nbsp; <a href="{mailto_url}" style="color:#c4b5fd;font-weight:600;text-decoration:underline;">Open in Default Mail App (Outlook/Mac)</a>', unsafe_allow_html=True)
             
