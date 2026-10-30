@@ -1334,26 +1334,30 @@ if "km_curve_df_t8" in st.session_state:
     unsafe_allow_html=True
 )
 
-            with st.expander("🏦 Paying via University Grant / Direct NEFT / IMPS? View Bank Details"):
-                st.markdown(f"""
-                * **Beneficiary Name:** `{INDIA_BANK_HOLDER}`
-                * **Bank Name:** `{INDIA_BANK_NAME}`
-                * **Account Number:** `{INDIA_BANK_ACC}`
-                * **IFSC Code:** `{INDIA_BANK_IFSC}`
-                * **Amount Due:** `₹799 INR` *(0% GST — Exempt under ₹20L threshold)*
-                """)
+            with st.expander("🏛️ Paying via University Grant / Institutional NEFT? Request Proforma Invoice"):
+                st.markdown(
+                    "University and institute finance offices require an official **Proforma Invoice** to process NEFT/RTGS grant transfers.\n\n"
+                    "* **Amount Due:** `₹799 INR` *(0% GST — Exempt under ₹20L threshold)*\n"
+                    "* **How to Request:** Email your **Institute Name** and **Lab PI Name** to receive a formal Proforma Invoice with verified NEFT/IMPS routing details within 15 minutes."
+                )
         else:
-            st.markdown(f"""
-            <div class="paywall-overlay">
-                <h3 style="color: #e9d5ff !important; margin-top: 0;">🔒 Unlock All 4 Survival Figures, Patient Risk Table &amp; Batch HR Screen</h3>
-                <p style="color: #cbd5e1 !important; font-size: 0.95rem;">
-                    Your cohort Hazard Ratio (HR = {stats['hr_str']}) and Log-Rank significance (p = {stats['p_lr_str']}) are verified above. Complete the $40 OmicsExpress checkout to unlock all 4 vector survival figures (<code>.svg</code>), all 4 survival &amp; patient assignment tables (<code>.csv</code>), and the printable visual report.
-                </p>
-                <div style="background:rgba(56,189,248,0.14);border:1px solid rgba(56,189,248,0.45);color:#e0f2fe !important;padding:8px 14px;border-radius:8px;font-size:0.88rem;font-weight:600;margin:10px auto 6px auto;max-width:520px;">🔥 <span style="color:#38bdf8 !important;font-weight:800;">FOUNDING LAB LAUNCH OFFER:</span> <s style="color:#94a3b8 !important;">$100 USD</s> <b style="color:#ffffff !important;">$40 USD</b> — Special Early-Access Rate for Our First 20 Research Clients</div><a href="{razorpay_link}" target="_blank" style="background: linear-gradient(90deg, #9333ea 0%, #2563eb 100%); color: white !important; padding: 14px 32px; text-decoration: none; border-radius: 10px; font-weight: 700; font-size: 1.05rem; display: inline-block; margin: 12px 0; border: 1px solid #c084fc; box-shadow: 0 4px 20px rgba(147, 51, 234, 0.5);">
-                    💳 Pay $40 via Razorpay to Unlock Full Survival Suite
-                </a>
-            </div>
-            """, unsafe_allow_html=True)
+            st.markdown(
+                f'<div class="paywall-overlay" style="text-align: center;">'
+                f'<h3 style="color: #e9d5ff !important; margin-top: 0;">🔒 Unlock All 4 Survival Figures, Patient Risk Table &amp; Batch HR Screen</h3>'
+                f'<p style="color: #cbd5e1 !important; font-size: 0.95rem;">'
+                f'Your cohort Hazard Ratio (HR = {stats["hr_str"]}) and Log-Rank significance (p = {stats["p_lr_str"]}) are verified above. '
+                f'Complete the $40 OmicsExpress checkout to unlock all 4 vector survival figures (<code>.svg</code>), all 4 survival &amp; patient assignment tables (<code>.csv</code>), and the printable visual report.'
+                f'</p>'
+                f'<div style="background:rgba(56,189,248,0.14);border:1px solid rgba(56,189,248,0.45);color:#e0f2fe !important;padding:8px 14px;border-radius:8px;font-size:0.88rem;font-weight:600;margin:10px auto 6px auto;max-width:520px;">'
+                f'🔥 <span style="color:#38bdf8 !important;font-weight:800;">FOUNDING LAB LAUNCH OFFER:</span> '
+                f'<s style="color:#94a3b8 !important;">$100 USD</s> <b style="color:#ffffff !important;">$40 USD</b> — Special Early-Access Rate for Our First 20 Research Clients'
+                f'</div>'
+                f'<a href="{razorpay_link}" target="_blank" style="background: linear-gradient(90deg, #9333ea 0%, #2563eb 100%); color: white !important; padding: 14px 32px; text-decoration: none; border-radius: 10px; font-weight: 700; font-size: 1.05rem; display: inline-block; margin: 12px 0; border: 1px solid #c084fc; box-shadow: 0 4px 20px rgba(147, 51, 234, 0.5);">'
+                f'💳 Pay $40 via Razorpay to Unlock Full Survival Suite'
+                f'</a>'
+                f'</div>',
+                unsafe_allow_html=True
+            )
 
         # --- START API & ANTI-REUSE GATEWAY UPGRADE ---
         u_col1, u_col2, u_col3 = st.columns([1, 2, 1])
