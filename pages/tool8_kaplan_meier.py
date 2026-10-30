@@ -1313,24 +1313,26 @@ if "km_curve_df_t8" in st.session_state:
             )
             qr_img_url = f"https://api.qrserver.com/v1/create-qr-code/?size=220x220&margin=10&data={urllib.parse.quote(upi_uri)}"
 
-            st.markdown(f"""
-            <div class="paywall-overlay" style="text-align: center;">
-                <h3 style="color: #e9d5ff !important; margin-top: 0;">🔒 Unlock All 4 Survival Figures, Patient Risk Table &amp; Batch HR Screen</h3>
-                <p style="color: #cbd5e1 !important; font-size: 0.95rem; max-width: 620px; margin: 0 auto 14px auto;">
-                    Your cohort Hazard Ratio (HR = {stats['hr_str']}) and Log-Rank significance (p = {stats['p_lr_str']}) are verified above. Complete the <b>₹799 INR</b> OmicsExpress checkout via Direct UPI or NEFT to unlock all 4 vector survival figures (<code>.svg</code>), all 4 survival &amp; patient assignment tables (<code>.csv</code>), and the printable visual report.
-                </p>
-                <div style="background:rgba(56,189,248,0.14);border:1px solid rgba(56,189,248,0.45);color:#e0f2fe !important;padding:8px 14px;border-radius:8px;font-size:0.88rem;font-weight:600;margin:10px auto 14px auto;max-width:540px;">🔥 <span style="color:#38bdf8 !important;font-weight:800;">FOUNDING LAB LAUNCH OFFER:</span> <s style="color:#94a3b8 !important;">₹2,499 INR</s> <b style="color:#ffffff !important;">₹799 INR</b> (0% GST — Grant Friendly)</div>
-                
-                <div style="background:rgba(15,23,42,0.95); border:1px solid rgba(16,185,129,0.4); border-radius:14px; padding:16px; margin:0 auto 16px auto; max-width:380px;">
-                    <div style="color:#34d399; font-weight:800; font-size:0.95rem; margin-bottom:8px;">Scan 0%-Fee UPI QR (₹799)</div>
-                    <img src="{qr_img_url}" alt="UPI QR Code" style="width:180px; height:180px; border-radius:10px; border:3px solid #10b981; padding:5px; background:#ffffff; margin:0 auto 10px auto; display:block;">
-                    <div style="color:#e2e8f0; font-size:0.8rem; font-family:monospace; background:rgba(255,255,255,0.05); padding:4px 10px; border-radius:6px; margin-bottom:4px;">
-                        UPI ID: <b>{INDIA_UPI_ID}</b>
-                    </div>
-                    <div style="color:#94a3b8; font-size:0.74rem;">Google Pay, PhonePe, Paytm &amp; BHIM</div>
-                </div>
-            </div>
-            """, unsafe_allow_html=True)
+            st.markdown(
+    f'<div class="paywall-overlay" style="text-align: center;">'
+    f'<h3 style="color: #e9d5ff !important; margin-top: 0;">🔒 Unlock Full {stats["total"]:,}-Row Translated CSV</h3>'
+    f'<p style="color: #cbd5e1 !important; font-size: 0.95rem; max-width: 600px; margin: 0 auto 14px auto;">{paywall_desc}</p>'
+    f'<div style="background:rgba(56,189,248,0.14);border:1px solid rgba(56,189,248,0.45);color:#e0f2fe !important;padding:8px 14px;border-radius:8px;font-size:0.88rem;font-weight:600;margin:10px auto 14px auto;max-width:540px;">'
+    f'🔥 <span style="color:#38bdf8 !important;font-weight:800;">FOUNDING LAB LAUNCH OFFER:</span> '
+    f'<s style="color:#94a3b8 !important;">{paywall_strike_display} INR</s> '
+    f'<b style="color:#ffffff !important;">{paywall_price_display}</b> (0% GST — Grant Friendly)'
+    f'</div>'
+    f'<div style="background:rgba(15,23,42,0.95); border:1px solid rgba(16,185,129,0.4); border-radius:14px; padding:16px; margin:0 auto 16px auto; max-width:380px;">'
+    f'<div style="color:#34d399; font-weight:800; font-size:0.95rem; margin-bottom:8px;">Scan 0%-Fee UPI QR ({paywall_price_display})</div>'
+    f'<img src="{qr_img_url}" alt="UPI QR Code" style="width:180px; height:180px; border-radius:10px; border:3px solid #10b981; padding:5px; background:#ffffff; margin:0 auto 10px auto; display:block;">'
+    f'<div style="color:#e2e8f0; font-size:0.8rem; font-family:monospace; background:rgba(255,255,255,0.05); padding:4px 10px; border-radius:6px; margin-bottom:4px;">'
+    f'UPI ID: <b>{INDIA_UPI_ID}</b>'
+    f'</div>'
+    f'<div style="color:#94a3b8; font-size:0.74rem;">Google Pay, PhonePe, Paytm &amp; BHIM</div>'
+    f'</div>'
+    f'</div>',
+    unsafe_allow_html=True
+)
 
             with st.expander("🏦 Paying via University Grant / Direct NEFT / IMPS? View Bank Details"):
                 st.markdown(f"""
