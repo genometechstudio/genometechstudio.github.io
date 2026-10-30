@@ -684,7 +684,7 @@ if "fasta_df_t5" in st.session_state:
 
             if is_inr:
             import urllib.parse
-            upi_note = "OmicsExpress Tool 2 Primer"
+            upi_note = "OmicsExpress Tool 5 fetcher"
             upi_uri = (
                 f"upi://pay?pa={urllib.parse.quote(INDIA_UPI_ID)}"
                 f"&pn={urllib.parse.quote(INDIA_PAYEE_NAME)}"
