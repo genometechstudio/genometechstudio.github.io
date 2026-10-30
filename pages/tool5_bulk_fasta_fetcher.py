@@ -694,34 +694,34 @@ if "fasta_df_t5" in st.session_state:
                 )
                 qr_img_url = f"https://api.qrserver.com/v1/create-qr-code/?size=220x220&margin=10&data={urllib.parse.quote(upi_uri)}"
 
-                st.markdown(
-    f'<div class="paywall-overlay" style="text-align: center;">'
-    f'<h3 style="color: #e9d5ff !important; margin-top: 0;">🔒 Unlock Full {stats["total"]:,}-Row Translated CSV</h3>'
-    f'<p style="color: #cbd5e1 !important; font-size: 0.95rem; max-width: 600px; margin: 0 auto 14px auto;">{paywall_desc}</p>'
-    f'<div style="background:rgba(56,189,248,0.14);border:1px solid rgba(56,189,248,0.45);color:#e0f2fe !important;padding:8px 14px;border-radius:8px;font-size:0.88rem;font-weight:600;margin:10px auto 14px auto;max-width:540px;">'
-    f'🔥 <span style="color:#38bdf8 !important;font-weight:800;">FOUNDING LAB LAUNCH OFFER:</span> '
-    f'<s style="color:#94a3b8 !important;">{paywall_strike_display} INR</s> '
-    f'<b style="color:#ffffff !important;">{paywall_price_display}</b> (0% GST — Grant Friendly)'
-    f'</div>'
-    f'<div style="background:rgba(15,23,42,0.95); border:1px solid rgba(16,185,129,0.4); border-radius:14px; padding:16px; margin:0 auto 16px auto; max-width:380px;">'
-    f'<div style="color:#34d399; font-weight:800; font-size:0.95rem; margin-bottom:8px;">Scan 0%-Fee UPI QR ({paywall_price_display})</div>'
-    f'<img src="{qr_img_url}" alt="UPI QR Code" style="width:180px; height:180px; border-radius:10px; border:3px solid #10b981; padding:5px; background:#ffffff; margin:0 auto 10px auto; display:block;">'
-    f'<div style="color:#e2e8f0; font-size:0.8rem; font-family:monospace; background:rgba(255,255,255,0.05); padding:4px 10px; border-radius:6px; margin-bottom:4px;">'
-    f'UPI ID: <b>{INDIA_UPI_ID}</b>'
-    f'</div>'
-    f'<div style="color:#94a3b8; font-size:0.74rem;">Google Pay, PhonePe, Paytm &amp; BHIM</div>'
-    f'</div>'
-    f'</div>',
-    unsafe_allow_html=True
-)
+            st.markdown(
+                f'<div class="paywall-overlay" style="text-align: center;">'
+                f'<h3 style="color: #e9d5ff !important; margin-top: 0;">🔒 Unlock Full {stats["total"]:,}-Row Translated CSV</h3>'
+                f'<p style="color: #cbd5e1 !important; font-size: 0.95rem; max-width: 600px; margin: 0 auto 14px auto;">{paywall_desc}</p>'
+                f'<div style="background:rgba(56,189,248,0.14);border:1px solid rgba(56,189,248,0.45);color:#e0f2fe !important;padding:8px 14px;border-radius:8px;font-size:0.88rem;font-weight:600;margin:10px auto 14px auto;max-width:540px;">'
+                f'🔥 <span style="color:#38bdf8 !important;font-weight:800;">FOUNDING LAB LAUNCH OFFER:</span> '
+                f'<s style="color:#94a3b8 !important;">{paywall_strike_display} INR</s> '
+                f'<b style="color:#ffffff !important;">{paywall_price_display}</b> (0% GST — Grant Friendly)'
+                f'</div>'
+                f'<div style="background:rgba(15,23,42,0.95); border:1px solid rgba(16,185,129,0.4); border-radius:14px; padding:16px; margin:0 auto 16px auto; max-width:380px;">'
+                f'<div style="color:#34d399; font-weight:800; font-size:0.95rem; margin-bottom:8px;">Scan 0%-Fee UPI QR ({paywall_price_display})</div>'
+                f'<img src="{qr_img_url}" alt="UPI QR Code" style="width:180px; height:180px; border-radius:10px; border:3px solid #10b981; padding:5px; background:#ffffff; margin:0 auto 10px auto; display:block;">'
+                f'<div style="color:#e2e8f0; font-size:0.8rem; font-family:monospace; background:rgba(255,255,255,0.05); padding:4px 10px; border-radius:6px; margin-bottom:4px;">'
+                f'UPI ID: <b>{INDIA_UPI_ID}</b>'
+                f'</div>'
+                f'<div style="color:#94a3b8; font-size:0.74rem;">Google Pay, PhonePe, Paytm &amp; BHIM</div>'
+                f'</div>'
+                f'</div>',
+                unsafe_allow_html=True
+            )
 
-                with st.expander("🏛️ Paying via University Grant / Institutional NEFT? Request Proforma Invoice"):
+            with st.expander("🏛️ Paying via University Grant / Institutional NEFT? Request Proforma Invoice"):
                 st.markdown(
                     "University and institute finance offices require an official **Proforma Invoice** to process NEFT/RTGS grant transfers.\n\n"
                     "* **Amount Due:** `₹799 INR` *(0% GST — Exempt under ₹20L threshold)*\n"
                     "* **How to Request:** Email your **Institute Name** and **Lab PI Name** to receive a formal Proforma Invoice with verified NEFT/IMPS routing details within 15 minutes."
                 )
-            else:
+        else:
             st.markdown(
                 f'<div class="paywall-overlay" style="text-align: center;">'
                 f'<h3 style="color: #e9d5ff !important; margin-top: 0;">🔒 Unlock Full Analysis Tables, Vector Figures &amp; Complete Report</h3>'
@@ -738,7 +738,6 @@ if "fasta_df_t5" in st.session_state:
                 f'</div>',
                 unsafe_allow_html=True
             )
-
             # --- START API & ANTI-REUSE GATEWAY UPGRADE ---
             u_col1, u_col2, u_col3 = st.columns([1, 2, 1])
             with u_col2:
