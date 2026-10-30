@@ -683,16 +683,16 @@ if "fasta_df_t5" in st.session_state:
             razorpay_link = "https://rzp.io/rzp/UVDck3w"
 
             if is_inr:
-                import urllib.parse
-                upi_note = "OmicsExpress Tool 5 FASTA"
-                upi_uri = (
-                    f"upi://pay?pa={urllib.parse.quote(INDIA_UPI_ID)}"
-                    f"&pn={urllib.parse.quote(INDIA_PAYEE_NAME)}"
-                    f"&am=799"
-                    f"&cu=INR"
-                    f"&tn={urllib.parse.quote(upi_note)}"
-                )
-                qr_img_url = f"https://api.qrserver.com/v1/create-qr-code/?size=220x220&margin=10&data={urllib.parse.quote(upi_uri)}"
+            import urllib.parse
+            upi_note = "OmicsExpress Tool 2 Primer"
+            upi_uri = (
+                f"upi://pay?pa={urllib.parse.quote(INDIA_UPI_ID)}"
+                f"&pn={urllib.parse.quote(INDIA_PAYEE_NAME)}"
+                f"&am=799"
+                f"&cu=INR"
+                f"&tn={urllib.parse.quote(upi_note)}"
+            )
+            qr_img_url = f"https://api.qrserver.com/v1/create-qr-code/?size=220x220&margin=10&data={urllib.parse.quote(upi_uri)}"
 
             st.markdown(
                 f'<div class="paywall-overlay" style="text-align: center;">'
