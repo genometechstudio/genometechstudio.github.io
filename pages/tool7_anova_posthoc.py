@@ -1228,13 +1228,11 @@ if "posthoc_df_t7" in st.session_state:
                 unsafe_allow_html=True
             )
 
-            with st.expander("🏦 Paying via University Grant / Direct NEFT / IMPS? View Bank Details"):
+            with st.expander("🏦 Paying via University Grant / Institutional NEFT? Request Proforma Invoice"):
                 st.markdown(
-                    f"* **Beneficiary Name:** `{INDIA_BANK_HOLDER}`\n"
-                    f"* **Bank Name:** `{INDIA_BANK_NAME}`\n"
-                    f"* **Account Number:** `{INDIA_BANK_ACC}`\n"
-                    f"* **IFSC Code:** `{INDIA_BANK_IFSC}`\n"
-                    f"* **Amount Due:** `₹799 INR` *(0% GST — Exempt under ₹20L threshold)*"
+                    "University and institute finance offices requiring an official **Proforma Invoice** for NEFT/RTGS grant processing can request one directly:\n"
+                    "* **Amount Due:** `₹799 INR` *(0% GST — Exempt under ₹20L threshold)*\n"
+                    "* **How to Request:** Email your **Institute Name** and **Lab PI Name** to `genometechstudio@gmail.com` to receive your official Proforma Invoice & bank routing details."
                 )
         else:
             paywall_desc = "Your top 2 pairwise comparisons are verified above. Complete the $40 OmicsExpress checkout to unlock all 3 statistical CSV tables, all 4 publication figures (Boxplot, Mean ± SD Bar Chart, 95% CI Forest Plot, and Multi-Gene Trajectory), and the printable HTML report."
