@@ -636,13 +636,13 @@ INDIA_UPI_ID = st.secrets.get("INDIA_UPI_ID", "BHARATPE2A0G0R8H8A59248@unitype")
 INDIA_PAYEE_NAME = st.secrets.get("INDIA_PAYEE_NAME", "GenomeTech Studio")
 
 # ==========================================
-# DISPLAY TABULAR RESULTS, PAYWALL & REMARKS (TOOL #3 — DUAL CURRENCY USD + INR)
+# DISPLAY TABULAR RESULTS, PAYWALL & REMARKS (TOOL #4 — DUAL CURRENCY USD + INR)
 # ==========================================
-if "vcf_df_t3" in st.session_state:
-    res_df = st.session_state["vcf_df_t3"]
-    act_df = st.session_state["actionable_df_t3"]
-    qc_df = st.session_state["qc_df_t3"]
-    stats = st.session_state["stats_t3"]
+if "suscept_df_t4" in st.session_state:
+    res_df = st.session_state["suscept_df_t4"]
+    t1_df = st.session_state["tier1_df_t4"]
+    aud_df = st.session_state["audit_df_t4"]
+    stats = st.session_state["stats_t4"]
 
     # Ensure currency state is initialized
     if "currency" not in st.session_state:
@@ -650,49 +650,51 @@ if "vcf_df_t3" in st.session_state:
         st.session_state.currency = "INR" if url_curr == "INR" else "USD"
     is_inr = (st.session_state.get("currency", "USD") == "INR")
 
+    total_markers_count = stats.get("passed", stats.get("total_in", len(res_df)))
+
     st.markdown("---")
-    st.markdown(f"### 📊 Clinical Variant Summary (`{stats['sample']}`) & Presentation Table Preview")
+    st.markdown("### 📊 Susceptibility Report Preview & Clinical Risk Stratification")
 
     m1, m2, m3, m4 = st.columns(4)
-    m1.metric("Raw VCF Variants Parsed", f"{stats['raw_total']:,}")
-    m2.metric("Passing QC & MAF Filters", f"{stats['passed']:,}")
-    m3.metric("High-Priority / Actionable", f"{stats['actionable']:,}")
-    m4.metric("Cohort Ti/Tv Ratio", f"{stats['titv']}")
+    m1.metric("Variants Evaluated", f"{stats.get('total_in', len(res_df))}")
+    m2.metric("Tier 1 Critical High Risk", f"{stats.get('t1', 0)}")
+    m3.metric("Tier 2 Moderate Risk", f"{stats.get('t2', 0)}")
+    m4.metric("ACMG Actionable Findings", f"{stats.get('acmg', 0)}")
 
-    if st.session_state["is_unlocked_t3"]:
-        st.success(f"✅ **Payment Verified for [{stats['mode']}]!** You may freely switch Target Samples (`{stats['sample']}`) or adjust DP, VAF%, gnomAD Pop-AF, and Quality sliders and re-run. Switching the Core Parsing Pipeline Mode starts a new run.")
+    if st.session_state["is_unlocked_t4"]:
+        st.success(f"✅ **Payment Verified for [{stats.get('engine', 'Susceptibility Screen')}]!** Full susceptibility annotations, ACMG evidence codes, targeted therapies, and surveillance protocols unlocked.")
         st.dataframe(res_df, use_container_width=True)
 
         d1, d2, d3 = st.columns(3)
         with d1:
             st.download_button(
-                "⬇️ 1. Full Presentation Clinical CSV (.csv)",
+                "⬇️ 1. Full Susceptibility Clinical Report (.csv)",
                 data=res_df.to_csv(index=False).encode("utf-8-sig"),
-                file_name=f"GenomeTech_Clinical_Variants_{stats['sample']}.csv",
+                file_name="GenomeTech_Variant_Susceptibility_Full.csv",
                 mime="text/csv",
-                key="dl_clin_t3"
+                key="dl_full_t4"
             )
         with d2:
             st.download_button(
-                "⬇️ 2. Actionable / Pathogenic Subset (.csv)",
-                data=act_df.to_csv(index=False).encode("utf-8-sig"),
-                file_name=f"GenomeTech_Actionable_Variants_{stats['sample']}.csv",
+                "⬇️ 2. Tier 1 Critical High-Risk Markers (.csv)",
+                data=t1_df.to_csv(index=False).encode("utf-8-sig"),
+                file_name="GenomeTech_Tier1_Critical_Markers.csv",
                 mime="text/csv",
-                key="dl_act_t3"
+                key="dl_t1_t4"
             )
         with d3:
             st.download_button(
-                "⬇️ 3. Variant QC & Ti/Tv Audit Table (.csv)",
-                data=qc_df.to_csv(index=False).encode("utf-8-sig"),
-                file_name=f"GenomeTech_VCF_QC_Audit_{stats['sample']}.csv",
+                "⬇️ 3. ACMG & Organ Risk Audit Summary (.csv)",
+                data=aud_df.to_csv(index=False).encode("utf-8-sig"),
+                file_name="GenomeTech_Susceptibility_Audit_Summary.csv",
                 mime="text/csv",
-                key="dl_qc_t3"
+                key="dl_aud_t4"
             )
     else:
-        st.markdown("**Live Preview (First 3 Parsed Clinical Variant Rows):**")
-        st.dataframe(res_df.head(3), use_container_width=True)
+        st.markdown("**Live Preview (Top 4 Stratified Clinical Susceptibility Records):**")
+        st.dataframe(res_df.head(4), use_container_width=True)
 
-        blurred_preview = res_df.iloc[3:10] if len(res_df) > 3 else res_df
+        blurred_preview = res_df.iloc[4:12] if len(res_df) > 4 else res_df
         st.markdown('<div class="blurred-table">', unsafe_allow_html=True)
         st.table(blurred_preview)
         st.markdown('</div>', unsafe_allow_html=True)
@@ -703,8 +705,8 @@ if "vcf_df_t3" in st.session_state:
             import urllib.parse
             paywall_price_display = "₹799 INR"
             paywall_strike_display = "₹2,499"
-            paywall_desc = "Your first 3 rows are verified above. Complete the <b>₹799 INR</b> OmicsExpress checkout via Direct UPI or NEFT to download the full Excel-ready Clinical CSV, the High-Priority Actionable Variant table, and the Ti/Tv QC Audit sheet."
-            upi_note = "OmicsExpress Tool 3 VCF"
+            paywall_desc = "Your top 4 preview rows are verified above. Complete the <b>₹799 INR</b> OmicsExpress checkout via Direct UPI or NEFT to unlock full ACMG/AMP evidence codes, penetrance odds ratios, targeted therapy matches, and clinical surveillance protocols."
+            upi_note = "OmicsExpress Tool 4 Suscept"
             upi_uri = (
                 f"upi://pay?pa={urllib.parse.quote(INDIA_UPI_ID)}"
                 f"&pn={urllib.parse.quote(INDIA_PAYEE_NAME)}"
@@ -716,7 +718,7 @@ if "vcf_df_t3" in st.session_state:
 
             st.markdown(
                 f'<div class="paywall-overlay" style="text-align: center;">'
-                f'<h3 style="color: #e9d5ff !important; margin-top: 0;">🔒 Unlock All {stats.get("passed", "")} Clinical Variants &amp; Actionable Reports</h3>'
+                f'<h3 style="color: #e9d5ff !important; margin-top: 0;">🔒 Unlock All {total_markers_count} Susceptibility Markers &amp; Actionable Deliverables</h3>'
                 f'<p style="color: #cbd5e1 !important; font-size: 0.95rem; max-width: 600px; margin: 0 auto 14px auto;">{paywall_desc}</p>'
                 f'<div style="background:rgba(56,189,248,0.14);border:1px solid rgba(56,189,248,0.45);color:#e0f2fe !important;padding:8px 14px;border-radius:8px;font-size:0.88rem;font-weight:600;margin:10px auto 14px auto;max-width:540px;">🔥 <span style="color:#38bdf8 !important;font-weight:800;">FOUNDING LAB LAUNCH OFFER:</span> <s style="color:#94a3b8 !important;">{paywall_strike_display} INR</s> <b style="color:#ffffff !important;">{paywall_price_display}</b> (0% GST — Grant Friendly)</div>'
                 f'<div style="background:rgba(15,23,42,0.95); border:1px solid rgba(16,185,129,0.4); border-radius:14px; padding:16px; margin:0 auto 16px auto; max-width:380px;">'
@@ -736,10 +738,10 @@ if "vcf_df_t3" in st.session_state:
                     "* **How to Request:** Email your **Institute Name** and **Lab PI Name** to `genometechstudio@gmail.com` to receive your official Proforma Invoice & bank routing details."
                 )
         else:
-            paywall_desc = "Your first 3 rows are verified above. Complete the $40 OmicsExpress checkout to download the full Excel-ready Clinical CSV, the High-Priority Actionable Variant table, and the Ti/Tv QC Audit sheet."
+            paywall_desc = "Your top 4 preview rows are verified above. Complete the $40 OmicsExpress checkout to unlock full ACMG/AMP evidence codes, penetrance odds ratios, targeted therapy matches, and clinical surveillance protocols."
             st.markdown(
                 f'<div class="paywall-overlay" style="text-align: center;">'
-                f'<h3 style="color: #e9d5ff !important; margin-top: 0;">🔒 Unlock All {stats.get("passed", "")} Clinical Variants &amp; Actionable Reports</h3>'
+                f'<h3 style="color: #e9d5ff !important; margin-top: 0;">🔒 Unlock All {total_markers_count} Susceptibility Markers &amp; Actionable Deliverables</h3>'
                 f'<p style="color: #cbd5e1 !important; font-size: 0.95rem; max-width: 600px; margin: 0 auto 14px auto;">{paywall_desc}</p>'
                 f'<div style="background:rgba(56,189,248,0.14);border:1px solid rgba(56,189,248,0.45);color:#e0f2fe !important;padding:8px 14px;border-radius:8px;font-size:0.88rem;font-weight:600;margin:10px auto 6px auto;max-width:520px;">🔥 <span style="color:#38bdf8 !important;font-weight:800;">FOUNDING LAB LAUNCH OFFER:</span> <s style="color:#94a3b8 !important;">$100 USD</s> <b style="color:#ffffff !important;">$40 USD</b> — Special Early-Access Rate for Our First 20 Research Clients</div>'
                 f'<a href="{razorpay_link}" target="_blank" style="background: linear-gradient(90deg, #9333ea 0%, #2563eb 100%); color: white !important; padding: 14px 32px; text-decoration: none; border-radius: 10px; font-weight: 700; font-size: 1.05rem; display: inline-block; margin: 12px 0; border: 1px solid #c084fc; box-shadow: 0 4px 20px rgba(147, 51, 234, 0.5);">💳 Pay $40 via Razorpay to Unlock All 3 CSVs</a>'
@@ -750,24 +752,24 @@ if "vcf_df_t3" in st.session_state:
         # --- START API & ANTI-REUSE GATEWAY UPGRADE ---
         u_col1, u_col2, u_col3 = st.columns([1, 2, 1])
         with u_col2:
-            input_label_t3 = (
+            input_label_t4 = (
                 "🔑 Completed payment via UPI or Razorpay? Paste your 12-digit UPI UTR or Payment ID:"
                 if is_inr
                 else "🔑 Completed payment? Paste your Razorpay Payment ID or Founder Key:"
             )
-            input_placeholder_t3 = (
+            input_placeholder_t4 = (
                 "e.g., 430189234512 (UPI UTR) or pay_XXXXXXXXXXXXXX or GTS-DEMO-..."
                 if is_inr
                 else "pay_XXXXXXXXXXXXXX or GTS-DEMO-..."
             )
 
             entered_key = st.text_input(
-                input_label_t3,
-                placeholder=input_placeholder_t3,
-                key="unlock_input_t3"
+                input_label_t4,
+                placeholder=input_placeholder_t4,
+                key="unlock_input_t4"
             ).strip()
 
-            if st.button("Unlock Full Download", key="unlock_btn_t3", use_container_width=True):
+            if st.button("Unlock Full Download", key="unlock_btn_t4", use_container_width=True):
                 if not entered_key:
                     st.warning("Please enter a key or 12-digit UPI UTR.")
                 else:
@@ -776,7 +778,7 @@ if "vcf_df_t3" in st.session_state:
                     import time
 
                     DB_FILE = "used_keys.json"
-                    AUTHORIZED_DEMO_KEYS = ["GTS-DEMO-VRINDAVAN", "GTS-DEMO-BARSANA", "GTS-DEMO-GOVARDHAN"]
+                    AUTHORIZED_DEMO_KEYS = ["GTS-DEMO-AYODHYA", "GTS-DEMO-CHITRAKOOT", "GTS-DEMO-NANDGAON"]
 
                     def is_key_burned(key_to_check):
                         if not os.path.exists(DB_FILE):
@@ -795,7 +797,7 @@ if "vcf_df_t3" in st.session_state:
 
                     # 1. INFINITE MASTER KEY CHECK
                     if entered_key == "GTS-MASTER-UNLIMITED":
-                        st.session_state["is_unlocked_t3"] = True
+                        st.session_state["is_unlocked_t4"] = True
                         st.rerun()
 
                     # 2. AUTHORIZED DEMO KEY CHECK (One-Time Use)
@@ -805,7 +807,7 @@ if "vcf_df_t3" in st.session_state:
                             st.error(f"❌ Security Lock: This Demo Key was already claimed on {burn_date}.")
                         else:
                             burn_key(entered_key)
-                            st.session_state["is_unlocked_t3"] = True
+                            st.session_state["is_unlocked_t4"] = True
                             st.rerun()
 
                     # 3. INDIAN DIRECT UPI UTR (12-DIGIT RRN) OR NEFT UTR VERIFICATION (One-Time Use)
@@ -818,7 +820,7 @@ if "vcf_df_t3" in st.session_state:
                             st.error(f"❌ Security Lock: This UTR / Reference ({entered_key}) was already claimed on {burn_date}.")
                         else:
                             burn_key(entered_key)
-                            st.session_state["is_unlocked_t3"] = True
+                            st.session_state["is_unlocked_t4"] = True
                             st.rerun()
 
                     # 4. RAZORPAY API VERIFICATION (Amount-Checked & One-Time Use)
@@ -835,7 +837,7 @@ if "vcf_df_t3" in st.session_state:
                                 if payment["status"] in ["captured", "authorized"]:
                                     if (payment["amount"] >= 4000 and payment["currency"] == "USD") or (payment["amount"] >= 79900 and payment["currency"] == "INR"):
                                         burn_key(entered_key)
-                                        st.session_state["is_unlocked_t3"] = True
+                                        st.session_state["is_unlocked_t4"] = True
                                         st.rerun()
                                     else:
                                         st.error(f"❌ Invalid Payment Amount. Expected $40.00 USD or ₹799 INR, but found {payment['amount']/100:.2f} {payment['currency']}.")
@@ -853,29 +855,29 @@ if "vcf_df_t3" in st.session_state:
     # STEP 6: AUTOMATED REMARKS & DIRECT EMAIL
     # ==========================================
     st.markdown("---")
-    st.markdown("### 📝 Automated Variant QC Remarks & Direct Support")
+    st.markdown("### 📝 Automated Susceptibility Remarks & Direct Support")
 
     st.info(
-        f"**Automated VCF Parsing Diagnostics:**\n"
-        f"* **Pipeline & Sample:** {stats['mode']} | Target Sample: `{stats['sample']}` (Reference: `{stats['ref_build']}`)\n"
-        f"* **Header & HGVS Unpacking:** Stripped **{stats['meta_stripped']}** `##` meta-header lines and unpacked nested `INFO`, `Transcript_ID`, `HGVSc`, `HGVSp`, `gnomAD_Pop_AF`, and `FORMAT` genotype fields.\n"
-        f"* **Variant Quality & Ti/Tv Audit:** **{stats['passed']:,}** of **{stats['raw_total']:,}** variants passed your Read Depth, VAF%, Population AF, and Phred Quality cutoffs, with a cohort Transition/Transversion (**Ti/Tv**) ratio of **{stats['titv']}** and **{stats['actionable']:,}** high-priority/actionable calls."
+        f"**Automated Variant Susceptibility Diagnostics:**\n"
+        f"* **Screening Engine:** {stats.get('engine', 'Clinical Susceptibility')}\n"
+        f"* **Risk Stratification:** Identified **{stats.get('t1', 0)}** Tier 1 Critical Pathogenic Markers and **{stats.get('t2', 0)}** Tier 2 Moderate Risk Markers across **{stats.get('total_in', len(res_df))}** evaluated variants (Mean Susceptibility Score: **{stats.get('mean_score', 'N/A')}/100**).\n"
+        f"* **ACMG/AMP & Therapeutic Actionability:** **{stats.get('acmg', 0)}** variants meet ACMG SF v3.2 or CPIC Level A criteria with mapped ACMG evidence codes (`PVS1/PS1/PM2`), OMIM/ClinVar accessions, and targeted drug/surveillance guidance."
     )
 
     with st.expander("💬 Send Remarks or Questions Directly to GenomeTech Team (via Email)"):
-        client_email = st.text_input("Your Lab / Institutional Email:", key="rem_email_t3")
-        client_remark = st.text_area("Your Remarks or Questions about this VCF Conversion Run:", key="rem_text_t3")
-        if st.button("Prepare Direct Email", key="rem_btn_t3"):
+        client_email = st.text_input("Your Lab / Institutional Email:", key="rem_email_t4")
+        client_remark = st.text_area("Your Remarks or Questions about this Susceptibility Screen:", key="rem_text_t4")
+        if st.button("Prepare Direct Email", key="rem_btn_t4"):
             import urllib.parse
-            subject = urllib.parse.quote(f"OmicsExpress Tool #3 Remark - {client_email}")
+            subject = urllib.parse.quote(f"OmicsExpress Tool #4 Remark - {client_email}")
             body = urllib.parse.quote(
                 f"Client Email: {client_email}\n"
-                f"Tool Used: Tool #3 - VCF to Clinical CSV Converter\n"
-                f"Pipeline Mode: {stats['mode']} | Sample: {stats['sample']}\n"
-                f"Total Variants Parsed: {stats['raw_total']} (Passed QC: {stats['passed']})\n"
-                f"Actionable Variants: {stats['actionable']} | Ti/Tv Ratio: {stats['titv']}\n\n"
+                f"Tool Used: Tool #4 - Variant Susceptibility & Pathogenic Flagging\n"
+                f"Engine: {stats.get('engine', '')}\n"
+                f"Total Variants Evaluated: {stats.get('total_in', len(res_df))}\n"
+                f"Tier 1 Critical Markers: {stats.get('t1', 0)} | Tier 2 Moderate: {stats.get('t2', 0)} | ACMG Actionable: {stats.get('acmg', 0)}\n\n"
                 f"Client Remarks:\n{client_remark}"
             )
             mailto_url = f"mailto:genometechstudio@gmail.com?subject={subject}&body={body}"
-            st.success("✅ Your remark and VCF diagnostics are ready! Click below to send directly from your email client:")
+            st.success("✅ Your remark and susceptibility diagnostics are ready! Click below to send directly from your email client:")
             st.markdown(f'👉 <a href="https://mail.google.com/mail/?view=cm&fs=1&to=genometechstudio@gmail.com&su={subject}&body={body}" target="_blank" style="color:#38bdf8;font-weight:700;text-decoration:underline;">Click Here to Send via Gmail (Browser)</a> &nbsp;|&nbsp; <a href="{mailto_url}" style="color:#c4b5fd;font-weight:600;text-decoration:underline;">Open in Default Mail App (Outlook/Mac)</a>', unsafe_allow_html=True)
