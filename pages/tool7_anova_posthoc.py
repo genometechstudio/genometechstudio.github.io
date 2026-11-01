@@ -1200,6 +1200,9 @@ if "posthoc_df_t7" in st.session_state:
 
         if is_inr:
             import urllib.parse
+            paywall_price_display = "₹799 INR"
+            paywall_strike_display = "₹2,499"
+            paywall_desc = "Your top 2 pairwise comparisons are verified above. Complete the <b>₹799 INR</b> OmicsExpress checkout via Direct UPI or NEFT to unlock all 3 statistical CSV tables, all 4 publication figures (Boxplot, Mean ± SD Bar Chart, 95% CI Forest Plot, and Multi-Gene Trajectory), and the printable HTML report."
             upi_note = "OmicsExpress Tool 7 ANOVA"
             upi_uri = (
                 f"upi://pay?pa={urllib.parse.quote(INDIA_UPI_ID)}"
@@ -1212,45 +1215,35 @@ if "posthoc_df_t7" in st.session_state:
 
             st.markdown(
                 f'<div class="paywall-overlay" style="text-align: center;">'
-                f'<h3 style="color: #e9d5ff !important; margin-top: 0;">🔒 Unlock Full {stats["total"]:,}-Row Translated CSV</h3>'
+                f'<h3 style="color: #e9d5ff !important; margin-top: 0;">🔒 Unlock All {stats["total_pairs"]} Post-Hoc Pairs, 3 CSVs &amp; 4 Publication Figures</h3>'
                 f'<p style="color: #cbd5e1 !important; font-size: 0.95rem; max-width: 600px; margin: 0 auto 14px auto;">{paywall_desc}</p>'
-                f'<div style="background:rgba(56,189,248,0.14);border:1px solid rgba(56,189,248,0.45);color:#e0f2fe !important;padding:8px 14px;border-radius:8px;font-size:0.88rem;font-weight:600;margin:10px auto 14px auto;max-width:540px;">'
-                f'🔥 <span style="color:#38bdf8 !important;font-weight:800;">FOUNDING LAB LAUNCH OFFER:</span> '
-                f'<s style="color:#94a3b8 !important;">{paywall_strike_display} INR</s> '
-                f'<b style="color:#ffffff !important;">{paywall_price_display}</b> (0% GST — Grant Friendly)'
-                f'</div>'
+                f'<div style="background:rgba(56,189,248,0.14);border:1px solid rgba(56,189,248,0.45);color:#e0f2fe !important;padding:8px 14px;border-radius:8px;font-size:0.88rem;font-weight:600;margin:10px auto 14px auto;max-width:540px;">🔥 <span style="color:#38bdf8 !important;font-weight:800;">FOUNDING LAB LAUNCH OFFER:</span> <s style="color:#94a3b8 !important;">{paywall_strike_display} INR</s> <b style="color:#ffffff !important;">{paywall_price_display}</b> (0% GST — Grant Friendly)</div>'
                 f'<div style="background:rgba(15,23,42,0.95); border:1px solid rgba(16,185,129,0.4); border-radius:14px; padding:16px; margin:0 auto 16px auto; max-width:380px;">'
-                f'<div style="color:#34d399; font-weight:800; font-size:0.95rem; margin-bottom:8px;">Scan 0%-Fee UPI QR ({paywall_price_display})</div>'
+                f'<div style="color:#34d399; font-weight:800; font-size:0.95rem; margin-bottom:8px;">Scan 0%-Fee UPI QR (₹799)</div>'
                 f'<img src="{qr_img_url}" alt="UPI QR Code" style="width:180px; height:180px; border-radius:10px; border:3px solid #10b981; padding:5px; background:#ffffff; margin:0 auto 10px auto; display:block;">'
-                f'<div style="color:#e2e8f0; font-size:0.8rem; font-family:monospace; background:rgba(255,255,255,0.05); padding:4px 10px; border-radius:6px; margin-bottom:4px;">'
-                f'UPI ID: <b>{INDIA_UPI_ID}</b>'
-                f'</div>'
+                f'<div style="color:#e2e8f0; font-size:0.8rem; font-family:monospace; background:rgba(255,255,255,0.05); padding:4px 10px; border-radius:6px; margin-bottom:4px;">UPI ID: <b>{INDIA_UPI_ID}</b></div>'
                 f'<div style="color:#94a3b8; font-size:0.74rem;">Google Pay, PhonePe, Paytm &amp; BHIM</div>'
                 f'</div>'
                 f'</div>',
                 unsafe_allow_html=True
             )
 
-            with st.expander("🏛️ Paying via University Grant / Institutional NEFT? Request Proforma Invoice"):
+            with st.expander("🏦 Paying via University Grant / Direct NEFT / IMPS? View Bank Details"):
                 st.markdown(
-                    "University and institute finance offices require an official **Proforma Invoice** to process NEFT/RTGS grant transfers.\n\n"
-                    "* **Amount Due:** `₹799 INR` *(0% GST — Exempt under ₹20L threshold)*\n"
-                    "* **How to Request:** Email your **Institute Name** and **Lab PI Name** to receive a formal Proforma Invoice with verified NEFT/IMPS routing details within 15 minutes."
+                    f"* **Beneficiary Name:** `{INDIA_BANK_HOLDER}`\n"
+                    f"* **Bank Name:** `{INDIA_BANK_NAME}`\n"
+                    f"* **Account Number:** `{INDIA_BANK_ACC}`\n"
+                    f"* **IFSC Code:** `{INDIA_BANK_IFSC}`\n"
+                    f"* **Amount Due:** `₹799 INR` *(0% GST — Exempt under ₹20L threshold)*"
                 )
         else:
+            paywall_desc = "Your top 2 pairwise comparisons are verified above. Complete the $40 OmicsExpress checkout to unlock all 3 statistical CSV tables, all 4 publication figures (Boxplot, Mean ± SD Bar Chart, 95% CI Forest Plot, and Multi-Gene Trajectory), and the printable HTML report."
             st.markdown(
                 f'<div class="paywall-overlay" style="text-align: center;">'
-                f'<h3 style="color: #e9d5ff !important; margin-top: 0;">🔒 Unlock Full Analysis Tables, Vector Figures &amp; Complete Report</h3>'
-                f'<p style="color: #cbd5e1 !important; font-size: 0.95rem; max-width: 600px; margin: 0 auto 14px auto;">'
-                f'{paywall_desc}'
-                f'</p>'
-                f'<div style="background:rgba(56,189,248,0.14);border:1px solid rgba(56,189,248,0.45);color:#e0f2fe !important;padding:8px 14px;border-radius:8px;font-size:0.88rem;font-weight:600;margin:10px auto 6px auto;max-width:520px;">'
-                f'🔥 <span style="color:#38bdf8 !important;font-weight:800;">FOUNDING LAB LAUNCH OFFER:</span> '
-                f'<s style="color:#94a3b8 !important;">$100 USD</s> <b style="color:#ffffff !important;">$40 USD</b> — Special Early-Access Rate for Our First 20 Research Clients'
-                f'</div>'
-                f'<a href="{razorpay_link}" target="_blank" style="background: linear-gradient(90deg, #9333ea 0%, #2563eb 100%); color: white !important; padding: 14px 32px; text-decoration: none; border-radius: 10px; font-weight: 700; font-size: 1.05rem; display: inline-block; margin: 12px 0; border: 1px solid #c084fc; box-shadow: 0 4px 20px rgba(147, 51, 234, 0.5);">'
-                f'💳 Pay $40 via Razorpay to Unlock Full Suite'
-                f'</a>'
+                f'<h3 style="color: #e9d5ff !important; margin-top: 0;">🔒 Unlock All {stats["total_pairs"]} Post-Hoc Pairs, 3 CSVs &amp; 4 Publication Figures</h3>'
+                f'<p style="color: #cbd5e1 !important; font-size: 0.95rem; max-width: 600px; margin: 0 auto 14px auto;">{paywall_desc}</p>'
+                f'<div style="background:rgba(56,189,248,0.14);border:1px solid rgba(56,189,248,0.45);color:#e0f2fe !important;padding:8px 14px;border-radius:8px;font-size:0.88rem;font-weight:600;margin:10px auto 6px auto;max-width:520px;">🔥 <span style="color:#38bdf8 !important;font-weight:800;">FOUNDING LAB LAUNCH OFFER:</span> <s style="color:#94a3b8 !important;">$100 USD</s> <b style="color:#ffffff !important;">$40 USD</b> — Special Early-Access Rate for Our First 20 Research Clients</div>'
+                f'<a href="{razorpay_link}" target="_blank" style="background: linear-gradient(90deg, #9333ea 0%, #2563eb 100%); color: white !important; padding: 14px 32px; text-decoration: none; border-radius: 10px; font-weight: 700; font-size: 1.05rem; display: inline-block; margin: 12px 0; border: 1px solid #c084fc; box-shadow: 0 4px 20px rgba(147, 51, 234, 0.5);">💳 Pay $40 via Razorpay to Unlock Full Suite</a>'
                 f'</div>',
                 unsafe_allow_html=True
             )
@@ -1274,7 +1267,7 @@ if "posthoc_df_t7" in st.session_state:
                 placeholder=input_placeholder_t7,
                 key="unlock_input_t7"
             ).strip()
-            
+
             if st.button("Unlock Full Download", key="unlock_btn_t7", use_container_width=True):
                 if not entered_key:
                     st.warning("Please enter a key or 12-digit UPI UTR.")
@@ -1282,10 +1275,10 @@ if "posthoc_df_t7" in st.session_state:
                     import json
                     import os
                     import time
-                    
+
                     DB_FILE = "used_keys.json"
                     AUTHORIZED_DEMO_KEYS = ["GTS-DEMO-KANHA", "GTS-DEMO-RADHA", "GTS-DEMO-VRINDAVAN"]
-                    
+
                     def is_key_burned(key_to_check):
                         if not os.path.exists(DB_FILE):
                             with open(DB_FILE, 'w') as f:
@@ -1293,7 +1286,7 @@ if "posthoc_df_t7" in st.session_state:
                         with open(DB_FILE, 'r') as f:
                             data = json.load(f)
                         return key_to_check in data["used_keys"], data.get("used_keys", {}).get(key_to_check, "")
-                        
+
                     def burn_key(key_to_burn):
                         with open(DB_FILE, 'r') as f:
                             data = json.load(f)
@@ -1339,9 +1332,8 @@ if "posthoc_df_t7" in st.session_state:
                                 import razorpay
                                 client = razorpay.Client(auth=(st.secrets["razorpay"]["key_id"], st.secrets["razorpay"]["key_secret"]))
                                 payment = client.payment.fetch(entered_key)
-                                
+
                                 if payment["status"] in ["captured", "authorized"]:
-                                    # Check for $40 USD (4000 cents) OR ₹799 INR (79900 paise)
                                     if (payment["amount"] >= 4000 and payment["currency"] == "USD") or (payment["amount"] >= 79900 and payment["currency"] == "INR"):
                                         burn_key(entered_key)
                                         st.session_state["is_unlocked_t7"] = True
@@ -1350,10 +1342,10 @@ if "posthoc_df_t7" in st.session_state:
                                         st.error(f"❌ Invalid Payment Amount. Expected $40.00 USD or ₹799 INR, but found {payment['amount']/100:.2f} {payment['currency']}.")
                                 else:
                                     st.error(f"❌ Payment Status: {payment['status'].upper()}. This transaction is not complete.")
-                                    
+
                             except Exception as e:
                                 st.error("❌ Invalid Payment ID. The bank API could not verify this transaction.")
-                                
+
                     else:
                         st.error("❌ Invalid Key Format, UPI UTR, or Unauthorized Demo Key.")
         # --- END API & ANTI-REUSE GATEWAY UPGRADE ---
