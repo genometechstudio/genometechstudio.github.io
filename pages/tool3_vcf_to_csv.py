@@ -459,8 +459,7 @@ elif use_sample:
 if file_iterator is not None:
     st.markdown("### ⚙️ Configure Clinical Parsing Pipeline & Quality Filters")
 
-    detected_samples = detect_vcf_samples(file_iterator)
-
+    # (detected_samples is already populated in STEP 2 above!)
     mp1, mp2 = st.columns([2, 1])
     with mp1:
         # Core Pipeline Mode (ONLY switching this or uploading a new file resets the paywall!)
@@ -519,13 +518,20 @@ if file_iterator is not None:
     # ==========================================
     # STEP 4: RUN VCF PARSER & CLINICAL FORMATTER
     # ==========================================
-    if st.button("🚀 Run VCF to Clinical CSV Conversion"):
+    if st.button("🚀 Run VCF to Clinical CSV Conversion", key="run_vcf_btn_t3"):
         if st.session_state["locked_mode_t3"] is not None and st.session_state["locked_mode_t3"] != current_mode_sig:
             st.session_state["is_unlocked_t3"] = False
         st.session_state["locked_mode_t3"] = current_mode_sig
 
         with st.spinner("Stripping VCF meta-headers, unpacking INFO/FORMAT fields, and computing clinical metrics..."):
-            parsed_df, meta_cnt, ref_build = parse_vcf_content_safe(file_iterator, selected_sample_idx)
+            # Always reset pointer / recreate list before parsing so clients can re-run unlimited times!
+            if uploaded_file is not None:
+                uploaded_file.seek(0)
+                active_stream = uploaded_file
+            else:
+                active_stream = DEMO_VCF_TEXT.splitlines()
+
+            parsed_df, meta_cnt, ref_build = parse_vcf_content_safe(active_stream, selected_sample_idx)
 
             if parsed_df.empty:
                 st.error("No valid variant rows found. Please verify your VCF file contains standard tab-separated variant records.")
