@@ -549,14 +549,9 @@ if df_clin_raw is not None and df_gen_raw is not None:
 
 # ==========================================
 # 🇮🇳 INDIA DIRECT PAYMENT CONFIG (PULLS PRIVATELY FROM STREAMLIT SECRETS)
-# Safe for Public GitHub! Make sure these 6 keys are in this app's Streamlit Secrets.
 # ==========================================
 INDIA_UPI_ID = st.secrets.get("INDIA_UPI_ID", "BHARATPE2A0G0R8H8A59248@unitype")
 INDIA_PAYEE_NAME = st.secrets.get("INDIA_PAYEE_NAME", "GenomeTech Studio")
-INDIA_BANK_HOLDER = st.secrets.get("INDIA_BANK_HOLDER", "GenomeTech Studio")
-INDIA_BANK_ACC = st.secrets.get("INDIA_BANK_ACC", "Available on Proforma Invoice")
-INDIA_BANK_IFSC = st.secrets.get("INDIA_BANK_IFSC", "Available on Proforma Invoice")
-INDIA_BANK_NAME = st.secrets.get("INDIA_BANK_NAME", "Available on Proforma Invoice")
 
 # ==========================================
 # DISPLAY TABULAR RESULTS, PAYWALL & REMARKS (TOOL #6 — DUAL CURRENCY USD + INR)
@@ -573,17 +568,19 @@ if "merged_df_t6" in st.session_state:
         st.session_state.currency = "INR" if url_curr == "INR" else "USD"
     is_inr = (st.session_state.get("currency", "USD") == "INR")
 
+    matched_cnt_t6 = stats.get("matched", len(res_df))
+
     st.markdown("---")
     st.markdown("### 📊 Cohort Alignment Summary & Master Merged Table Preview")
 
     m1, m2, m3, m4 = st.columns(4)
-    m1.metric("Clinical / Genomic Samples", f"{stats['clin_in']} / {stats['gen_in']}")
-    m2.metric("Aligned & Merged Patients", f"{stats['matched']}")
-    m3.metric("Rescued by ID Harmonizer", f"{stats['rescued']} Barcodes")
-    m4.metric("Orphan / Unmatched IDs", f"{stats['orphans']}")
+    m1.metric("Clinical / Genomic Samples", f"{stats.get('clin_in', 0)} / {stats.get('gen_in', 0)}")
+    m2.metric("Aligned & Merged Patients", f"{matched_cnt_t6}")
+    m3.metric("Rescued by ID Harmonizer", f"{stats.get('rescued', 0)} Barcodes")
+    m4.metric("Orphan / Unmatched IDs", f"{stats.get('orphans', 0)}")
 
-    if st.session_state["is_unlocked_t6"]:
-        st.success(f"✅ **Payment Verified for [{stats['engine']}]!** Master merged patient table, DESeq2/R `Genes × Samples` synchronized matrix, and orphan barcode audit log unlocked.")
+    if st.session_state.get("is_unlocked_t6", False):
+        st.success(f"✅ **Payment Verified for [{stats.get('engine', 'Cohort Merger')}]!** Master merged patient table, DESeq2/R `Genes × Samples` synchronized matrix, and orphan barcode audit log unlocked.")
         st.dataframe(res_df, use_container_width=True)
 
         d1, d2, d3 = st.columns(3)
@@ -624,7 +621,10 @@ if "merged_df_t6" in st.session_state:
 
         if is_inr:
             import urllib.parse
-            upi_note = "OmicsExpress Tool 6 merger"
+            paywall_price_display = "₹799 INR"
+            paywall_strike_display = "₹2,499"
+            paywall_desc = "Your first 4 harmonized patient records are verified above. Complete the <b>₹799 INR</b> OmicsExpress checkout via Direct UPI or NEFT to download the Master Merged Clinical + Genomic CSV, the synchronized DESeq2/R matrix, and the Barcode Crosswalk &amp; Orphan Audit Log."
+            upi_note = "OmicsExpress Tool 6 Merger"
             upi_uri = (
                 f"upi://pay?pa={urllib.parse.quote(INDIA_UPI_ID)}"
                 f"&pn={urllib.parse.quote(INDIA_PAYEE_NAME)}"
@@ -636,7 +636,7 @@ if "merged_df_t6" in st.session_state:
 
             st.markdown(
                 f'<div class="paywall-overlay" style="text-align: center;">'
-                f'<h3 style="color: #e9d5ff !important; margin-top: 0;">🔒 Unlock Full {stats["total"]:,}-Row Translated CSV</h3>'
+                f'<h3 style="color: #e9d5ff !important; margin-top: 0;">🔒 Unlock All {matched_cnt_t6:,} Merged Patient Records &amp; DESeq2/R Matrix</h3>'
                 f'<p style="color: #cbd5e1 !important; font-size: 0.95rem; max-width: 600px; margin: 0 auto 14px auto;">{paywall_desc}</p>'
                 f'<div style="background:rgba(56,189,248,0.14);border:1px solid rgba(56,189,248,0.45);color:#e0f2fe !important;padding:8px 14px;border-radius:8px;font-size:0.88rem;font-weight:600;margin:10px auto 14px auto;max-width:540px;">'
                 f'🔥 <span style="color:#38bdf8 !important;font-weight:800;">FOUNDING LAB LAUNCH OFFER:</span> '
@@ -644,7 +644,7 @@ if "merged_df_t6" in st.session_state:
                 f'<b style="color:#ffffff !important;">{paywall_price_display}</b> (0% GST — Grant Friendly)'
                 f'</div>'
                 f'<div style="background:rgba(15,23,42,0.95); border:1px solid rgba(16,185,129,0.4); border-radius:14px; padding:16px; margin:0 auto 16px auto; max-width:380px;">'
-                f'<div style="color:#34d399; font-weight:800; font-size:0.95rem; margin-bottom:8px;">Scan 0%-Fee UPI QR ({paywall_price_display})</div>'
+                f'<div style="color:#34d399; font-weight:800; font-size:0.95rem; margin-bottom:8px;">Scan 0%-Fee UPI QR (₹799)</div>'
                 f'<img src="{qr_img_url}" alt="UPI QR Code" style="width:180px; height:180px; border-radius:10px; border:3px solid #10b981; padding:5px; background:#ffffff; margin:0 auto 10px auto; display:block;">'
                 f'<div style="color:#e2e8f0; font-size:0.8rem; font-family:monospace; background:rgba(255,255,255,0.05); padding:4px 10px; border-radius:6px; margin-bottom:4px;">'
                 f'UPI ID: <b>{INDIA_UPI_ID}</b>'
@@ -659,12 +659,13 @@ if "merged_df_t6" in st.session_state:
                 st.markdown(
                     "University and institute finance offices require an official **Proforma Invoice** to process NEFT/RTGS grant transfers.\n\n"
                     "* **Amount Due:** `₹799 INR` *(0% GST — Exempt under ₹20L threshold)*\n"
-                    "* **How to Request:** Email your **Institute Name** and **Lab PI Name** to receive a formal Proforma Invoice with verified NEFT/IMPS routing details within 15 minutes."
+                    "* **How to Request:** Email your **Institute Name** and **Lab PI Name** to `genometechstudio@gmail.com` to receive a formal Proforma Invoice with verified NEFT/IMPS routing details within 15 minutes."
                 )
         else:
+            paywall_desc = "Your first 4 harmonized patient records are verified above. Complete the $40 OmicsExpress checkout to download the Master Merged Clinical + Genomic CSV, the synchronized DESeq2/R matrix, and the Barcode Crosswalk &amp; Orphan Audit Log."
             st.markdown(
                 f'<div class="paywall-overlay" style="text-align: center;">'
-                f'<h3 style="color: #e9d5ff !important; margin-top: 0;">🔒 Unlock Full Analysis Tables, Vector Figures &amp; Complete Report</h3>'
+                f'<h3 style="color: #e9d5ff !important; margin-top: 0;">🔒 Unlock All {matched_cnt_t6:,} Merged Patient Records &amp; DESeq2/R Matrix</h3>'
                 f'<p style="color: #cbd5e1 !important; font-size: 0.95rem; max-width: 600px; margin: 0 auto 14px auto;">'
                 f'{paywall_desc}'
                 f'</p>'
@@ -698,7 +699,7 @@ if "merged_df_t6" in st.session_state:
                 placeholder=input_placeholder_t6,
                 key="unlock_input_t6"
             ).strip()
-            
+
             if st.button("Unlock Full Download", key="unlock_btn_t6", use_container_width=True):
                 if not entered_key:
                     st.warning("Please enter a key or 12-digit UPI UTR.")
@@ -706,10 +707,10 @@ if "merged_df_t6" in st.session_state:
                     import json
                     import os
                     import time
-                    
+
                     DB_FILE = "used_keys.json"
                     AUTHORIZED_DEMO_KEYS = ["GTS-DEMO-AYODHYA", "GTS-DEMO-CHITRAKOOT", "GTS-DEMO-NANDGAON"]
-                    
+
                     def is_key_burned(key_to_check):
                         if not os.path.exists(DB_FILE):
                             with open(DB_FILE, 'w') as f:
@@ -717,7 +718,7 @@ if "merged_df_t6" in st.session_state:
                         with open(DB_FILE, 'r') as f:
                             data = json.load(f)
                         return key_to_check in data["used_keys"], data.get("used_keys", {}).get(key_to_check, "")
-                        
+
                     def burn_key(key_to_burn):
                         with open(DB_FILE, 'r') as f:
                             data = json.load(f)
@@ -763,9 +764,8 @@ if "merged_df_t6" in st.session_state:
                                 import razorpay
                                 client = razorpay.Client(auth=(st.secrets["razorpay"]["key_id"], st.secrets["razorpay"]["key_secret"]))
                                 payment = client.payment.fetch(entered_key)
-                                
+
                                 if payment["status"] in ["captured", "authorized"]:
-                                    # Check for $40 USD (4000 cents) OR ₹799 INR (79900 paise)
                                     if (payment["amount"] >= 4000 and payment["currency"] == "USD") or (payment["amount"] >= 79900 and payment["currency"] == "INR"):
                                         burn_key(entered_key)
                                         st.session_state["is_unlocked_t6"] = True
@@ -774,10 +774,10 @@ if "merged_df_t6" in st.session_state:
                                         st.error(f"❌ Invalid Payment Amount. Expected $40.00 USD or ₹799 INR, but found {payment['amount']/100:.2f} {payment['currency']}.")
                                 else:
                                     st.error(f"❌ Payment Status: {payment['status'].upper()}. This transaction is not complete.")
-                                    
+
                             except Exception as e:
                                 st.error("❌ Invalid Payment ID. The bank API could not verify this transaction.")
-                                
+
                     else:
                         st.error("❌ Invalid Key Format, UPI UTR, or Unauthorized Demo Key.")
         # --- END API & ANTI-REUSE GATEWAY UPGRADE ---
@@ -790,9 +790,9 @@ if "merged_df_t6" in st.session_state:
 
     st.info(
         f"**Automated Clinical & Genomic Merger Diagnostics:**\n"
-        f"* **Cohort Merge Strategy:** {stats['engine']}\n"
-        f"* **Barcode Harmonization & Tissue Rescue:** Aligned **{stats['matched']}** patients across **{stats['clin_in']}** clinical records and **{stats['gen_in']}** genomic assays (**{stats['rescued']}** mismatched barcodes rescued; tissue origin tags preserved in `Extracted_Specimen_Type`).\n"
-        f"* **DESeq2 / R Synchronization & Orphan Audit:** Generated both a patient-row master table (`{stats['final_rows']} × {stats['final_cols']}`) and a `Genes × Matched_Samples` matrix with **0 column-order mismatches**, plus an audit log of **{stats['orphans']}** unmatched orphan ID(s)."
+        f"* **Cohort Merge Strategy:** {stats.get('engine', '')}\n"
+        f"* **Barcode Harmonization & Tissue Rescue:** Aligned **{matched_cnt_t6}** patients across **{stats.get('clin_in', 0)}** clinical records and **{stats.get('gen_in', 0)}** genomic assays (**{stats.get('rescued', 0)}** mismatched barcodes rescued; tissue origin tags preserved in `Extracted_Specimen_Type`).\n"
+        f"* **DESeq2 / R Synchronization & Orphan Audit:** Generated both a patient-row master table (`{stats.get('final_rows', 0)} × {stats.get('final_cols', 0)}`) and a `Genes × Matched_Samples` matrix with **0 column-order mismatches**, plus an audit log of **{stats.get('orphans', 0)}** unmatched orphan ID(s)."
     )
 
     with st.expander("💬 Send Remarks or Questions Directly to GenomeTech Team (via Email)"):
@@ -804,12 +804,13 @@ if "merged_df_t6" in st.session_state:
             body = urllib.parse.quote(
                 f"Client Email: {client_email}\n"
                 f"Tool Used: Tool #6 - Clinical & Genomic Dataset Merger\n"
-                f"Strategy: {stats['engine']}\n"
-                f"Clinical Records: {stats['clin_in']} | Genomic Assays: {stats['gen_in']}\n"
-                f"Matched Cohort: {stats['matched']} (Rescued via Barcode Harmonization: {stats['rescued']})\n\n"
+                f"Strategy: {stats.get('engine', '')}\n"
+                f"Clinical Records: {stats.get('clin_in', 0)} | Genomic Assays: {stats.get('gen_in', 0)}\n"
+                f"Matched Cohort: {matched_cnt_t6} (Rescued via Barcode Harmonization: {stats.get('rescued', 0)})\n\n"
                 f"Client Remarks:\n{client_remark}"
             )
             mailto_url = f"mailto:genometechstudio@gmail.com?subject={subject}&body={body}"
             st.success("✅ Your remark and alignment diagnostics are ready! Click below to send directly from your email client:")
-            st.markdown(f'👉 <a href="https://mail.google.com/mail/?view=cm&fs=1&to=genometechstudio@gmail.com&su={subject}&body={body}" target="_blank" style="color:#38bdf8;font-weight:700;text-decoration:underline;">Click Here to Send via Gmail (Browser)</a> &nbsp;|&nbsp; <a href="{mailto_url}" style="color:#c4b5fd;font-weight:600;text-decoration:underline;">Open in Default Mail App (Outlook/Mac)</a>', unsafe_allow_html=True)      st.markdown(f'👉 <a href="https://mail.google.com/mail/?view=cm&fs=1&to=genometechstudio@gmail.com&su={subject}&body={body}" target="_blank" style="color:#38bdf8;font-weight:700;text-decoration:underline;">Click Here to Send via Gmail (Browser)</a> &nbsp;|&nbsp; <a href="{mailto_url}" style="color:#c4b5fd;font-weight:600;text-decoration:underline;">Open in Default Mail App (Outlook/Mac)</a>', unsafe_allow_html=True)
-            
+            st.markdown(f'👉 <a href="https://mail.google.com/mail/?view=cm&fs=1&to=genometechstudio@gmail.com&su={subject}&body={body}" target="_blank" style="color:#38bdf8;font-weight:700;text-decoration:underline;">Click Here to Send via Gmail (Browser)</a> &nbsp;|&nbsp; <a href="{mailto_url}" style="color:#c4b5fd;font-weight:600;text-decoration:underline;">Open in Default Mail App (Outlook/Mac)</a>', unsafe_allow_html=True)
+
+
