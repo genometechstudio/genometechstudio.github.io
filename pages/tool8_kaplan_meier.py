@@ -1159,14 +1159,9 @@ if df_input is not None and not df_input.empty:
 
 # ==========================================
 # 🇮🇳 INDIA DIRECT PAYMENT CONFIG (PULLS PRIVATELY FROM STREAMLIT SECRETS)
-# Safe for Public GitHub! Make sure these 6 keys are in this app's Streamlit Secrets.
 # ==========================================
 INDIA_UPI_ID = st.secrets.get("INDIA_UPI_ID", "BHARATPE2A0G0R8H8A59248@unitype")
 INDIA_PAYEE_NAME = st.secrets.get("INDIA_PAYEE_NAME", "GenomeTech Studio")
-INDIA_BANK_HOLDER = st.secrets.get("INDIA_BANK_HOLDER", "GenomeTech Studio")
-INDIA_BANK_ACC = st.secrets.get("INDIA_BANK_ACC", "Available on Proforma Invoice")
-INDIA_BANK_IFSC = st.secrets.get("INDIA_BANK_IFSC", "Available on Proforma Invoice")
-INDIA_BANK_NAME = st.secrets.get("INDIA_BANK_NAME", "Available on Proforma Invoice")
 
 # ==========================================
 # DISPLAY TABULAR RESULTS, 4-PLOT SUITE, PAYWALL & REMARKS (TOOL #8 — DUAL CURRENCY USD + INR)
@@ -1189,17 +1184,22 @@ if "km_curve_df_t8" in st.session_state:
         st.session_state.currency = "INR" if url_curr == "INR" else "USD"
     is_inr = (st.session_state.get("currency", "USD") == "INR")
 
+    feat_name_t8 = stats.get("feature", "Biomarker")
+    endpoint_t8 = stats.get("endpoint", "Survival")
+    hr_str_t8 = stats.get("hr_str", "N/A")
+    p_lr_str_t8 = stats.get("p_lr_str", "N/A")
+
     st.markdown("---")
-    st.markdown(f"### 📊 {stats['endpoint']} Summary & 4-Panel Clinical Figure Suite (`{stats['feature']}`)")
+    st.markdown(f"### 📊 {endpoint_t8} Summary & 4-Panel Clinical Figure Suite (`{feat_name_t8}`)")
 
     m1, m2, m3, m4 = st.columns(4)
-    m1.metric("Cohort Size (Events)", f"{stats['n_total']} Patients ({stats['events_total']} Events)")
-    m2.metric("Hazard Ratio (95% CI)", f"HR = {stats['hr_str']}")
-    m3.metric("Mantel-Cox Log-Rank P", f"p = {stats['p_lr_str']}")
-    m4.metric("Active Cutpoint", stats["cutpoint"])
+    m1.metric("Cohort Size (Events)", f"{stats.get('n_total', len(pat_df))} Patients ({stats.get('events_total', 0)} Events)")
+    m2.metric("Hazard Ratio (95% CI)", f"HR = {hr_str_t8}")
+    m3.metric("Mantel-Cox Log-Rank P", f"p = {p_lr_str_t8}")
+    m4.metric("Active Cutpoint", stats.get("cutpoint", "Median"))
 
-    if st.session_state["is_unlocked_t8"]:
-        st.success(f"✅ **Payment Verified for [{stats['engine']}]!** All 4 clinical survival figures, 4 CSV tables (including Patient Risk Group Assignments), and the printable HTML report are unlocked.")
+    if st.session_state.get("is_unlocked_t8", False):
+        st.success(f"✅ **Payment Verified for [{stats.get('engine', 'KM Survival Suite')}]!** All 4 clinical survival figures, 4 CSV tables (including Patient Risk Group Assignments), and the printable HTML report are unlocked.")
 
         st.markdown("#### 🎨 4-Panel Clinical Survival Figure Suite (Vector `.svg` & Printable `.html`)")
         g1, g2 = st.columns(2)
@@ -1230,14 +1230,14 @@ if "km_curve_df_t8" in st.session_state:
             st.download_button(
                 "⬇️ 1. Cohort Summary & RMST (.csv)",
                 data=sum_df.to_csv(index=False).encode("utf-8-sig"),
-                file_name=f"GenomeTech_Survival_Summary_{stats['feature']}.csv",
+                file_name=f"GenomeTech_Survival_Summary_{feat_name_t8}.csv",
                 mime="text/csv",
                 key="dl_sum_t8"
             )
             st.download_button(
                 "⬇️ 5. Fig 1A: KM Curve + Risk Table (.svg)",
                 data=svg_km.encode("utf-8"),
-                file_name=f"GenomeTech_KM_Curve_{stats['feature']}.svg",
+                file_name=f"GenomeTech_KM_Curve_{feat_name_t8}.svg",
                 mime="image/svg+xml",
                 key="dl_km_svg_t8"
             )
@@ -1245,14 +1245,14 @@ if "km_curve_df_t8" in st.session_state:
             st.download_button(
                 "⬇️ 2. Patient Risk Assignments (.csv)",
                 data=pat_df.to_csv(index=False).encode("utf-8-sig"),
-                file_name=f"GenomeTech_Patient_Strata_{stats['feature']}.csv",
+                file_name=f"GenomeTech_Patient_Strata_{feat_name_t8}.csv",
                 mime="text/csv",
                 key="dl_pat_t8"
             )
             st.download_button(
                 "⬇️ 6. Fig 1B: Cumulative Hazard (.svg)",
                 data=svg_haz.encode("utf-8"),
-                file_name=f"GenomeTech_Cumulative_Hazard_{stats['feature']}.svg",
+                file_name=f"GenomeTech_Cumulative_Hazard_{feat_name_t8}.svg",
                 mime="image/svg+xml",
                 key="dl_haz_svg_t8"
             )
@@ -1275,14 +1275,14 @@ if "km_curve_df_t8" in st.session_state:
             st.download_button(
                 "⬇️ 4. KM Coordinates & 95% CI (.csv)",
                 data=km_df.to_csv(index=False).encode("utf-8-sig"),
-                file_name=f"GenomeTech_KM_Coordinates_{stats['feature']}.csv",
+                file_name=f"GenomeTech_KM_Coordinates_{feat_name_t8}.csv",
                 mime="text/csv",
                 key="dl_km_csv_t8"
             )
             st.download_button(
                 "⬇️ 8. All-in-One Visual Report (.html)",
                 data=html_rep.encode("utf-8"),
-                file_name=f"GenomeTech_Survival_Visual_Report_{stats['feature']}.html",
+                file_name=f"GenomeTech_Survival_Visual_Report_{feat_name_t8}.html",
                 mime="text/html",
                 key="dl_html_t8"
             )
@@ -1303,6 +1303,9 @@ if "km_curve_df_t8" in st.session_state:
 
         if is_inr:
             import urllib.parse
+            paywall_price_display = "₹799 INR"
+            paywall_strike_display = "₹2,499"
+            paywall_desc = f"Your cohort Hazard Ratio (HR = {hr_str_t8}) and Log-Rank significance (p = {p_lr_str_t8}) are verified above. Complete the <b>₹799 INR</b> OmicsExpress checkout via Direct UPI or NEFT to unlock all 4 vector survival figures (<code>.svg</code>), all 4 survival &amp; patient assignment tables (<code>.csv</code>), and the printable visual report."
             upi_note = "OmicsExpress Tool 8 KM Survival"
             upi_uri = (
                 f"upi://pay?pa={urllib.parse.quote(INDIA_UPI_ID)}"
@@ -1314,38 +1317,38 @@ if "km_curve_df_t8" in st.session_state:
             qr_img_url = f"https://api.qrserver.com/v1/create-qr-code/?size=220x220&margin=10&data={urllib.parse.quote(upi_uri)}"
 
             st.markdown(
-    f'<div class="paywall-overlay" style="text-align: center;">'
-    f'<h3 style="color: #e9d5ff !important; margin-top: 0;">🔒 Unlock Full {stats["total"]:,}-Row Translated CSV</h3>'
-    f'<p style="color: #cbd5e1 !important; font-size: 0.95rem; max-width: 600px; margin: 0 auto 14px auto;">{paywall_desc}</p>'
-    f'<div style="background:rgba(56,189,248,0.14);border:1px solid rgba(56,189,248,0.45);color:#e0f2fe !important;padding:8px 14px;border-radius:8px;font-size:0.88rem;font-weight:600;margin:10px auto 14px auto;max-width:540px;">'
-    f'🔥 <span style="color:#38bdf8 !important;font-weight:800;">FOUNDING LAB LAUNCH OFFER:</span> '
-    f'<s style="color:#94a3b8 !important;">{paywall_strike_display} INR</s> '
-    f'<b style="color:#ffffff !important;">{paywall_price_display}</b> (0% GST — Grant Friendly)'
-    f'</div>'
-    f'<div style="background:rgba(15,23,42,0.95); border:1px solid rgba(16,185,129,0.4); border-radius:14px; padding:16px; margin:0 auto 16px auto; max-width:380px;">'
-    f'<div style="color:#34d399; font-weight:800; font-size:0.95rem; margin-bottom:8px;">Scan 0%-Fee UPI QR ({paywall_price_display})</div>'
-    f'<img src="{qr_img_url}" alt="UPI QR Code" style="width:180px; height:180px; border-radius:10px; border:3px solid #10b981; padding:5px; background:#ffffff; margin:0 auto 10px auto; display:block;">'
-    f'<div style="color:#e2e8f0; font-size:0.8rem; font-family:monospace; background:rgba(255,255,255,0.05); padding:4px 10px; border-radius:6px; margin-bottom:4px;">'
-    f'UPI ID: <b>{INDIA_UPI_ID}</b>'
-    f'</div>'
-    f'<div style="color:#94a3b8; font-size:0.74rem;">Google Pay, PhonePe, Paytm &amp; BHIM</div>'
-    f'</div>'
-    f'</div>',
-    unsafe_allow_html=True
-)
+                f'<div class="paywall-overlay" style="text-align: center;">'
+                f'<h3 style="color: #e9d5ff !important; margin-top: 0;">🔒 Unlock All 4 Survival Figures, Patient Risk Table &amp; Batch HR Screen</h3>'
+                f'<p style="color: #cbd5e1 !important; font-size: 0.95rem; max-width: 600px; margin: 0 auto 14px auto;">{paywall_desc}</p>'
+                f'<div style="background:rgba(56,189,248,0.14);border:1px solid rgba(56,189,248,0.45);color:#e0f2fe !important;padding:8px 14px;border-radius:8px;font-size:0.88rem;font-weight:600;margin:10px auto 14px auto;max-width:540px;">'
+                f'🔥 <span style="color:#38bdf8 !important;font-weight:800;">FOUNDING LAB LAUNCH OFFER:</span> '
+                f'<s style="color:#94a3b8 !important;">{paywall_strike_display} INR</s> '
+                f'<b style="color:#ffffff !important;">{paywall_price_display}</b> (0% GST — Grant Friendly)'
+                f'</div>'
+                f'<div style="background:rgba(15,23,42,0.95); border:1px solid rgba(16,185,129,0.4); border-radius:14px; padding:16px; margin:0 auto 16px auto; max-width:380px;">'
+                f'<div style="color:#34d399; font-weight:800; font-size:0.95rem; margin-bottom:8px;">Scan 0%-Fee UPI QR (₹799)</div>'
+                f'<img src="{qr_img_url}" alt="UPI QR Code" style="width:180px; height:180px; border-radius:10px; border:3px solid #10b981; padding:5px; background:#ffffff; margin:0 auto 10px auto; display:block;">'
+                f'<div style="color:#e2e8f0; font-size:0.8rem; font-family:monospace; background:rgba(255,255,255,0.05); padding:4px 10px; border-radius:6px; margin-bottom:4px;">'
+                f'UPI ID: <b>{INDIA_UPI_ID}</b>'
+                f'</div>'
+                f'<div style="color:#94a3b8; font-size:0.74rem;">Google Pay, PhonePe, Paytm &amp; BHIM</div>'
+                f'</div>'
+                f'</div>',
+                unsafe_allow_html=True
+            )
 
             with st.expander("🏛️ Paying via University Grant / Institutional NEFT? Request Proforma Invoice"):
                 st.markdown(
                     "University and institute finance offices require an official **Proforma Invoice** to process NEFT/RTGS grant transfers.\n\n"
                     "* **Amount Due:** `₹799 INR` *(0% GST — Exempt under ₹20L threshold)*\n"
-                    "* **How to Request:** Email your **Institute Name** and **Lab PI Name** to receive a formal Proforma Invoice with verified NEFT/IMPS routing details within 15 minutes."
+                    "* **How to Request:** Email your **Institute Name** and **Lab PI Name** to `genometechstudio@gmail.com` to receive a formal Proforma Invoice with verified NEFT/IMPS routing details within 15 minutes."
                 )
         else:
             st.markdown(
                 f'<div class="paywall-overlay" style="text-align: center;">'
                 f'<h3 style="color: #e9d5ff !important; margin-top: 0;">🔒 Unlock All 4 Survival Figures, Patient Risk Table &amp; Batch HR Screen</h3>'
-                f'<p style="color: #cbd5e1 !important; font-size: 0.95rem;">'
-                f'Your cohort Hazard Ratio (HR = {stats["hr_str"]}) and Log-Rank significance (p = {stats["p_lr_str"]}) are verified above. '
+                f'<p style="color: #cbd5e1 !important; font-size: 0.95rem; max-width: 600px; margin: 0 auto 14px auto;">'
+                f'Your cohort Hazard Ratio (HR = {hr_str_t8}) and Log-Rank significance (p = {p_lr_str_t8}) are verified above. '
                 f'Complete the $40 OmicsExpress checkout to unlock all 4 vector survival figures (<code>.svg</code>), all 4 survival &amp; patient assignment tables (<code>.csv</code>), and the printable visual report.'
                 f'</p>'
                 f'<div style="background:rgba(56,189,248,0.14);border:1px solid rgba(56,189,248,0.45);color:#e0f2fe !important;padding:8px 14px;border-radius:8px;font-size:0.88rem;font-weight:600;margin:10px auto 6px auto;max-width:520px;">'
@@ -1378,7 +1381,7 @@ if "km_curve_df_t8" in st.session_state:
                 placeholder=input_placeholder_t8,
                 key="unlock_input_t8"
             ).strip()
-            
+
             if st.button("Unlock Full Download", key="unlock_btn_t8", use_container_width=True):
                 if not entered_key:
                     st.warning("Please enter a key or 12-digit UPI UTR.")
@@ -1386,10 +1389,10 @@ if "km_curve_df_t8" in st.session_state:
                     import json
                     import os
                     import time
-                    
+
                     DB_FILE = "used_keys.json"
                     AUTHORIZED_DEMO_KEYS = ["GTS-DEMO-TIRTH", "GTS-DEMO-KASHI", "GTS-DEMO-AYODHYA"]
-                    
+
                     def is_key_burned(key_to_check):
                         if not os.path.exists(DB_FILE):
                             with open(DB_FILE, 'w') as f:
@@ -1397,7 +1400,7 @@ if "km_curve_df_t8" in st.session_state:
                         with open(DB_FILE, 'r') as f:
                             data = json.load(f)
                         return key_to_check in data["used_keys"], data.get("used_keys", {}).get(key_to_check, "")
-                        
+
                     def burn_key(key_to_burn):
                         with open(DB_FILE, 'r') as f:
                             data = json.load(f)
@@ -1443,9 +1446,8 @@ if "km_curve_df_t8" in st.session_state:
                                 import razorpay
                                 client = razorpay.Client(auth=(st.secrets["razorpay"]["key_id"], st.secrets["razorpay"]["key_secret"]))
                                 payment = client.payment.fetch(entered_key)
-                                
+
                                 if payment["status"] in ["captured", "authorized"]:
-                                    # Check for $40 USD (4000 cents) OR ₹799 INR (79900 paise)
                                     if (payment["amount"] >= 4000 and payment["currency"] == "USD") or (payment["amount"] >= 79900 and payment["currency"] == "INR"):
                                         burn_key(entered_key)
                                         st.session_state["is_unlocked_t8"] = True
@@ -1454,10 +1456,10 @@ if "km_curve_df_t8" in st.session_state:
                                         st.error(f"❌ Invalid Payment Amount. Expected $40.00 USD or ₹799 INR, but found {payment['amount']/100:.2f} {payment['currency']}.")
                                 else:
                                     st.error(f"❌ Payment Status: {payment['status'].upper()}. This transaction is not complete.")
-                                    
+
                             except Exception as e:
                                 st.error("❌ Invalid Payment ID. The bank API could not verify this transaction.")
-                                
+
                     else:
                         st.error("❌ Invalid Key Format, UPI UTR, or Unauthorized Demo Key.")
         # --- END API & ANTI-REUSE GATEWAY UPGRADE ---
@@ -1470,9 +1472,9 @@ if "km_curve_df_t8" in st.session_state:
 
     st.info(
         f"**Automated Kaplan-Meier & Prognostic Diagnostics:**\n"
-        f"* **Stratification Pipeline:** {stats['engine']} | Endpoint: `{stats['endpoint']}` | Biomarker: `{stats['feature']}` ({stats['cutpoint']})\n"
-        f"* **Hazard Ratio & Log-Rank Test:** Evaluated **{stats['n_total']}** patients (**{stats['events_total']}** clinical events). Mantel-Cox Log-Rank $p = {stats['p_lr_str']}$ (Gehan-Breslow-Wilcoxon early-event $p = {stats['p_wilc_str']}$), with **Hazard Ratio = {stats['hr_str']}**.\n"
-        f"* **Proportional Hazards & RMST Audit:** {stats['ph_status']}. Restricted Mean Survival Time (`RMST`) and Brookmeyer-Crowley 95% median survival confidence bounds are included in Deliverable #1."
+        f"* **Stratification Pipeline:** {stats.get('engine', '')} | Endpoint: `{endpoint_t8}` | Biomarker: `{feat_name_t8}` ({stats.get('cutpoint', '')})\n"
+        f"* **Hazard Ratio & Log-Rank Test:** Evaluated **{stats.get('n_total', len(pat_df))}** patients (**{stats.get('events_total', 0)}** clinical events). Mantel-Cox Log-Rank $p = {p_lr_str_t8}$ (Gehan-Breslow-Wilcoxon early-event $p = {stats.get('p_wilc_str', 'N/A')}$), with **Hazard Ratio = {hr_str_t8}**.\n"
+        f"* **Proportional Hazards & RMST Audit:** {stats.get('ph_status', '')}. Restricted Mean Survival Time (`RMST`) and Brookmeyer-Crowley 95% median survival confidence bounds are included in Deliverable #1."
     )
 
     with st.expander("💬 Send Remarks or Questions Directly to GenomeTech Team (via Email)"):
@@ -1484,10 +1486,11 @@ if "km_curve_df_t8" in st.session_state:
             body = urllib.parse.quote(
                 f"Client Email: {client_email}\n"
                 f"Tool Used: Tool #8 - Kaplan-Meier Survival Plotter\n"
-                f"Engine: {stats['engine']} | Endpoint: {stats['endpoint']} | Feature: {stats['feature']} ({stats['cutpoint']})\n"
-                f"Hazard Ratio (95% CI): {stats['hr_str']} | Log-Rank P: {stats['p_lr_str']}\n\n"
+                f"Engine: {stats.get('engine', '')} | Endpoint: {endpoint_t8} | Feature: {feat_name_t8} ({stats.get('cutpoint', '')})\n"
+                f"Hazard Ratio (95% CI): {hr_str_t8} | Log-Rank P: {p_lr_str_t8}\n\n"
                 f"Client Remarks:\n{client_remark}"
             )
             mailto_url = f"mailto:genometechstudio@gmail.com?subject={subject}&body={body}"
             st.success("✅ Your remark and survival diagnostics are ready! Click below to send directly from your email client:")
             st.markdown(f'👉 <a href="https://mail.google.com/mail/?view=cm&fs=1&to=genometechstudio@gmail.com&su={subject}&body={body}" target="_blank" style="color:#38bdf8;font-weight:700;text-decoration:underline;">Click Here to Send via Gmail (Browser)</a> &nbsp;|&nbsp; <a href="{mailto_url}" style="color:#c4b5fd;font-weight:600;text-decoration:underline;">Open in Default Mail App (Outlook/Mac)</a>', unsafe_allow_html=True)
+
