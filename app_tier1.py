@@ -144,6 +144,20 @@ def get_tier1_demo_data():
 df_variants = get_tier1_demo_data()
 
 # --- TOP HEADER BAR ---
+# Ensure currency state is initialized before building the header
+if "currency" not in st.session_state:
+    url_curr = str(st.query_params.get("currency", "USD")).strip().upper()
+    st.session_state.currency = "INR" if url_curr == "INR" else "USD"
+
+is_inr = (st.session_state.get("currency", "USD") == "INR")
+
+# Dynamic Bundle & Module Price Strings for Tier 1
+bundle_price_str = "₹11,999" if is_inr else "$380"
+m1_price_str = "₹2,499" if is_inr else "$70"
+m2_price_str = "₹5,999" if is_inr else "$190"
+m3_price_str = "₹4,499" if is_inr else "$130"
+m4_price_str = "₹3,003" if is_inr else "$110"
+
 top_left, top_right = st.columns([3.2, 1.8])
 with top_left:
     st.markdown(
@@ -164,25 +178,12 @@ with top_right:
     st.markdown(
         f'<div style="display:flex; justify-content:flex-end; align-items:center; gap:10px; padding-top:10px; flex-wrap:wrap;">'
         f'<a href="{MAIN_WEBSITE_URL}" target="_blank" rel="noopener noreferrer" class="nav-btn-back">← Back to Our Website</a>'
-        f'<a href="{CHECKOUT_TIER1_URL}" target="_blank" rel="noopener noreferrer" class="nav-btn-order">Select Tier 1 Modules ($380) ➔</a>'
+        f'<a href="{CHECKOUT_TIER1_URL}" target="_blank" rel="noopener noreferrer" class="nav-btn-order">Select Tier 1 Modules ({bundle_price_str}) ➔</a>'
         f'</div>',
         unsafe_allow_html=True
     )
 
 st.markdown("<hr style='border-color: rgba(239, 68, 68, 0.3); margin: 0.85rem 0 1.2rem 0;'>", unsafe_allow_html=True)
-
-# --- DUAL CURRENCY CHECK (Safe to keep here if this runs before the tabs) ---
-if "currency" not in st.session_state:
-    url_curr = str(st.query_params.get("currency", "USD")).strip().upper()
-    st.session_state.currency = "INR" if url_curr == "INR" else "USD"
-
-is_inr = (st.session_state.get("currency", "USD") == "INR")
-
-# Dynamic Module Price Labels for Tier 1 KPI Cards
-m1_price_str = "₹2,499" if is_inr else "$70"
-m2_price_str = "₹5,999" if is_inr else "$190"
-m3_price_str = "₹4,499" if is_inr else "$130"
-m4_price_str = "₹3,003" if is_inr else "$110"
 
 # --- CONCISE OVERVIEW: WHAT WE DELIVER + FILES & LANGUAGES USED ---
 st.markdown(
@@ -251,27 +252,20 @@ with k4:
 
 st.write("")
 
-# --- DUAL CURRENCY CHECK (Ensure is_inr is available in app_tier1.py) ---
-if "currency" not in st.session_state:
-    url_curr = str(st.query_params.get("currency", "USD")).strip().upper()
-    st.session_state.currency = "INR" if url_curr == "INR" else "USD"
-
-is_inr = (st.session_state.get("currency", "USD") == "INR")
-
 # --- 4-MODULE DELIVERABLE TABS (SYNCED USD & INR PRICING) ---
 if is_inr:
     tab1, tab2, tab3, tab4 = st.tabs([
-        "📋 Module 4: Clinical Variant CSV (₹3,003)",
-        "🧼 Module 1: FastQC & Trimming (₹2,499)",
-        "🎯 Module 2: BWA-MEM Alignment (₹5,999)",
-        "🧬 Module 3: BCFtools Variant Calling (₹4,499)"
+        f"📋 Module 4: Clinical Variant CSV ({m4_price_str})",
+        f"🧼 Module 1: FastQC & Trimming ({m1_price_str})",
+        f"🎯 Module 2: BWA-MEM Alignment ({m2_price_str})",
+        f"🧬 Module 3: BCFtools Variant Calling ({m3_price_str})"
     ])
 else:
     tab1, tab2, tab3, tab4 = st.tabs([
-        "📋 Module 4: Clinical Variant CSV ($110)",
-        "🧼 Module 1: FastQC & Trimming ($70)",
-        "🎯 Module 2: BWA-MEM Alignment ($190)",
-        "🧬 Module 3: BCFtools Variant Calling ($130)"
+        f"📋 Module 4: Clinical Variant CSV ({m4_price_str})",
+        f"🧼 Module 1: FastQC & Trimming ({m1_price_str})",
+        f"🎯 Module 2: BWA-MEM Alignment ({m2_price_str})",
+        f"🧬 Module 3: BCFtools Variant Calling ({m3_price_str})"
     ])
 
 # =====================================================================
