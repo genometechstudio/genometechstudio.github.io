@@ -163,10 +163,27 @@ with top_left:
         unsafe_allow_html=True
     )
 with top_right:
+    curr_choice = st.radio(
+        "Currency",
+        options=["USD", "INR"],
+        index=1 if is_inr else 0,
+        format_func=lambda x: "🌐 $ USD" if x == "USD" else "🇮🇳 ₹ INR",
+        horizontal=True,
+        label_visibility="collapsed",
+        key="t2_header_curr"
+    )
+    if curr_choice != st.session_state.currency:
+        st.session_state.currency = curr_choice
+        st.query_params["currency"] = curr_choice
+        st.rerun()
+
+    checkout_sep = "&" if "?" in CHECKOUT_TIER2_URL else "?"
+    checkout_url_curr = f"{CHECKOUT_TIER2_URL}{checkout_sep}currency={st.session_state.currency}"
+
     st.markdown(
-        f'<div style="display:flex; justify-content:flex-end; align-items:center; gap:10px; padding-top:10px; flex-wrap:wrap;">'
+        f'<div style="display:flex; justify-content:flex-end; align-items:center; gap:10px; padding-top:4px; flex-wrap:wrap;">'
         f'<a href="{MAIN_WEBSITE_URL}" target="_blank" rel="noopener noreferrer" class="nav-btn-back">← Back to Our Website</a>'
-        f'<a href="{CHECKOUT_TIER2_URL}" target="_blank" rel="noopener noreferrer" class="nav-btn-order">Select Tier 2 Modules ($410) ➔</a>'
+        f'<a href="{checkout_url_curr}" target="_blank" rel="noopener noreferrer" class="nav-btn-order">Select Tier 2 Modules ({bundle_price_t2}) ➔</a>'
         f'</div>',
         unsafe_allow_html=True
     )
@@ -181,6 +198,7 @@ if "currency" not in st.session_state:
 is_inr = (st.session_state.get("currency", "USD") == "INR")
 
 # Dynamic Module Price Labels for Tier 2 (RNA-Seq Transcriptomics)
+bundle_price_t2 = "₹12,999" if is_inr else "$410"
 t2_m1_price = "₹5,999" if is_inr else "$190"  # Module 1: STAR Read Alignment
 t2_m2_price = "₹3,499" if is_inr else "$110"  # Module 2: FeatureCounts Quant
 t2_m3_price = "₹4,999" if is_inr else "$160"  # Module 3: DESeq2 Differential Math
@@ -352,7 +370,7 @@ with tab3:
     with s_left:
         st.markdown(
             '<div class="t2-card">'
-            '<div style="font-size:1.15rem; font-weight:800; color:#f87171; margin-bottom:6px;">🎯 Module 1: STAR Splice-Aware Read Alignment ($150)</div>'
+            '<div style="font-size:1.15rem; font-weight:800; color:#f87171; margin-bottom:6px;">🎯 Module 1: STAR Splice-Aware Read Alignment</div>'
             '<div style="font-size:0.88rem; color:#e2e8f0; line-height:1.6;">'
             'Unlike DNA aligners, RNA-Seq requires two-pass splice-aware alignment across exon-exon junctions against the human reference transcriptome (<code>GRCh38 + GENCODE v44</code>).<br><br>'
             '• <b>Mean Uniquely Mapped Reads:</b> 94.6% across 6 samples<br>'
@@ -380,7 +398,7 @@ with tab4:
     with q_left:
         st.markdown(
             '<div class="t2-card">'
-            '<div style="font-size:1.15rem; font-weight:800; color:#f87171; margin-bottom:6px;">🧮 Module 2: FeatureCounts Gene Quantification ($80)</div>'
+            '<div style="font-size:1.15rem; font-weight:800; color:#f87171; margin-bottom:6px;">🧮 Module 2: FeatureCounts Gene Quantification</div>'
             '<div style="font-size:0.88rem; color:#e2e8f0; line-height:1.6;">'
             'Subread <code>featureCounts</code> assigns mapped paired-end fragments to GENCODE exon features to build your master count matrix.<br><br>'
             '• <b>Exonic Assignment Rate:</b> 88.4% of aligned fragments<br>'
