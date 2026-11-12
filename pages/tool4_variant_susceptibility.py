@@ -124,20 +124,6 @@ with h_left:
         '</div>',
         unsafe_allow_html=True
     )
-with h_right:
-    curr_choice_t4 = st.radio(
-        "Currency",
-        options=["USD", "INR"],
-        index=1 if is_inr else 0,
-        format_func=lambda x: "🌐 $ USD" if x == "USD" else "🇮🇳 ₹ INR",
-        horizontal=True,
-        label_visibility="collapsed",
-        key="t4_top_curr_radio"
-    )
-    if curr_choice_t4 != st.session_state.currency:
-        st.session_state.currency = curr_choice_t4
-        st.query_params["currency"] = curr_choice_t4
-        st.rerun()
 
 st.markdown("## Automated GO & KEGG Pathway Enrichment Bubble/Bar Plotter")
 st.markdown(
