@@ -1,663 +1,12 @@
 import streamlit as st
 import pandas as pd
 import numpy as np
-import os
-import json    
-import time 
-import math
+from scipy import stats as sp_stats
 import urllib.parse
-
-# 1. Page Configuration (Isolated Single-Tool View)
-st.set_page_config(
-    page_title="Automated Primer Design | OmicsExpress",
-    page_icon="🧬",
-    layout="wide",
-    initial_sidebar_state="collapsed"
-)
-
-# 2. Deep Blue & Purplish OmicsExpress Theme CSS
-st.markdown("""
-<style>
-    #MainMenu {visibility: hidden;}
-    footer {visibility: hidden;}
-    header {visibility: hidden;}
-    [data-testid="collapsedControl"] {display: none;}
-    section[data-testid="stSidebar"] {display: none;}
-
-    .stApp {
-        background: radial-gradient(circle at top right, #2e1065 0%, #1e1b4b 40%, #0f172a 80%, #090d16 100%);
-        color: #f1f5f9 !important;
-        font-family: 'Inter', sans-serif;
-    }
-
-    h1, h2, h3, h4, p, span, label, li {
-        color: #f1f5f9 !important;
-    }
-
-    code {
-        background-color: rgba(139, 92, 246, 0.2) !important;
-        color: #ddd6fe !important;
-        border: 1px solid rgba(139, 92, 246, 0.4);
-        padding: 2px 6px;
-        border-radius: 5px;
-    }
-
-    .gts-navbar {
-        background: linear-gradient(90deg, #1e1b4b 0%, #4c1d95 50%, #1e3a8a 100%);
-        padding: 1.2rem 2rem;
-        border-radius: 14px;
-        margin-bottom: 1.8rem;
-        display: flex;
-        justify-content: space-between;
-        align-items: center;
-        border: 1px solid rgba(168, 85, 247, 0.4);
-        box-shadow: 0 8px 25px rgba(124, 58, 237, 0.25);
-    }
-    .gts-brand {
-        font-size: 1.5rem;
-        font-weight: 800;
-        letter-spacing: 0.5px;
-        text-decoration: none;
-        transition: opacity 0.2s ease;
-        cursor: pointer;
-        display: flex;
-        align-items: center;
-        gap: 8px;
-    }
-    .gts-brand:hover {
-        opacity: 0.85;
-    }
-    .gts-sub {
-        color: #c4b5fd !important;
-        margin-left: 12px;
-        font-size: 0.95rem;
-        font-weight: 500;
-    }
-    .gts-badge {
-        background: linear-gradient(135deg, #7c3aed, #2563eb);
-        border: 1px solid #c084fc;
-        color: #ffffff !important;
-        padding: 6px 16px;
-        border-radius: 999px;
-        font-size: 0.85rem;
-        font-weight: 600;
-        box-shadow: 0 0 12px rgba(168, 85, 247, 0.5);
-    }
-
-    [data-testid="stExpander"] {
-        background-color: rgba(30, 27, 75, 0.65) !important;
-        border: 1px solid rgba(139, 92, 246, 0.35) !important;
-        border-radius: 12px !important;
-    }
-    [data-testid="stFileUploader"] {
-        background-color: rgba(30, 27, 75, 0.5) !important;
-        border: 1px dashed #8b5cf6 !important;
-        border-radius: 12px !important;
-        padding: 12px;
-    }
-
-    [data-testid="stMetric"] {
-        background: rgba(30, 27, 75, 0.7);
-        border: 1px solid rgba(139, 92, 246, 0.4);
-        padding: 15px;
-        border-radius: 12px;
-        box-shadow: 0 4px 12px rgba(0, 0, 0, 0.2);
-    }
-
-    .stButton > button {
-        background: linear-gradient(90deg, #7c3aed 0%, #2563eb 100%) !important;
-        color: white !important;
-        border: 1px solid #a855f7 !important;
-        border-radius: 8px !important;
-        font-weight: 700 !important;
-        padding: 0.6rem 1.5rem !important;
-        box-shadow: 0 4px 15px rgba(124, 58, 237, 0.35) !important;
-    }
-    .stButton > button:hover {
-        box-shadow: 0 6px 20px rgba(168, 85, 247, 0.6) !important;
-        transform: translateY(-1px);
-    }
-
-    .blurred-table {
-        filter: blur(8px);
-        user-select: none;
-        pointer-events: none;
-        opacity: 0.55;
-    }
-
-    .paywall-overlay {
-        text-align: center;
-        background: linear-gradient(135deg, rgba(30, 27, 75, 0.95) 0%, rgba(59, 7, 100, 0.95) 100%);
-        padding: 2.2rem;
-        border-radius: 16px;
-        border: 2px solid #a855f7;
-        box-shadow: 0 15px 35px rgba(124, 58, 237, 0.35);
-        max-width: 620px;
-        margin: -70px auto 25px auto;
-        position: relative;
-        z-index: 20;
-    }
-</style>
-
-<div class="gts-navbar">
-    <div style="display: flex; align-items: center;">
-        <a href="https://genometechstudio.github.io" class="gts-brand" style="text-decoration: none;">
-            <svg style="width: 24px; height: 24px; color: #34d399;" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M19.428 15.428a2 2 0 00-1.022-.547l-2.387-.477a6 6 0 00-3.86.517l-.318.158a6 6 0 01-3.86.517L6.05 15.21a2 2 0 00-1.806.547M8 4h8l-1 1v5.172a2 2 0 00.586 1.414l5 5c1.26 1.26.367 3.414-1.415 3.414H4.828c-1.782 0-2.674-2.154-1.414-3.414l5-5A2 2 0 009 10.172V5L8 4z"></path>
-            </svg>
-            <span style="color: #34d399;">GenomeTech</span><span style="color: #ffffff;">Studio</span>
-        </a>
-        <span class="gts-sub">| OmicsExpress Automated Suite</span>
-    </div>
-    <span class="gts-badge">⚡ Tool #2: Automated Primer Design</span>
-</div>
-""", unsafe_allow_html=True)
-
-if "is_unlocked_t2" not in st.session_state:
-    st.session_state["is_unlocked_t2"] = False
-if "locked_mode_t2" not in st.session_state:
-    st.session_state["locked_mode_t2"] = None
-
-def reset_on_mode_change_t2():
-    st.session_state["is_unlocked_t2"] = False
-    st.session_state.pop("primer_df_t2", None)
-    st.session_state.pop("order_df_t2", None)
-    st.session_state.pop("fasta_str_t2", None)
-    st.session_state.pop("stats_t2", None)
-
-st.markdown("## Automated Batch Primer Designer")
-st.markdown(
-    "Design high-specificity Forward and Reverse primers across multi-sequence FASTA or tabular files. "
-    "Automatically computes **exact base-pair binding coordinates, total valid sites per sample, numeric $T_m$/GC%, "
-    "3' end $\Delta G$ stability (kcal/mol), Molecular Weight (Da), predicted qPCR Amplicon Melt $T_m$, and optimum thermal cycler protocols**."
-)
-
-with st.expander("📋 Required File Format & Complete Wet-Lab Deliverables (.fasta, .fa, .txt, or .csv)", expanded=True):
-    st.markdown("""
-    * **Accepted File Formats:** Multi-sequence FASTA (`.fasta`, `.fa`, `.txt`) or tabular `.csv` containing a Sequence ID column and a Nucleotide Sequence column (`A, T, G, C`).
-    * **Complete Wet-Lab & qPCR Columns Included:**
-      1. **Binding Coordinates & Site Counts:** `Valid_Pairs_In_Sample`, `Fwd_Binding_Site (bp)`, `Rev_Binding_Site (bp)`, `Amplicon_Size (bp)`.
-      2. **Numeric Excel-Sortable Columns:** `Fwd_Len (bp)`, `Rev_Len (bp)`, `Fwd_Tm (°C)`, `Rev_Tm (°C)`, `Delta_Tm (°C)`, `Fwd_GC (%)`, `Rev_GC (%)`.
-      3. **Biophysical & Resuspension Metrics:** `3'_End_DeltaG (kcal/mol)`, `3'_GC_Clamp`, and `Fwd_MW / Rev_MW (Da)`.
-      4. **SYBR Green Melt-Curve & Product Verification:** `Amplicon_GC (%)`, `Predicted_Amplicon_Melt_Tm (°C)`, and full `Amplicon_Sequence (5'->3')`.
-    * **💻 Cross-Platform File Compatibility (Windows & Apple macOS):** All exported `.csv` tables use universal `UTF-8-BOM` encoding—double-click to open directly in **Microsoft Excel (Windows/Mac)**, **Apple Numbers**, **Google Sheets**, or load into **R / Python**. Sequence (`.fasta`) and vector figure (`.svg` / `.html`) outputs open natively in any text editor (**Notepad / Mac TextEdit**) or web browser (**Safari / Chrome / Edge**).
-    * **Single-Mode License Note:** Each checkout unlocks your selected **Application Mode** (`qPCR`, `Standard PCR`, `Sanger Sequencing`, or `Custom`). Adjusting thermodynamic sliders within your unlocked mode is free; switching the Application Mode starts a new run.
-    """)
-
-# ==========================================
-# HELPER FUNCTIONS FOR PRIMER BIOPHYSICS
-# ==========================================
-def rev_comp(seq):
-    trans = str.maketrans("ATGCRYSWKMBDHVNatgcryswkmbdhvn", "TACGYRSWMKVHDBNtacgyrswmkvhdbn")
-    return seq.translate(trans)[::-1].upper()
-
-def calc_gc(seq):
-    if not seq:
-        return 0.0
-    gc = sum(1 for b in seq.upper() if b in ("G", "C"))
-    return round((gc / len(seq)) * 100.0, 1)
-
-def calc_tm(seq, na_mm=50.0):
-    seq = seq.upper()
-    n = len(seq)
-    if n == 0:
-        return 0.0
-    gc_count = sum(1 for b in seq if b in ("G", "C"))
-    salt_corr = 16.6 * math.log10(na_mm / 1000.0)
-    if n < 14:
-        tm = 2 * (n - gc_count) + 4 * gc_count
-    else:
-        tm = 81.5 + salt_corr + 0.41 * ((gc_count / n) * 100.0) - (675.0 / n)
-    return round(tm, 2)
-
-def calc_amplicon_melt_tm(amp_seq, na_mm=50.0):
-    n = len(amp_seq)
-    if n == 0:
-        return 0.0
-    gc_pct = calc_gc(amp_seq)
-    salt_corr = 16.6 * math.log10(na_mm / 1000.0)
-    tm_prod = 81.5 + salt_corr + 0.41 * gc_pct - (500.0 / n)
-    return round(tm_prod, 1)
-
-def calc_oligo_mw(seq):
-    s = seq.upper()
-    mw = (s.count("A") * 313.21) + (s.count("T") * 304.20) + (s.count("G") * 329.21) + (s.count("C") * 289.18) - 61.96
-    return round(max(0.0, mw), 1)
-
-def calc_3prime_dg(seq):
-    nn_dg = {
-        "AA": -1.00, "TT": -1.00, "AT": -0.88, "TA": -0.58,
-        "CA": -1.45, "TG": -1.45, "GT": -1.44, "AC": -1.44,
-        "CT": -1.28, "AG": -1.28, "GA": -1.30, "TC": -1.30,
-        "CG": -2.17, "GC": -2.24, "GG": -1.84, "CC": -1.84
-    }
-    tail = seq[-5:].upper()
-    dg = sum(nn_dg.get(tail[i:i+2], -1.2) for i in range(len(tail) - 1))
-    return round(dg, 2)
-
-def has_homopolymer(seq, max_repeat=4):
-    for base in "ATGC":
-        if (base * max_repeat) in seq.upper():
-            return True
-    return False
-
-def check_3prime_clamp(seq, min_gc=1, max_gc=3):
-    tail = seq[-5:].upper()
-    gc_tail = sum(1 for b in tail if b in ("G", "C"))
-    return (min_gc <= gc_tail <= max_gc), gc_tail
-
-def has_3prime_dimer(seq1, seq2, match_len=4):
-    tail1 = seq1[-match_len:].upper()
-    rc_tail2 = rev_comp(seq2[-match_len:].upper())
-    return tail1 == rc_tail2
-
-def parse_fasta_safe(file_iterator, max_seqs=1000, max_len=3000):
-    records = []
-    curr_id = None
-    curr_seq = []
-    
-    # 1. Stream line-by-line to protect RAM from massive FASTA files
-    for line in file_iterator:
-        if isinstance(line, bytes):
-            line_str = line.decode("utf-8", errors="ignore").strip()
-        else:
-            line_str = line.strip()
-            
-        if not line_str:
-            continue
-            
-        if line_str.startswith(">"):
-            if curr_id is not None:
-                full_seq = "".join(curr_seq).upper()
-                # 2. Horizontal CPU Protection: Truncate sequence length
-                if len(full_seq) > max_len:
-                    full_seq = full_seq[:max_len]
-                records.append({"Sample_ID": curr_id, "Sequence": full_seq})
-                
-                # 3. Vertical CPU Protection: Cap total sequences
-                if len(records) >= max_seqs:
-                    st.warning(f"⚠ FASTA exceeds {max_seqs} sequences. Truncating to protect server compute limits.")
-                    return pd.DataFrame(records)
-                    
-            curr_id = line_str[1:].strip().split()[0]
-            curr_seq = []
-        else:
-            # Only append if under limit to save memory overhead
-            if sum(len(s) for s in curr_seq) < max_len:
-                clean_line = "".join(c for c in line_str.upper() if c in "ATGC")
-                curr_seq.append(clean_line)
-                
-    if curr_id is not None:
-        full_seq = "".join(curr_seq).upper()
-        if len(full_seq) > max_len:
-            full_seq = full_seq[:max_len]
-        records.append({"Sample_ID": curr_id, "Sequence": full_seq})
-        
-    return pd.DataFrame(records)
-
-# ==========================================
-# STEP 2: SEQUENCE INPUT & DEMO DATA
-# ==========================================
-col_up, col_demo = st.columns([3, 1])
-with col_up:
-    uploaded_file = st.file_uploader(
-        "Drop your FASTA or Sequence Table (.fasta, .fa, .txt, .csv)",
-        type=["fasta", "fa", "txt", "csv"],
-        on_change=reset_on_mode_change_t2
-    )
-    st.caption("⚡ **Performance Note:** Optimized for high-speed batch processing: supports up to 1,000 target sequences (max 3,000 bp each).")
-with col_demo:
-    st.write("")
-    st.write("")
-    use_sample = st.checkbox("🧪 Load Demo Multi-Gene Dataset", value=(uploaded_file is None), on_change=reset_on_mode_change_t2)
-
-paste_seq = st.text_area(
-    "Or paste FASTA / Raw DNA Sequences directly (optional):",
-    height=90,
-    placeholder=">Gene_Target_1\nATGCGTACGTAGCTAGCTAGCT...",
-    on_change=reset_on_mode_change_t2
-)
-
-df_seqs = None
-if uploaded_file is not None:
-    try:
-        fname = uploaded_file.name.lower()
-        if fname.endswith(".csv"):
-            # Protect against massive CSV files
-            raw_df = pd.read_csv(uploaded_file, nrows=1000)
-            if len(raw_df) == 1000:
-                st.warning("⚠ CSV exceeds 1,000 sequences. Truncating to ensure stable thermodynamic calculations.")
-                
-            sc1, sc2 = st.columns(2)
-            id_col = sc1.selectbox("Select Sample/Gene ID Column:", raw_df.columns, index=0)
-            sq_col = sc2.selectbox("Select Nucleotide Sequence Column:", raw_df.columns, index=1 if len(raw_df.columns) > 1 else 0)
-            
-            # Extract and safely truncate the sequences
-            df_seqs = pd.DataFrame({
-                "Sample_ID": raw_df[id_col].astype(str),
-                "Sequence": raw_df[sq_col].astype(str).str.upper().str.replace(r"[^ATGC]", "", regex=True).str.slice(0, 3000)
-            })
-        else:
-            # Pass the file buffer directly to the streaming parser
-            df_seqs = parse_fasta_safe(uploaded_file, max_seqs=1000, max_len=3000)
-            
-    except Exception as e:
-        st.error(f"Error reading uploaded file: {e}")
-        
-elif paste_seq.strip():
-    df_seqs = parse_fasta_safe(paste_seq.splitlines(), max_seqs=1000, max_len=3000)
-elif use_sample:
-    df_seqs = pd.DataFrame([
-        {
-            "Sample_ID": "TP53_Exon5_Human",
-            "Sequence": (
-                "TGTTCACTTGTGCCCTGACTTTCAACTCTGTCTCCTTCCTCTTCCTACAGTACTCCCCTGCCCTCAACAAGATGTTTTGCCAACTGGCCAAGACCTGCCCTGTGCAGCTGTGGGTTGATTCCACACCCCCGCCCGGCACCCGCGTCCGCGCCATGGCCATCTACAAGCAGTCACAGCACATGACGGAGGTTGTGAGGCGCTGCCCCCACCATGAGCGCTGCTCAGATAGCGATGGTCTGGCCCCTCCTCAG"
-                "CATCTTATCCGAGTGGAAGGAAATTTGCGTGTGGAGTATTTGGATGACAGAAACACTTTTCGACATAGTGTGGTGGTGCCCTATGAGCCGCCTGAGGTTGGCTCTGACTGTACCACCATCCACTACAACTACATGTGTAACAGTTCCTGCATGGGCGGCATGAACCGGAGGCCCATCCTCACCATCATCACACTGGAAGACTCCAGTGGTAATCTACTGGGACGGAACAGCTTTGAGGTGCGTGTTTGTGC"
-            )
-        },
-        {
-            "Sample_ID": "BRCA1_CDS_Region",
-            "Sequence": (
-                "ATGGATTTATCTGCTCTTCGCGTTGAAGAAGTACAAAATGTCATTAATGCTATGCAGAAAATCTTAGAGTGTCCCATCTGTCTGGAGTTGATCAAGGAACCTGTCTCCACAAAGTGTGACCACATATTTTGCAAATTTTGCATGCTGAAACTTCTCAACCAGAAGAAAGGGCCTTCACAGTGTCCTTTATGTAAGAATGATATAACCAAAAGGAGCCTACAAGAAAGTACGAGATTTAGTCAACTTGTTGA"
-                "AGAGCTATTGAAAATCATTTGTGCTTTTCAGCTTGACACAGGTTTGGAGTATGCAAACAGCTATAATTTTGCAAAAAAGGAAAATAACTCTCCTGAACATCTAAAAGATGAAGTTTCTATCATCCAAAGTATGGGCTACAGAAACCGTGCCAAAAGACTTCTACAGAGTGAACCCGAAAATCCTTCCTTGCAGGAAACCAGTCTCAGTGTCCAACTCTCTAACCTTGGAACTGTGAGAACTCTGAGGAC"
-            )
-        },
-        {
-            "Sample_ID": "EGFR_Kinase_Domain",
-            "Sequence": (
-                "GGAAGCCTACGTGATGGCCAGCGTGGACAACCCCCACGTGTGCCGCCTGCTGGGCATCTGCCTCACCTCCACCGTGCAGCTCATCACGCAGCTCATGCCCTTCGGCTGCCTCCTGGACTATGTCCGGGAACACAAAGACAATATTGGCTCCCAGTACCTGCTCAACTGGTGTGTGCAGATCGCAAAGGGCATGAACTACTTGGAGGACCGTCGCTTGGTGCACCGCGACCTGGCAGCCAGGAACGTACTGG"
-                "TGAAAACACCGCAGCATGTCAAGATCACAGATTTTGGGCTGGCCAAACTGCTGGGTGCGGAAGAGAAAGAATACCATGCAGAAGGAGGCAAAGTGCCTATCAAGTGGATGGCATTGGAATCAATTTTACACAGAATCTATACCCACCAGAGTGATGTCTGGAGCTACGGGGTGACTGTTTGGGAGTTGATGACCTTTGGATCCAAGCCATATGACGGAATCCCTGCCAGCGAGATCTCCTCCATCCTGG"
-            )
-        },
-        {
-            "Sample_ID": "ACTB_Housekeeping_Control",
-            "Sequence": (
-                "ACCGAGCGCGGCTACAGCTTCACCACCACGGCCGAGCGGGAAATCGTGCGTGACATTAAGGAGAAGCTGTGCTACGTCGCCCTGGACTTCGAGCAAGAGATGGCCACGGCTGCTTCCAGCTCCTCCCTGGAGAAGAGCTACGAGCTGCCTGACGGCCAGGTCATCACCATTGGCAATGAGCGGTTCCGCTGCCCTGAGGCACTCTTCCAGCCTTCCTTCCTGGGCATGGAGTCCTGTGGCATCCACGAAAC"
-                "TACCTTCAACTCCATCATGAAGTGTGACGTGGACATCCGCAAAGACCTGTACGCCAACACAGTGCTGTCTGGCGGCACCACCATGTACCCTGGCATTGCCGACAGGATGCAGAAGGAGATCACTGCCCTGGCACCCAGCACAATGAAGATCAAGATCATTGCTCCTCCTGAGCGCAAGTACTCCGTGTGGATCGGCGGCTCCATCCTGGCCTCGCTGTCCACCTTCCAGCAGATGTGGATCAGCAAGCAG"
-            )
-        }
-    ])
-
-# ==========================================
-# STEP 3: CUSTOM FIXING CONDITIONS & OPTIMUMS
-# ==========================================
-if df_seqs is not None and not df_seqs.empty:
-    st.markdown("### ⚙️ Custom Fixing Conditions & Thermodynamic Optimums")
-    
-    preset = st.selectbox(
-        "Application Mode Preset (Switching application mode starts a new pipeline run):",
-        [
-            "qPCR / RT-qPCR (SYBR Green: 80–180 bp Amplicon)",
-            "Standard Endpoint PCR (150–400 bp Amplicon)",
-            "Sanger Sequencing (400–800 bp Amplicon)",
-            "Custom User-Defined Conditions"
-        ],
-        on_change=reset_on_mode_change_t2
-    )
-    if "qPCR" in preset:
-        default_amp_min, default_amp_max = 80, 180
-    elif "Sanger" in preset:
-        default_amp_min, default_amp_max = 400, 800
-    else:
-        default_amp_min, default_amp_max = 150, 400
-
-    c1, c2, c3 = st.columns(3)
-    with c1:
-        st.markdown("**1. Primer Length & Amplicon Span**")
-        len_range = st.slider("Primer Length Range (bp):", 16, 30, (18, 22))
-        opt_len = st.number_input("Optimum Primer Length (bp):", min_value=16, max_value=30, value=20)
-        amp_range = st.slider("Target Amplicon Size (bp):", 60, 1000, (default_amp_min, default_amp_max))
-
-    with c2:
-        st.markdown("**2. Melting Temp ($T_m$) & GC% Optimums**")
-        tm_range = st.slider("Allowed Tm Range (°C):", 50.0, 72.0, (57.0, 63.0), 0.5)
-        opt_tm = st.number_input("Optimum Target Tm (°C):", min_value=50.0, max_value=72.0, value=60.0, step=0.5)
-        max_delta_tm = st.slider("Max ΔTm Between Fwd & Rev (°C):", 0.5, 5.0, 1.5, 0.25)
-        gc_range = st.slider("Allowed GC Content (%):", 30, 75, (40, 60))
-        opt_gc = st.number_input("Optimum Target GC (%):", min_value=30, max_value=75, value=50)
-
-    with c3:
-        st.markdown("**3. Structural Fixing Conditions**")
-        enforce_clamp = st.checkbox("Enforce 3' GC Clamp (1–3 G/C in last 5 bp)", value=True)
-        filter_poly = st.checkbox("Reject Homopolymer Repeats (≥4 identical bases)", value=True)
-        filter_dimer = st.checkbox("Screen Against 3' Self/Cross Dimerization", value=True)
-        pairs_per_seq = st.selectbox(
-            "Backup Primer Pairs per Gene (Ranked #1 to #3):",
-            [1, 2, 3],
-            index=1,
-            help="Outputs the #1 Best Optimum Primer Pair plus up to 2 backup non-overlapping primer pairs per gene."
-        )
-        fwd_tag = st.text_input("Optional 5' Overhang / Restriction Tag (Forward):", placeholder="e.g. GAATTC")
-        rev_tag = st.text_input("Optional 5' Overhang / Restriction Tag (Reverse):", placeholder="e.g. AAGCTT")
-
-    current_file_sig = uploaded_file.name if uploaded_file is not None else ("pasted" if paste_seq.strip() else "demo")
-    current_mode_sig = f"{current_file_sig}|{preset}"
-
-    # ==========================================
-    # STEP 4: RUN PRIMER DESIGN ENGINE
-    # ==========================================
-    if st.button("🚀 Run Automated Primer Design"):
-        if st.session_state["locked_mode_t2"] is not None and st.session_state["locked_mode_t2"] != current_mode_sig:
-            st.session_state["is_unlocked_t2"] = False
-        st.session_state["locked_mode_t2"] = current_mode_sig
-
-        with st.spinner("Scanning template coordinates, evaluating thermodynamic ΔG stability, and predicting qPCR amplicon melt peaks..."):
-            designed_rows = []
-            total_valid_sites_across_all = 0
-
-            for _, row in df_seqs.iterrows():
-                sample_id = row["Sample_ID"]
-                seq = row["Sequence"]
-                seq_len = len(seq)
-
-                fwd_candidates = []
-                rev_candidates = []
-
-                step_size = 2 if seq_len <= 1200 else 5
-                for l in range(len_range[0], len_range[1] + 1):
-                    for pos in range(0, seq_len - l + 1, step_size):
-                        sub = seq[pos:pos + l]
-                        if len(sub) < l:
-                            continue
-
-                        if not (filter_poly and has_homopolymer(sub)):
-                            gc_val = calc_gc(sub)
-                            if gc_range[0] <= gc_val <= gc_range[1]:
-                                tm_val = calc_tm(sub)
-                                if tm_range[0] <= tm_val <= tm_range[1]:
-                                    clamp_ok, clamp_cnt = check_3prime_clamp(sub)
-                                    if (not enforce_clamp) or clamp_ok:
-                                        if not (filter_dimer and has_3prime_dimer(sub, sub)):
-                                            fwd_candidates.append({
-                                                "seq": sub,
-                                                "start": pos + 1,
-                                                "end": pos + l,
-                                                "len": l,
-                                                "tm": tm_val,
-                                                "gc": gc_val,
-                                                "clamp": f"{clamp_cnt}/5 GC",
-                                                "dg3": calc_3prime_dg(sub),
-                                                "mw": calc_oligo_mw(sub)
-                                            })
-
-                        rc_sub = rev_comp(sub)
-                        if not (filter_poly and has_homopolymer(rc_sub)):
-                            gc_rc = calc_gc(rc_sub)
-                            if gc_range[0] <= gc_rc <= gc_range[1]:
-                                tm_rc = calc_tm(rc_sub)
-                                if tm_range[0] <= tm_rc <= tm_range[1]:
-                                    clamp_ok_r, clamp_cnt_r = check_3prime_clamp(rc_sub)
-                                    if (not enforce_clamp) or clamp_ok_r:
-                                        if not (filter_dimer and has_3prime_dimer(rc_sub, rc_sub)):
-                                            rev_candidates.append({
-                                                "seq": rc_sub,
-                                                "start": pos + 1,
-                                                "end": pos + l,
-                                                "len": l,
-                                                "tm": tm_rc,
-                                                "gc": gc_rc,
-                                                "clamp": f"{clamp_cnt_r}/5 GC",
-                                                "dg3": calc_3prime_dg(rc_sub),
-                                                "mw": calc_oligo_mw(rc_sub)
-                                            })
-
-                valid_pairs = []
-                for f in fwd_candidates:
-                    for r in rev_candidates:
-                        amp_size = r["end"] - f["start"] + 1
-                        if amp_range[0] <= amp_size <= amp_range[1]:
-                            delta_tm = abs(f["tm"] - r["tm"])
-                            if delta_tm <= max_delta_tm:
-                                if filter_dimer and has_3prime_dimer(f["seq"], r["seq"]):
-                                    continue
-
-                                tm_pen = abs(f["tm"] - opt_tm) + abs(r["tm"] - opt_tm) + (delta_tm * 1.5)
-                                gc_pen = (abs(f["gc"] - opt_gc) + abs(r["gc"] - opt_gc)) * 0.15
-                                len_pen = (abs(f["len"] - opt_len) + abs(r["len"] - opt_len)) * 0.5
-                                total_pen = tm_pen + gc_pen + len_pen
-                                opt_match_rate = max(65.0, round(100.0 - (total_pen * 2.2), 1))
-
-                                valid_pairs.append({
-                                    "f": f,
-                                    "r": r,
-                                    "amp_size": amp_size,
-                                    "delta_tm": round(delta_tm, 2),
-                                    "opt_rate": opt_match_rate
-                                })
-
-                total_valid_in_seq = len(valid_pairs)
-                total_valid_sites_across_all += total_valid_in_seq
-
-                valid_pairs.sort(key=lambda x: x["opt_rate"], reverse=True)
-
-                selected = []
-                used_starts = []
-                for vp in valid_pairs:
-                    if all(abs(vp["f"]["start"] - us) > 12 for us in used_starts):
-                        selected.append(vp)
-                        used_starts.append(vp["f"]["start"])
-                    if len(selected) >= pairs_per_seq:
-                        break
-
-                if not selected:
-                    designed_rows.append({
-                        "Sample_ID": sample_id,
-                        "Template_Length (bp)": seq_len,
-                        "Valid_Pairs_In_Sample": 0,
-                        "Pair_Rank": "No Match",
-                        "Forward_Primer (5'->3')": "Relax Tm/GC/Amplicon sliders",
-                        "Fwd_Binding_Site (bp)": "N/A",
-                        "Fwd_Len (bp)": 0,
-                        "Fwd_Tm (°C)": 0.0,
-                        "Fwd_GC (%)": 0.0,
-                        "Reverse_Primer (5'->3')": "Relax Tm/GC/Amplicon sliders",
-                        "Rev_Binding_Site (bp)": "N/A",
-                        "Rev_Len (bp)": 0,
-                        "Rev_Tm (°C)": 0.0,
-                        "Rev_GC (%)": 0.0,
-                        "Delta_Tm (°C)": 0.0,
-                        "Amplicon_Size (bp)": 0,
-                        "Amplicon_GC (%)": 0.0,
-                        "Predicted_Amplicon_Melt_Tm (°C)": 0.0,
-                        "3'_GC_Clamp (Fwd/Rev)": "N/A",
-                        "3'_End_DeltaG_kcal_mol (Fwd/Rev)": "N/A",
-                        "Oligo_MW_Da (Fwd/Rev)": "N/A",
-                        "Optimum_Match_Rate (%)": 0.0,
-                        "Optimum_Annealing_Ta (°C)": 0.0,
-                        "Recommended_Cycle_Run": "Adjust thresholds",
-                        "Amplicon_Sequence (5'->3')": "N/A"
-                    })
-                else:
-                    for rank_idx, item in enumerate(selected, start=1):
-                        f = item["f"]
-                        r = item["r"]
-                        final_f_seq = (fwd_tag.strip().upper() + f["seq"]) if fwd_tag.strip() else f["seq"]
-                        final_r_seq = (rev_tag.strip().upper() + r["seq"]) if rev_tag.strip() else r["seq"]
-                        
-                        amp_seq = seq[f["start"] - 1 : r["end"]]
-                        amp_gc = calc_gc(amp_seq)
-                        amp_melt_tm = calc_amplicon_melt_tm(amp_seq)
-
-                        opt_ta = round(min(f["tm"], r["tm"]) - 5.0, 1)
-                        ext_sec = max(15, int(round((item["amp_size"] / 1000.0) * 60.0)))
-                        cycle_protocol = f"Ta: {opt_ta}°C (20s) | Ext: 72°C ({ext_sec}s) | 35 Cycles"
-
-                        designed_rows.append({
-                            "Sample_ID": sample_id,
-                            "Template_Length (bp)": seq_len,
-                            "Valid_Pairs_In_Sample": total_valid_in_seq,
-                            "Pair_Rank": f"Rank #{rank_idx}",
-                            "Forward_Primer (5'->3')": final_f_seq,
-                            "Fwd_Binding_Site (bp)": f"{f['start']} - {f['end']} bp",
-                            "Fwd_Len (bp)": len(final_f_seq),
-                            "Fwd_Tm (°C)": f["tm"],
-                            "Fwd_GC (%)": f["gc"],
-                            "Reverse_Primer (5'->3')": final_r_seq,
-                            "Rev_Binding_Site (bp)": f"{r['start']} - {r['end']} bp (Comp)",
-                            "Rev_Len (bp)": len(final_r_seq),
-                            "Rev_Tm (°C)": r["tm"],
-                            "Rev_GC (%)": r["gc"],
-                            "Delta_Tm (°C)": item["delta_tm"],
-                            "Amplicon_Size (bp)": item["amp_size"],
-                            "Amplicon_GC (%)": amp_gc,
-                            "Predicted_Amplicon_Melt_Tm (°C)": amp_melt_tm,
-                            "3'_GC_Clamp (Fwd/Rev)": f"{f['clamp']} | {r['clamp']}",
-                            "3'_End_DeltaG_kcal_mol (Fwd/Rev)": f"{f['dg3']} / {r['dg3']}",
-                            "Oligo_MW_Da (Fwd/Rev)": f"{f['mw']} / {r['mw']} Da",
-                            "Optimum_Match_Rate (%)": item["opt_rate"],
-                            "Optimum_Annealing_Ta (°C)": opt_ta,
-                            "Recommended_Cycle_Run": cycle_protocol,
-                            "Amplicon_Sequence (5'->3')": amp_seq
-                        })
-
-            df_out = pd.DataFrame(designed_rows)
-
-            order_rows = []
-            fasta_lines = []
-            for _, r_row in df_out[df_out["Pair_Rank"] != "No Match"].iterrows():
-                base_name = f"{r_row['Sample_ID']}_{r_row['Pair_Rank'].replace(' ', '').replace('#', '')}"
-                f_seq = r_row["Forward_Primer (5'->3')"]
-                r_seq = r_row["Reverse_Primer (5'->3')"]
-                f_pos = r_row["Fwd_Binding_Site (bp)"]
-                r_pos = r_row["Rev_Binding_Site (bp)"]
-
-                order_rows.append({
-                    "Oligo_Name": f"{base_name}_F",
-                    "Sequence_5_to_3": f_seq,
-                    "Length_bp": r_row["Fwd_Len (bp)"],
-                    "Tm_C": r_row["Fwd_Tm (°C)"],
-                    "Binding_Site_bp": f_pos,
-                    "Synthesis_Scale": "25 nm",
-                    "Purification": "Standard Desalted"
-                })
-                order_rows.append({
-                    "Oligo_Name": f"{base_name}_R",
-                    "Sequence_5_to_3": r_seq,
-                    "Length_bp": r_row["Rev_Len (bp)"],
-                    "Tm_C": r_row["Rev_Tm (°C)"],
-                    "Binding_Site_bp": r_pos,
-                    "Synthesis_Scale": "25 nm",
-                    "Purification": "Standard Desalted"
-                })
-
-                fasta_lines.append(f">{base_name}_Forward | Binding:{f_pos} | Tm:{r_row['Fwd_Tm (°C)']}C | Amplicon:{r_row['Amplicon_Size (bp)']}bp")
-                fasta_lines.append(f_seq)
-                fasta_lines.append(f">{base_name}_Reverse | Binding:{r_pos} | Tm:{r_row['Rev_Tm (°C)']}C | Amplicon:{r_row['Amplicon_Size (bp)']}bp")
-                fasta_lines.append(r_seq)
-
-            df_order = pd.DataFrame(order_rows)
-            fasta_str = "\n".join(fasta_lines)
-
-            st.session_state["primer_df_t2"] = df_out
-            st.session_state["order_df_t2"] = df_order
-            st.session_state["fasta_str_t2"] = fasta_str
-            st.session_state["stats_t2"] = {
-                "samples": len(df_seqs),
-                "total_sites": total_valid_sites_across_all,
-                "designed_pairs": len(df_out[df_out["Pair_Rank"] != "No Match"]),
-                "mean_opt_rate": round(df_out[df_out["Pair_Rank"] != "No Match"]["Optimum_Match_Rate (%)"].mean(), 1) if len(df_out[df_out["Pair_Rank"] != "No Match"]) > 0 else 0.0,
-                "mode": preset
-            }
+import io
+import json
+import os
+import time
 
 # ==========================================
 # 🇮🇳 INDIA DIRECT PAYMENT CONFIG (PULLS PRIVATELY FROM STREAMLIT SECRETS)
@@ -666,75 +15,797 @@ INDIA_UPI_ID = st.secrets.get("INDIA_UPI_ID", "BHARATPE2A0G0R8H8A59248@unitype")
 INDIA_PAYEE_NAME = st.secrets.get("INDIA_PAYEE_NAME", "GenomeTech Studio")
 
 # ==========================================
-# DISPLAY TABULAR RESULTS, PAYWALL & REMARKS (TOOL #2 — DUAL CURRENCY USD + INR)
+# PAGE STYLING (MATCHES OMICSEXPRESS DARK INDIGO/PURPLE THEME)
 # ==========================================
-if "primer_df_t2" in st.session_state:
-    res_df = st.session_state["primer_df_t2"]
-    order_df = st.session_state["order_df_t2"]
-    fasta_out = st.session_state.get("fasta_str_t2", "")
+st.markdown("""
+<style>
+    .glass-header {
+        background: rgba(15, 23, 42, 0.85);
+        border: 1px solid rgba(139, 92, 246, 0.35);
+        border-radius: 14px;
+        padding: 14px 22px;
+        display: flex;
+        justify-content: space-between;
+        align-items: center;
+        margin-bottom: 18px;
+        box-shadow: 0 8px 32px rgba(0, 0, 0, 0.35);
+    }
+    .brand-title {
+        font-size: 1.2rem;
+        font-weight: 800;
+        color: #f8fafc;
+        letter-spacing: -0.01em;
+    }
+    .brand-sub {
+        font-size: 0.85rem;
+        color: #94a3b8;
+        font-weight: 500;
+        margin-left: 8px;
+    }
+    .tool-pill {
+        background: linear-gradient(90deg, #7c3aed 0%, #4f46e5 100%);
+        color: #ffffff !important;
+        padding: 6px 16px;
+        border-radius: 999px;
+        font-size: 0.8rem;
+        font-weight: 700;
+        border: 1px solid rgba(196, 181, 253, 0.4);
+    }
+    .metric-card {
+        background: rgba(15, 23, 42, 0.78);
+        border: 1px solid rgba(139, 92, 246, 0.28);
+        border-radius: 12px;
+        padding: 16px 18px;
+        margin-bottom: 14px;
+    }
+    .metric-label {
+        font-size: 0.78rem;
+        color: #cbd5e1;
+        font-weight: 600;
+        margin-bottom: 6px;
+    }
+    .metric-val {
+        font-size: 1.85rem;
+        font-weight: 800;
+        color: #ffffff;
+        line-height: 1.1;
+    }
+    .blurred-table {
+        filter: blur(5px);
+        pointer-events: none;
+        user-select: none;
+        opacity: 0.45;
+        margin-bottom: -180px;
+    }
+    .paywall-overlay {
+        position: relative;
+        z-index: 10;
+        background: rgba(15, 12, 36, 0.92);
+        border: 1px solid rgba(168, 85, 247, 0.55);
+        border-radius: 16px;
+        padding: 26px 24px;
+        max-width: 650px;
+        margin: 0 auto 22px auto;
+        box-shadow: 0 16px 50px rgba(0, 0, 0, 0.75);
+    }
+</style>
+""", unsafe_allow_html=True)
+
+# ==========================================
+# SESSION STATE INITIALIZATION (TOOL #2)
+# ==========================================
+if "is_unlocked_t2" not in st.session_state:
+    st.session_state["is_unlocked_t2"] = False
+if "last_mode_t2" not in st.session_state:
+    st.session_state["last_mode_t2"] = None
+
+# ==========================================
+# TOP GLASS HEADER BANNER
+# ==========================================
+st.markdown(
+    '<div class="glass-header">'
+    '<div><span class="brand-title">🧪 <span style="color:#34d399;">GenomeTech</span> Studio</span>'
+    '<span class="brand-sub">| OmicsExpress Automated Suite</span></div>'
+    '<div class="tool-pill">⚡ Tool #2: Automated qPCR 2^-ΔΔCt Suite</div>'
+    '</div>',
+    unsafe_allow_html=True
+)
+
+st.markdown("## Automated qPCR 2<sup>-ΔΔCt</sup> Fold-Change & Significance Suite", unsafe_allow_html=True)
+st.markdown(
+    "Transform raw RT-qPCR Cycle Threshold ($C_t$ / $C_q$) spreadsheets across multiple genes, biological replicates, and treatment conditions into publication-ready fold-change matrices. "
+    "Automatically computes **housekeeping normalization ($\\Delta C_t$), calibrator baseline shifts ($\\Delta\\Delta C_t$), Livak $2^{-\\Delta\\Delta C_t}$ & Pfaffl efficiency-corrected fold change, 95% CIs, Welch's $t$-test / One-Way ANOVA $p$-values, Benjamini-Hochberg FDR, and 4 vector publication figures (`.svg`)**."
+)
+
+# ==========================================
+# COLLAPSIBLE FILE FORMAT & DELIVERABLES EXPANDER
+# ==========================================
+with st.expander("📋 Required File Format & Complete Wet-Lab Deliverables (.csv, .tsv, .txt, or .xlsx)", expanded=True):
+    st.markdown(
+        "* **Accepted File Formats:** Tabular `.csv`, `.tsv`, `.txt`, or `.xlsx` containing a **Sample/Replicate column**, **Experimental Group column**, **Gene Name column**, and **Cycle Threshold (`Ct` / `Cq`) column**.\n"
+        "* **Complete Wet-Lab & MIQE Biostatistics Columns Included:**\n"
+        "  1. **Cycle Threshold & Normalization Metrics:** `N_Biological_Replicates`, `Technical_Reps_Pooled`, `Mean_Target_Ct`, `SD_Target_Ct`, `Mean_HK_Ct`, `Mean_dCt`, `SD_dCt`, `SEM_dCt`.\n"
+        "  2. **Relative Expression & Fold-Change Columns:** `Calibrator_dCt`, `Mean_ddCt`, `SEM_ddCt`, `Fold_Change_2^-ddCt`, `Pfaffl_Eff_Corrected_FC`, `Replicate_Mean_FC`, `SEM_FC`, `FC_95CI_Lower`, `FC_95CI_Upper`, `Log2_Fold_Change`, `Percent_Change (%)`, `Regulation_Direction`.\n"
+        "  3. **Hypothesis Testing & Multiple Testing Correction:** `Welch_t_Statistic`, `Degrees_of_Freedom`, `Two_Tailed_P_Value`, `BH_Adjusted_FDR`, `Omnibus_ANOVA_F`, `Omnibus_ANOVA_P`, `Significance_Stars` (`*`, `**`, `***`).\n"
+        "  4. **MIQE Housekeeping Audit & Matrix Outputs:** `InterGroup_HK_Ct_Drift`, `HK_CV_Percent`, `MIQE_QC_Flag`, plus a wide **Sample × Gene Fold-Change Matrix** ready for GraphPad Prism or R.\n"
+        "* 💻 **Cross-Platform File Compatibility (Windows & Apple macOS):** All exported `.csv` tables use universal `UTF-8-BOM` encoding—double-click to open directly in **Microsoft Excel (Windows/Mac)**, Apple Numbers, Google Sheets, or load into R / Python. Vector figure (`.svg` / `.html`) outputs open natively in any web browser or Adobe Illustrator.\n"
+        "* **Single-Mode License Note:** Each checkout unlocks your selected **Normalization Mode** (`Standard Livak 2^-ddCt`, `Pfaffl Efficiency-Corrected`, `Multi-Housekeeping Geometric Mean`, or `Custom`). Adjusting statistical cutoffs or plot parameters within your unlocked mode is free; switching the Normalization Mode starts a new run."
+    )
+
+# ==========================================
+# UPLOAD BOX, DEMO CHECKBOX & PASTE TEXTAREA
+# ==========================================
+up_col, demo_col = st.columns([2.3, 1])
+with up_col:
+    uploaded_file = st.file_uploader(
+        "Drop your qPCR Ct Table (.csv, .tsv, .txt, .xlsx)",
+        type=["csv", "tsv", "txt", "xlsx"],
+        key="up_qpcr_file_t2"
+    )
+with demo_col:
+    st.markdown("<div style='height:28px;'></div>", unsafe_allow_html=True)
+    use_demo_t2 = st.checkbox("🧪 Load Demo Multi-Gene qPCR Dataset", value=(uploaded_file is None), key="chk_demo_t2")
+
+st.caption("⚡ **Performance Note:** Optimized for high-throughput 96-well and 384-well qPCR plates: supports up to 50,000 wells with automatic technical replicate pooling.")
+
+pasted_text = st.text_area(
+    "Or paste CSV / Tab-Separated qPCR Ct rows directly (optional):",
+    placeholder="Sample,Group,Gene,Ct\nCtrl_Rep1,Vehicle_Control,GAPDH,18.21\nCtrl_Rep1,Vehicle_Control,BRCA1,24.52\n...",
+    height=88,
+    key="paste_qpcr_t2"
+)
+
+# ==========================================
+# 3-COLUMN CUSTOM FIXING CONDITIONS & THERMODYNAMIC/STATISTICAL OPTIMUMS
+# ==========================================
+st.markdown("### ⚙️ Custom Fixing Conditions & Normalization Optimums")
+
+app_mode = st.selectbox(
+    "Application Mode Preset (Switching application mode starts a new pipeline run):",
+    [
+        "Standard Livak 2^-ΔΔCt Method (100% Amplification Efficiency • Single/Multi-HK)",
+        "Pfaffl Efficiency-Corrected Relative Quantification (Custom Primer Efficiency %)",
+        "MIQE Strict Multi-Housekeeping Geometric Normalization (High-Precision Clinical qPCR)",
+        "Custom Exploratory RT-qPCR Expression Profiling"
+    ],
+    key="mode_preset_t2"
+)
+
+if st.session_state["last_mode_t2"] is not None and st.session_state["last_mode_t2"] != app_mode:
+    st.session_state["is_unlocked_t2"] = False
+    for k in ["sum_df_t2", "rep_df_t2", "hk_qc_df_t2", "wide_fc_df_t2"]:
+        st.session_state.pop(k, None)
+st.session_state["last_mode_t2"] = app_mode
+
+# Build or parse active input dataset so column selectors stay synced
+def generate_demo_qpcr_df():
+    np.random.seed(42)
+    groups = ["Vehicle_Control", "Cisplatin_10uM", "Olaparib_25uM", "Combo_Therapy"]
+    genes = ["GAPDH", "ACTB", "BRCA1", "TP53", "BAX", "BCL2", "CDKN1A", "VEGFA"]
+    base_ct = {
+        "GAPDH": 18.20, "ACTB": 18.55,
+        "BRCA1": 24.60, "TP53": 23.90, "BAX": 25.30,
+        "BCL2": 22.80, "CDKN1A": 24.90, "VEGFA": 23.15
+    }
+    shifts = {
+        "Vehicle_Control": {"GAPDH": 0.00, "ACTB": 0.00, "BRCA1": 0.00, "TP53": 0.00, "BAX": 0.00, "BCL2": 0.00, "CDKN1A": 0.00, "VEGFA": 0.00},
+        "Cisplatin_10uM":  {"GAPDH": 0.03, "ACTB": -0.02, "BRCA1": 1.25, "TP53": -1.55, "BAX": -1.90, "BCL2": 1.35, "CDKN1A": -2.15, "VEGFA": 0.90},
+        "Olaparib_25uM":   {"GAPDH": -0.02, "ACTB": 0.04, "BRCA1": 2.05, "TP53": -1.05, "BAX": -1.30, "BCL2": 0.95, "CDKN1A": -1.45, "VEGFA": 1.45},
+        "Combo_Therapy":   {"GAPDH": 0.02, "ACTB": 0.01, "BRCA1": 2.75, "TP53": -2.45, "BAX": -3.15, "BCL2": 2.50, "CDKN1A": -3.30, "VEGFA": 2.25}
+    }
+    rows = []
+    for grp in groups:
+        for rep in range(1, 5):  # 4 biological replicates
+            samp_id = f"{grp[:4].upper()}_BioRep{rep}"
+            for g in genes:
+                # 2 technical replicates per biological replicate
+                for tech in [1, 2]:
+                    ct_val = base_ct[g] + shifts[grp][g] + np.random.normal(0, 0.14)
+                    rows.append({
+                        "Sample_ID": samp_id,
+                        "Group": grp,
+                        "Gene": g,
+                        "Tech_Rep": tech,
+                        "Ct": round(float(ct_val), 3)
+                    })
+    return pd.DataFrame(rows)
+
+active_df = None
+if uploaded_file is not None:
+    try:
+        if uploaded_file.name.endswith(".xlsx"):
+            active_df = pd.read_excel(uploaded_file)
+        elif uploaded_file.name.endswith(".tsv") or uploaded_file.name.endswith(".txt"):
+            active_df = pd.read_csv(uploaded_file, sep=None, engine="python")
+        else:
+            active_df = pd.read_csv(uploaded_file)
+    except Exception as e:
+        st.error(f"⚠️ Error reading uploaded file: {e}")
+elif pasted_text.strip():
+    try:
+        active_df = pd.read_csv(io.StringIO(pasted_text.strip()), sep=None, engine="python")
+    except Exception as e:
+        st.error(f"⚠️ Error parsing pasted text: {e}")
+elif use_demo_t2:
+    active_df = generate_demo_qpcr_df()
+
+c_left, c_mid, c_right = st.columns(3)
+
+if active_df is not None and len(active_df.columns) >= 3:
+    cols = list(active_df.columns)
+    def_samp = next((c for c in cols if any(k in c.lower() for k in ["sample", "id", "biorep", "subject"])), cols[0])
+    def_grp = next((c for c in cols if any(k in c.lower() for k in ["group", "cond", "treat", "cohort", "arm"])), cols[1 if len(cols) > 1 else 0])
+    def_gene = next((c for c in cols if any(k in c.lower() for k in ["gene", "target", "marker", "primer", "assay"])), cols[2 if len(cols) > 2 else 0])
+    def_ct = next((c for c in cols if any(k in c.lower() for k in ["ct", "cq", "cp", "cycle"])), cols[-1])
+else:
+    cols = ["Sample_ID", "Group", "Gene", "Ct"]
+    def_samp, def_grp, def_gene, def_ct = "Sample_ID", "Group", "Gene", "Ct"
+
+with c_left:
+    st.markdown("**1. Column Mapping & Calibrator Setup**")
+    col_sample = st.selectbox("Biological Sample / Replicate Column:", cols, index=cols.index(def_samp), key="map_s_t2")
+    col_group = st.selectbox("Experimental Group / Condition Column:", cols, index=cols.index(def_grp), key="map_g_t2")
+    col_gene = st.selectbox("Target / Reference Gene Column:", cols, index=cols.index(def_gene), key="map_gn_t2")
+    col_ct = st.selectbox("Cycle Threshold (Ct / Cq) Column:", cols, index=cols.index(def_ct), key="map_ct_t2")
+
+if active_df is not None and all(c in active_df.columns for c in [col_sample, col_group, col_gene, col_ct]):
+    detected_genes = sorted(active_df[col_gene].dropna().astype(str).unique().tolist())
+    detected_groups = list(dict.fromkeys(active_df[col_group].dropna().astype(str).tolist()))
+else:
+    detected_genes = ["GAPDH", "ACTB", "BRCA1", "TP53", "BAX", "BCL2"]
+    detected_groups = ["Vehicle_Control", "Cisplatin_10uM"]
+
+with c_mid:
+    st.markdown("**2. Reference Normalization & Efficiency ($E$)**")
+    default_hks = [g for g in detected_genes if g.upper() in ["GAPDH", "ACTB", "B2M", "18S", "HPRT1", "RPL13A", "U6", "TBP"]]
+    if not default_hks and detected_genes:
+        default_hks = [detected_genes[0]]
+    default_hk_sel = default_hks[:2] if "Multi-Housekeeping" in app_mode else default_hks[:1]
+
+    hk_genes = st.multiselect(
+        "Housekeeping / Endogenous Reference Gene(s):",
+        options=detected_genes,
+        default=default_hk_sel,
+        key="sel_hk_t2"
+    )
+    def_ctrl_i = next((i for i, g in enumerate(detected_groups) if any(k in g.lower() for k in ["control", "ctrl", "vehicle", "wt", "untreated", "normal"])), 0)
+    ctrl_group = st.selectbox(
+        "Calibrator Control Group (Fold Change = 1.0):",
+        options=detected_groups,
+        index=def_ctrl_i,
+        key="sel_ctrl_t2"
+    )
+    ct_range = st.slider("Valid Ct / Cq Detection Window (Cycles):", min_value=5.0, max_value=45.0, value=(8.0, 38.0), step=0.5, key="ct_win_t2")
+    default_eff = 96.5 if "Pfaffl" in app_mode else 100.0
+    amp_eff = st.number_input("Primer Amplification Efficiency (%):", min_value=70.0, max_value=120.0, value=default_eff, step=0.5, key="eff_num_t2")
+
+with c_right:
+    st.markdown("**3. Statistical & MIQE Fixing Conditions**")
+    pool_tech_reps = st.checkbox("Auto-Pool Technical Replicates per Biological Sample", value=True, key="chk_pool_t2")
+    enforce_miqe_drift = st.checkbox("Flag Housekeeping Drift (>0.5 Ct inter-group shift)", value=True, key="chk_miqe_t2")
+    apply_bh_fdr = st.checkbox("Compute Benjamini-Hochberg FDR Adjusted P-Values", value=True, key="chk_fdr_t2")
+    p_cutoff = st.selectbox("Primary P-Value Significance Threshold (α):", [0.05, 0.01, 0.001, 0.10], index=0, key="p_cut_t2")
+    fc_cutoff = st.number_input("Biological Fold-Change Highlight Cutoff (|Log2FC| ≥):", min_value=0.0, max_value=5.0, value=0.58, step=0.1, help="0.58 corresponds to a 1.5-fold change; 1.0 corresponds to a 2.0-fold change.", key="fc_cut_t2")
+
+st.markdown("<div style='height:8px;'></div>", unsafe_allow_html=True)
+run_clicked = st.button("🚀 Run Automated qPCR 2^-ΔΔCt Analysis", type="primary", key="btn_run_qpcr_t2")
+
+# ==========================================
+# CORE COMPUTATION ENGINE (AUTO-RUNS WHEN DEMO IS CHECKED OR BUTTON CLICKED)
+# ==========================================
+if (run_clicked or (use_demo_t2 and "sum_df_t2" not in st.session_state)) and active_df is not None:
+    if not hk_genes:
+        st.error("⚠️ Please select at least one Housekeeping / Reference gene in Column 2.")
+    else:
+        raw_sub = active_df[[col_sample, col_group, col_gene, col_ct]].copy()
+        raw_sub.columns = ["Sample_ID", "Group", "Gene", "Ct"]
+        raw_sub["Ct"] = pd.to_numeric(raw_sub["Ct"], errors="coerce")
+        raw_sub = raw_sub.dropna(subset=["Sample_ID", "Group", "Gene", "Ct"])
+        raw_sub = raw_sub[(raw_sub["Ct"] >= ct_range[0]) & (raw_sub["Ct"] <= ct_range[1])]
+
+        total_wells_in = len(raw_sub)
+
+        # Count technical replicates before pooling
+        tech_counts = raw_sub.groupby(["Sample_ID", "Group", "Gene"], as_index=False)["Ct"].count().rename(columns={"Ct": "Tech_Reps"})
+        if pool_tech_reps:
+            bio_df = raw_sub.groupby(["Sample_ID", "Group", "Gene"], as_index=False)["Ct"].mean()
+            bio_df = pd.merge(bio_df, tech_counts, on=["Sample_ID", "Group", "Gene"], how="left")
+        else:
+            bio_df = raw_sub.copy()
+            bio_df["Tech_Reps"] = 1
+
+        # Compute Reference Housekeeping Ct per Biological Sample (Arithmetic/Geometric Ct mean across selected HK genes)
+        hk_subset = bio_df[bio_df["Gene"].isin(hk_genes)]
+        hk_sample_map = hk_subset.groupby(["Sample_ID", "Group"], as_index=False)["Ct"].mean().rename(columns={"Ct": "Mean_HK_Ct"})
+
+        merged_df = pd.merge(bio_df, hk_sample_map, on=["Sample_ID", "Group"], how="inner")
+        target_df = merged_df[~merged_df["Gene"].isin(hk_genes)].copy()
+        if target_df.empty:
+            target_df = merged_df.copy()
+
+        # ΔCt = Ct(target) - Ct(housekeeping)
+        target_df["dCt"] = target_df["Ct"] - target_df["Mean_HK_Ct"]
+
+        # Calibrator mean ΔCt in Control Group
+        ctrl_dcts = target_df[target_df["Group"] == ctrl_group].groupby("Gene", as_index=False)["dCt"].mean().rename(columns={"dCt": "Calibrator_dCt"})
+        target_df = pd.merge(target_df, ctrl_dcts, on="Gene", how="left")
+
+        # ΔΔCt = ΔCt(sample) - Mean_ΔCt(calibrator)
+        target_df["ddCt"] = target_df["dCt"] - target_df["Calibrator_dCt"]
+
+        eff_base = 1.0 + (amp_eff / 100.0)
+        target_df["Fold_Change_2^-ddCt"] = np.power(2.0, -target_df["ddCt"])
+        target_df["Pfaffl_Eff_Corrected_FC"] = np.power(eff_base, -target_df["ddCt"])
+        target_df["Log2_Fold_Change"] = -target_df["ddCt"] * np.log2(eff_base)
+
+        # Housekeeping Stability Metrics per HK gene
+        hk_qc_rows = []
+        max_global_hk_drift = 0.0
+        for hk in hk_genes:
+            hk_g = bio_df[bio_df["Gene"] == hk]
+            if hk_g.empty:
+                continue
+            m_ct = float(hk_g["Ct"].mean())
+            sd_ct = float(hk_g["Ct"].std(ddof=1)) if len(hk_g) > 1 else 0.0
+            cv_pct = (sd_ct / m_ct * 100.0) if m_ct > 0 else 0.0
+            grp_means = hk_g.groupby("Group")["Ct"].mean()
+            drift = float(grp_means.max() - grp_means.min()) if len(grp_means) > 1 else 0.0
+            max_global_hk_drift = max(max_global_hk_drift, drift)
+            hk_qc_rows.append({
+                "Housekeeping_Gene": hk,
+                "Biological_Samples": len(hk_g),
+                "Mean_Ct": round(m_ct, 3),
+                "SD_Ct": round(sd_ct, 3),
+                "CV_Percent (%)": round(cv_pct, 2),
+                "InterGroup_Ct_Drift (cycles)": round(drift, 3),
+                "MIQE_Stability_Flag": "PASS (Stable <0.5 Ct)" if drift <= 0.5 else "WARNING (Drift >0.5 Ct)"
+            })
+        hk_qc_df = pd.DataFrame(hk_qc_rows)
+
+        # Group-Level Master Summary Table with Complete Columns
+        target_genes_sorted = sorted(target_df["Gene"].unique().tolist())
+        groups_ordered = [ctrl_group] + [g for g in detected_groups if g != ctrl_group and g in target_df["Group"].unique()]
+
+        summary_rows = []
+        for g in target_genes_sorted:
+            g_sub = target_df[target_df["Gene"] == g]
+            ctrl_dct_vals = g_sub[g_sub["Group"] == ctrl_group]["dCt"].dropna().values
+            cal_dct_val = float(np.mean(ctrl_dct_vals)) if len(ctrl_dct_vals) > 0 else 0.0
+
+            # Omnibus One-Way ANOVA across groups
+            grp_arrays = [g_sub[g_sub["Group"] == grp]["dCt"].dropna().values for grp in groups_ordered if len(g_sub[g_sub["Group"] == grp]) >= 2]
+            if len(grp_arrays) >= 2:
+                f_val, anova_p = sp_stats.f_oneway(*grp_arrays)
+                f_val = float(f_val) if not np.isnan(f_val) else 0.0
+                anova_p = float(anova_p) if not np.isnan(anova_p) else 1.0
+            else:
+                f_val, anova_p = 0.0, 1.0
+
+            for grp in groups_ordered:
+                sub = g_sub[g_sub["Group"] == grp]
+                if sub.empty:
+                    continue
+                n_bio = len(sub)
+                tech_pooled = int(sub["Tech_Reps"].sum())
+                m_t_ct = float(sub["Ct"].mean())
+                sd_t_ct = float(sub["Ct"].std(ddof=1)) if n_bio > 1 else 0.0
+                m_hk_ct = float(sub["Mean_HK_Ct"].mean())
+
+                m_dct = float(sub["dCt"].mean())
+                sd_dct = float(sub["dCt"].std(ddof=1)) if n_bio > 1 else 0.0
+                sem_dct = sd_dct / np.sqrt(n_bio) if n_bio > 1 else 0.0
+
+                m_ddct = float(sub["ddCt"].mean())
+                ctrl_sem = (float(np.std(ctrl_dct_vals, ddof=1)) / np.sqrt(len(ctrl_dct_vals))) if len(ctrl_dct_vals) > 1 else 0.0
+                sem_ddct = float(np.sqrt(sem_dct**2 + ctrl_sem**2))
+
+                fc_livak = float(np.power(2.0, -m_ddct))
+                fc_pfaffl = float(np.power(eff_base, -m_ddct))
+                rep_mean_fc = float(sub["Pfaffl_Eff_Corrected_FC"].mean())
+                sem_fc = float(sub["Pfaffl_Eff_Corrected_FC"].std(ddof=1) / np.sqrt(n_bio)) if n_bio > 1 else 0.0
+
+                t_crit = float(sp_stats.t.ppf(0.975, df=max(1, n_bio - 1))) if n_bio > 1 else 1.96
+                fc_ci_low = float(np.power(eff_base, -(m_ddct + t_crit * sem_ddct)))
+                fc_ci_high = float(np.power(eff_base, -(m_ddct - t_crit * sem_ddct)))
+
+                l2_fc = float(-m_ddct * np.log2(eff_base))
+                pct_change = (fc_pfaffl - 1.0) * 100.0
+
+                if grp == ctrl_group or len(ctrl_dct_vals) < 2 or n_bio < 2:
+                    t_stat, df_w, p_val = 0.0, float(max(1, n_bio - 1)), 1.0
+                else:
+                    x1 = sub["dCt"].values
+                    x2 = ctrl_dct_vals
+                    t_res = sp_stats.ttest_ind(x1, x2, equal_var=False)
+                    t_stat = float(-t_res.statistic) if not np.isnan(t_res.statistic) else 0.0  # Inverted sign so upregulation = positive t
+                    p_val = float(t_res.pvalue) if not np.isnan(t_res.pvalue) else 1.0
+                    v1, v2 = np.var(x1, ddof=1)/len(x1), np.var(x2, ddof=1)/len(x2)
+                    df_w = float((v1 + v2)**2 / ((v1**2)/(len(x1)-1) + (v2**2)/(len(x2)-1))) if (v1 + v2) > 0 else float(len(x1)+len(x2)-2)
+
+                if grp == ctrl_group:
+                    reg_dir = "Calibrator (1.0x)"
+                elif p_val < p_cutoff and l2_fc >= fc_cutoff:
+                    reg_dir = "Up-Regulated"
+                elif p_val < p_cutoff and l2_fc <= -fc_cutoff:
+                    reg_dir = "Down-Regulated"
+                else:
+                    reg_dir = "Unchanged (ns)"
+
+                miqe_flag = "PASS" if (not enforce_miqe_drift or max_global_hk_drift <= 0.5) else "HK_DRIFT_WARN"
+
+                summary_rows.append({
+                    "Gene": g,
+                    "Group": grp,
+                    "N_Biological_Replicates": n_bio,
+                    "Technical_Reps_Pooled": tech_pooled,
+                    "Mean_Target_Ct": round(m_t_ct, 3),
+                    "SD_Target_Ct": round(sd_t_ct, 3),
+                    "Mean_HK_Ct": round(m_hk_ct, 3),
+                    "Mean_dCt": round(m_dct, 3),
+                    "SD_dCt": round(sd_dct, 3),
+                    "SEM_dCt": round(sem_dct, 3),
+                    "Calibrator_dCt": round(cal_dct_val, 3),
+                    "Mean_ddCt": round(m_ddct, 3),
+                    "SEM_ddCt": round(sem_ddct, 3),
+                    "Fold_Change_2^-ddCt": round(fc_livak, 3),
+                    "Pfaffl_Eff_Corrected_FC": round(fc_pfaffl, 3),
+                    "Replicate_Mean_FC": round(rep_mean_fc, 3),
+                    "SEM_FC": round(sem_fc, 3),
+                    "FC_95CI_Lower": round(fc_ci_low, 3),
+                    "FC_95CI_Upper": round(fc_ci_high, 3),
+                    "Log2_Fold_Change": round(l2_fc, 3),
+                    "Percent_Change (%)": round(pct_change, 1),
+                    "Regulation_Direction": reg_dir,
+                    "Welch_t_Statistic": round(t_stat, 3),
+                    "Degrees_of_Freedom": round(df_w, 2),
+                    "Two_Tailed_P_Value": p_val,
+                    "Omnibus_ANOVA_F": round(f_val, 3),
+                    "Omnibus_ANOVA_P": anova_p,
+                    "MIQE_QC_Flag": miqe_flag
+                })
+
+        sum_df = pd.DataFrame(summary_rows)
+
+        # Benjamini-Hochberg FDR
+        non_ctrl_mask = sum_df["Group"] != ctrl_group
+        p_arr = sum_df.loc[non_ctrl_mask, "Two_Tailed_P_Value"].values
+        if apply_bh_fdr and len(p_arr) > 0:
+            order = np.argsort(p_arr)
+            ranks = np.empty_like(order)
+            ranks[order] = np.arange(1, len(p_arr) + 1)
+            fdr_raw = np.minimum(1.0, p_arr * len(p_arr) / ranks)
+            fdr_sorted = fdr_raw[order]
+            for i in range(len(fdr_sorted) - 2, -1, -1):
+                fdr_sorted[i] = min(fdr_sorted[i], fdr_sorted[i + 1])
+            fdr_out = np.empty_like(fdr_sorted)
+            fdr_out[order] = fdr_sorted
+            sum_df.loc[non_ctrl_mask, "BH_Adjusted_FDR"] = np.round(fdr_out, 5)
+        else:
+            sum_df["BH_Adjusted_FDR"] = sum_df["Two_Tailed_P_Value"]
+        sum_df["BH_Adjusted_FDR"] = sum_df["BH_Adjusted_FDR"].fillna(1.0)
+
+        def assign_stars(r):
+            if r["Group"] == ctrl_group:
+                return "Ref (1.0x)"
+            pv = r["Two_Tailed_P_Value"]
+            if pv < 0.001:
+                return "***"
+            elif pv < 0.01:
+                return "**"
+            elif pv < 0.05:
+                return "*"
+            return "ns"
+
+        sum_df["Significance_Stars"] = sum_df.apply(assign_stars, axis=1)
+        sum_df["Two_Tailed_P_Value"] = sum_df["Two_Tailed_P_Value"].apply(lambda x: float(f"{x:.5f}"))
+        sum_df["Omnibus_ANOVA_P"] = sum_df["Omnibus_ANOVA_P"].apply(lambda x: float(f"{x:.5f}"))
+
+        # Wide Matrix
+        wide_fc_df = target_df.pivot_table(index=["Sample_ID", "Group"], columns="Gene", values="Pfaffl_Eff_Corrected_FC").reset_index().round(3)
+
+        # ==========================================
+        # GENERATE 4 VECTOR SVG PUBLICATION FIGURES
+        # ==========================================
+        palette = ["#38bdf8", "#f43f5e", "#10b981", "#f59e0b", "#a855f7", "#06b6d4"]
+        w1, h1 = 620, 360
+        pad_l, pad_r, pad_t, pad_b = 62, 24, 52, 72
+        plot_w, plot_h = w1 - pad_l - pad_r, h1 - pad_t - pad_b
+        max_fc = max(2.5, float((sum_df["Replicate_Mean_FC"] + sum_df["SEM_FC"]).max() * 1.22))
+
+        # SVG 1: Grouped Barplot
+        svg1 = [
+            f'<svg viewBox="0 0 {w1} {h1}" width="100%" xmlns="http://www.w3.org/2000/svg" style="background:#090d16; border:1px solid #1e293b; border-radius:12px; font-family:Inter,sans-serif;">',
+            f'<text x="18" y="26" fill="#f8fafc" font-size="13" font-weight="800">Fig 1A. Relative mRNA Expression (2^-ΔΔCt Fold Change ± SEM)</text>',
+            f'<text x="18" y="42" fill="#94a3b8" font-size="10">Ref: {", ".join(hk_genes)} | Calibrator: {ctrl_group} (1.0x) | * p&lt;0.05, ** p&lt;0.01, *** p&lt;0.001</text>'
+        ]
+        for tick in np.linspace(0, max_fc, 5):
+            y_pos = pad_t + plot_h - (tick / max_fc) * plot_h
+            svg1.append(f'<line x1="{pad_l}" y1="{y_pos:.1f}" x2="{w1-pad_r}" y2="{y_pos:.1f}" stroke="#1e293b" stroke-width="1"/>')
+            svg1.append(f'<text x="{pad_l-8}" y="{y_pos+3:.1f}" fill="#94a3b8" font-size="9.5" text-anchor="end">{tick:.1f}x</text>')
+        if max_fc >= 1.0:
+            y_one = pad_t + plot_h - (1.0 / max_fc) * plot_h
+            svg1.append(f'<line x1="{pad_l}" y1="{y_one:.1f}" x2="{w1-pad_r}" y2="{y_one:.1f}" stroke="#64748b" stroke-dasharray="4,3" stroke-width="1.2"/>')
+
+        n_genes = max(1, len(target_genes_sorted))
+        n_grps = max(1, len(groups_ordered))
+        cluster_w = plot_w / n_genes
+        bar_w = min(22.0, (cluster_w * 0.76) / n_grps)
+
+        for gi, g in enumerate(target_genes_sorted):
+            cx = pad_l + gi * cluster_w + cluster_w / 2.0
+            start_x = cx - (n_grps * bar_w) / 2.0
+            for ki, grp in enumerate(groups_ordered):
+                row_m = sum_df[(sum_df["Gene"] == g) & (sum_df["Group"] == grp)]
+                if row_m.empty:
+                    continue
+                fc_v = float(row_m["Replicate_Mean_FC"].iloc[0])
+                sem_v = float(row_m["SEM_FC"].iloc[0])
+                star_v = str(row_m["Significance_Stars"].iloc[0])
+                color = palette[ki % len(palette)]
+
+                bx = start_x + ki * bar_w
+                bh = max(2.0, (fc_v / max_fc) * plot_h)
+                by = pad_t + plot_h - bh
+                svg1.append(f'<rect x="{bx:.1f}" y="{by:.1f}" width="{bar_w-2:.1f}" height="{bh:.1f}" fill="{color}" rx="2"/>')
+
+                top_err = min(max_fc, fc_v + sem_v)
+                ey = pad_t + plot_h - (top_err / max_fc) * plot_h
+                mid_x = bx + (bar_w - 2) / 2.0
+                svg1.append(f'<line x1="{mid_x:.1f}" y1="{by:.1f}" x2="{mid_x:.1f}" y2="{ey:.1f}" stroke="#e2e8f0" stroke-width="1.2"/>')
+                svg1.append(f'<line x1="{mid_x-3:.1f}" y1="{ey:.1f}" x2="{mid_x+3:.1f}" y2="{ey:.1f}" stroke="#e2e8f0" stroke-width="1.2"/>')
+
+                if star_v in ["*", "**", "***"]:
+                    svg1.append(f'<text x="{mid_x:.1f}" y="{ey-3:.1f}" fill="#fde047" font-size="9.5" font-weight="800" text-anchor="middle">{star_v}</text>')
+            svg1.append(f'<text x="{cx:.1f}" y="{pad_t+plot_h+18}" fill="#e2e8f0" font-size="10.5" font-weight="700" text-anchor="middle">{g}</text>')
+
+        leg_x = pad_l
+        for ki, grp in enumerate(groups_ordered):
+            color = palette[ki % len(palette)]
+            svg1.append(f'<rect x="{leg_x}" y="{h1-22}" width="10" height="10" fill="{color}" rx="2"/>')
+            svg1.append(f'<text x="{leg_x+14}" y="{h1-13}" fill="#cbd5e1" font-size="9.5">{grp[:18]}</text>')
+            leg_x += 130
+        svg1.append('</svg>')
+        svg_bar_str = "".join(svg1)
+
+        # SVG 2: Log2 Fold-Change Diverging Plot
+        w2, h2 = 620, 360
+        svg2 = [
+            f'<svg viewBox="0 0 {w2} {h2}" width="100%" xmlns="http://www.w3.org/2000/svg" style="background:#090d16; border:1px solid #1e293b; border-radius:12px; font-family:Inter,sans-serif;">',
+            f'<text x="18" y="26" fill="#f8fafc" font-size="13" font-weight="800">Fig 1B. Log2 Fold-Change (-ΔΔCt) Diverging Expression Profile</text>',
+            f'<text x="18" y="42" fill="#94a3b8" font-size="10">Upregulated (Log2FC &gt; 0, Emerald) vs. Downregulated (Log2FC &lt; 0, Rose) vs. {ctrl_group}</text>'
+        ]
+        non_ctrl_df = sum_df[sum_df["Group"] != ctrl_group].copy()
+        if non_ctrl_df.empty:
+            non_ctrl_df = sum_df.copy()
+        non_ctrl_df["Label"] = non_ctrl_df["Gene"] + " (" + non_ctrl_df["Group"].str[:10] + ")"
+        plot_sub = non_ctrl_df.iloc[:12].copy()
+        max_abs_l2 = max(2.0, float(plot_sub["Log2_Fold_Change"].abs().max() * 1.25))
+        zero_x = pad_l + 60 + (w2 - pad_l - 60 - pad_r) / 2.0
+        half_span = (w2 - pad_l - 60 - pad_r) / 2.0
+
+        svg2.append(f'<line x1="{zero_x:.1f}" y1="{pad_t}" x2="{zero_x:.1f}" y2="{h2-40}" stroke="#94a3b8" stroke-width="1.3" stroke-dasharray="3,3"/>')
+        for tick in [-max_abs_l2, -max_abs_l2/2, 0, max_abs_l2/2, max_abs_l2]:
+            tx = zero_x + (tick / max_abs_l2) * half_span
+            svg2.append(f'<text x="{tx:.1f}" y="{h2-18}" fill="#94a3b8" font-size="9.5" text-anchor="middle">{tick:+.1f}</text>')
+
+        n_items = max(1, len(plot_sub))
+        row_h = (h2 - pad_t - 45) / n_items
+        for idx_r, (_, r) in enumerate(plot_sub.iterrows()):
+            ry = pad_t + idx_r * row_h + row_h / 2.0
+            l2v = float(r["Log2_Fold_Change"])
+            px = zero_x + (l2v / max_abs_l2) * half_span
+            col_c = "#10b981" if l2v >= 0 else "#f43f5e"
+            svg2.append(f'<text x="{pad_l+52}" y="{ry+3.5:.1f}" fill="#cbd5e1" font-size="9.5" text-anchor="end">{r["Label"]}</text>')
+            svg2.append(f'<line x1="{zero_x:.1f}" y1="{ry:.1f}" x2="{px:.1f}" y2="{ry:.1f}" stroke="{col_c}" stroke-width="3.5" stroke-linecap="round"/>')
+            svg2.append(f'<circle cx="{px:.1f}" cy="{ry:.1f}" r="5" fill="{col_c}" stroke="#090d16" stroke-width="1.2"/>')
+            svg2.append(f'<text x="{px + (12 if l2v >= 0 else -12):.1f}" y="{ry+3:.1f}" fill="#e2e8f0" font-size="8.5" text-anchor="{"start" if l2v >= 0 else "end"}">{l2v:+.2f}</text>')
+        svg2.append('</svg>')
+        svg_l2_str = "".join(svg2)
+
+        # SVG 3: Sample x Gene Z-Score Heatmap
+        w3, h3 = 620, 360
+        svg3 = [
+            f'<svg viewBox="0 0 {w3} {h3}" width="100%" xmlns="http://www.w3.org/2000/svg" style="background:#090d16; border:1px solid #1e293b; border-radius:12px; font-family:Inter,sans-serif;">',
+            f'<text x="18" y="26" fill="#f8fafc" font-size="13" font-weight="800">Fig 1C. Multi-Gene qPCR Expression Matrix (Row Z-Score of -ΔCt)</text>',
+            f'<text x="18" y="42" fill="#94a3b8" font-size="10">Sample-by-gene relative transcript abundance across biological replicates</text>'
+        ]
+        piv = target_df.pivot_table(index="Gene", columns="Sample_ID", values="Log2_Fold_Change", aggfunc="mean").fillna(0.0)
+        samps_list = list(piv.columns)[:16]
+        genes_hm = list(piv.index)[:10]
+        hm_l, hm_t, hm_w, hm_h = 80, 56, w3 - 104, h3 - 110
+        cw = hm_w / max(1, len(samps_list))
+        ch = hm_h / max(1, len(genes_hm))
+
+        for r_i, g_name in enumerate(genes_hm):
+            row_vals = piv.loc[g_name, samps_list].values.astype(float)
+            r_std = np.std(row_vals) if np.std(row_vals) > 1e-6 else 1.0
+            z_vals = (row_vals - np.mean(row_vals)) / r_std
+            ry = hm_t + r_i * ch
+            svg3.append(f'<text x="{hm_l-8}" y="{ry + ch/2 + 3.5:.1f}" fill="#e2e8f0" font-size="9.5" font-weight="700" text-anchor="end">{g_name}</text>')
+            for c_i, s_name in enumerate(samps_list):
+                zv = float(np.clip(z_vals[c_i], -2.0, 2.0))
+                cell_col = f"rgba(244, 63, 94, {0.2 + 0.75*(zv/2.0):.2f})" if zv >= 0 else f"rgba(56, 189, 248, {0.2 + 0.75*(abs(zv)/2.0):.2f})"
+                cx_pos = hm_l + c_i * cw
+                svg3.append(f'<rect x="{cx_pos:.1f}" y="{ry:.1f}" width="{cw-1.5:.1f}" height="{ch-1.5:.1f}" fill="{cell_col}" rx="2"/>')
+                svg3.append(f'<text x="{cx_pos + cw/2:.1f}" y="{ry + ch/2 + 3:.1f}" fill="#f8fafc" font-size="8" text-anchor="middle">{row_vals[c_i]:+.1f}</text>')
+
+        for c_i, s_name in enumerate(samps_list):
+            cx_pos = hm_l + c_i * cw + cw / 2.0
+            svg3.append(f'<text x="{cx_pos:.1f}" y="{hm_t + hm_h + 14:.1f}" fill="#94a3b8" font-size="8.5" transform="rotate(30 {cx_pos:.1f} {hm_t + hm_h + 14:.1f})" text-anchor="start">{s_name[:10]}</text>')
+        svg3.append('</svg>')
+        svg_hm_str = "".join(svg3)
+
+        # SVG 4: Housekeeping Stability & Raw Ct Profile
+        w4, h4 = 620, 360
+        svg4 = [
+            f'<svg viewBox="0 0 {w4} {h4}" width="100%" xmlns="http://www.w3.org/2000/svg" style="background:#090d16; border:1px solid #1e293b; border-radius:12px; font-family:Inter,sans-serif;">',
+            f'<text x="18" y="26" fill="#f8fafc" font-size="13" font-weight="800">Fig 1D. MIQE Housekeeping Gene Stability &amp; Raw Ct Distribution</text>',
+            f'<text x="18" y="42" fill="#94a3b8" font-size="10">Cycle threshold invariance check across experimental groups (Ideal drift &lt; 0.5 Ct)</text>'
+        ]
+        min_ct_p, max_ct_p = 12.0, 36.0
+        for tick in [15, 20, 25, 30, 35]:
+            y_pos = pad_t + plot_h - ((tick - min_ct_p) / (max_ct_p - min_ct_p)) * plot_h
+            svg4.append(f'<line x1="{pad_l}" y1="{y_pos:.1f}" x2="{w4-pad_r}" y2="{y_pos:.1f}" stroke="#1e293b" stroke-width="1"/>')
+            svg4.append(f'<text x="{pad_l-8}" y="{y_pos+3:.1f}" fill="#94a3b8" font-size="9.5" text-anchor="end">Ct {tick}</text>')
+
+        all_genes_plot = (hk_genes + [g for g in target_genes_sorted if g not in hk_genes])[:8]
+        g_step = plot_w / max(1, len(all_genes_plot))
+        for gi, g in enumerate(all_genes_plot):
+            gx = pad_l + gi * g_step + g_step / 2.0
+            g_pts = bio_df[bio_df["Gene"] == g]["Ct"].values
+            if len(g_pts) == 0:
+                continue
+            m_v, sd_v = float(np.mean(g_pts)), float(np.std(g_pts))
+            my = pad_t + plot_h - ((m_v - min_ct_p) / (max_ct_p - min_ct_p)) * plot_h
+            y_top = pad_t + plot_h - ((min(max_ct_p, m_v + sd_v) - min_ct_p) / (max_ct_p - min_ct_p)) * plot_h
+            y_bot = pad_t + plot_h - ((max(min_ct_p, m_v - sd_v) - min_ct_p) / (max_ct_p - min_ct_p)) * plot_h
+            is_hk_flag = g in hk_genes
+            col_pt = "#34d399" if is_hk_flag else "#38bdf8"
+
+            svg4.append(f'<line x1="{gx:.1f}" y1="{y_top:.1f}" x2="{gx:.1f}" y2="{y_bot:.1f}" stroke="{col_pt}" stroke-width="2"/>')
+            for pt in g_pts:
+                py = pad_t + plot_h - ((float(np.clip(pt, min_ct_p, max_ct_p)) - min_ct_p) / (max_ct_p - min_ct_p)) * plot_h
+                svg4.append(f'<circle cx="{gx:.1f}" cy="{py:.1f}" r="3.5" fill="{col_pt}" opacity="0.75"/>')
+            svg4.append(f'<circle cx="{gx:.1f}" cy="{my:.1f}" r="5.5" fill="{col_pt}" stroke="#ffffff" stroke-width="1.5"/>')
+            svg4.append(f'<text x="{gx:.1f}" y="{pad_t+plot_h+18}" fill="{col_pt}" font-size="9.5" font-weight="700" text-anchor="middle">{f"{g} (HK)" if is_hk_flag else g}</text>')
+            svg4.append(f'<text x="{gx:.1f}" y="{my-10:.1f}" fill="#e2e8f0" font-size="8.5" text-anchor="middle">{m_v:.1f}</text>')
+        svg4.append('</svg>')
+        svg_qc_str = "".join(svg4)
+
+        html_report = f"""
+        <!DOCTYPE html><html><head><meta charset="utf-8"><title>GenomeTech qPCR 2^-ddCt Report</title>
+        <style>body{{font-family:Inter,Arial,sans-serif;background:#0f172a;color:#f8fafc;padding:28px;}}
+        .grid{{display:grid;grid-template-columns:1fr 1fr;gap:18px;margin-bottom:24px;}}
+        table{{width:100%;border-collapse:collapse;margin-top:12px;font-size:12px;}}
+        th,td{{border:1px solid #334155;padding:7px 10px;text-align:left;}}
+        th{{background:#1e293b;color:#38bdf8;}}</style></head>
+        <body>
+        <h2>GenomeTech Studio — Automated RT-qPCR 2<sup>-ΔΔCt</sup> Biostatistics Report</h2>
+        <p><b>Mode:</b> {app_mode} | <b>Housekeeping:</b> {", ".join(hk_genes)} | <b>Calibrator:</b> {ctrl_group} | <b>Efficiency:</b> {amp_eff:.1f}%</p>
+        <div class="grid">{svg_bar_str}{svg_l2_str}{svg_hm_str}{svg_qc_str}</div>
+        <h3>Complete Group-Level 2^-ΔΔCt Fold-Change & Significance Table</h3>
+        {sum_df.to_html(index=False)}
+        </body></html>
+        """
+
+        sig_count = int((sum_df["Two_Tailed_P_Value"] < p_cutoff).sum())
+        total_comparisons = int((sum_df["Group"] != ctrl_group).sum())
+        sig_rate_pct = (sig_count / max(1, total_comparisons)) * 100.0
+
+        st.session_state["sum_df_t2"] = sum_df
+        st.session_state["rep_df_t2"] = target_df.round(4)
+        st.session_state["hk_qc_df_t2"] = hk_qc_df
+        st.session_state["wide_fc_df_t2"] = wide_fc_df
+        st.session_state["svg_bar_t2"] = svg_bar_str
+        st.session_state["svg_l2_t2"] = svg_l2_str
+        st.session_state["svg_hm_t2"] = svg_hm_str
+        st.session_state["svg_qc_t2"] = svg_qc_str
+        st.session_state["html_rep_t2"] = html_report
+        st.session_state["stats_t2"] = {
+            "wells_in": total_wells_in,
+            "n_genes": len(target_genes_sorted),
+            "n_groups": len(groups_ordered),
+            "total_comp": len(sum_df),
+            "sig_hits": sig_count,
+            "sig_rate": sig_rate_pct,
+            "hk_str": ", ".join(hk_genes),
+            "ctrl_str": ctrl_group,
+            "eff": amp_eff,
+            "hk_drift": max_global_hk_drift,
+            "mode": app_mode
+        }
+
+# ==========================================
+# RESULTS, CUSTOM KPI CARDS & PAYWALL RENDER
+# ==========================================
+if "sum_df_t2" in st.session_state:
+    sum_df = st.session_state["sum_df_t2"]
+    rep_df = st.session_state["rep_df_t2"]
+    hk_qc_df = st.session_state["hk_qc_df_t2"]
+    wide_fc_df = st.session_state["wide_fc_df_t2"]
+    svg_bar = st.session_state["svg_bar_t2"]
+    svg_l2 = st.session_state["svg_l2_t2"]
+    svg_hm = st.session_state["svg_hm_t2"]
+    svg_qc = st.session_state["svg_qc_t2"]
+    html_rep = st.session_state["html_rep_t2"]
     stats = st.session_state["stats_t2"]
 
-    # Ensure currency state is initialized
     if "currency" not in st.session_state:
         url_curr = str(st.query_params.get("currency", "USD")).strip().upper()
         st.session_state.currency = "INR" if url_curr == "INR" else "USD"
     is_inr = (st.session_state.get("currency", "USD") == "INR")
 
     st.markdown("---")
-    st.markdown("### 📊 Primer Design Coordinate Table & Optimum Run Summary")
+    st.markdown("### 📊 qPCR 2<sup>-ΔΔCt</sup> Coordinate Table & Significance Summary", unsafe_allow_html=True)
 
-    m1, m2, m3, m4 = st.columns(4)
-    m1.metric("Samples Processed", f"{stats['samples']}")
-    m2.metric("Total Valid Sites Found", f"{stats['total_sites']:,}")
-    m3.metric("Top Primer Pairs Ranked", f"{stats['designed_pairs']}")
-    m4.metric("Mean Optimum Run Rate", f"{stats['mean_opt_rate']}%")
+    k1, k2, k3, k4 = st.columns(4)
+    with k1:
+        st.markdown(f'<div class="metric-card"><div class="metric-label">qPCR Wells Processed</div><div class="metric-val">{stats["wells_in"]}</div></div>', unsafe_allow_html=True)
+    with k2:
+        st.markdown(f'<div class="metric-card"><div class="metric-label">Normalized Comparisons</div><div class="metric-val">{stats["total_comp"]}</div></div>', unsafe_allow_html=True)
+    with k3:
+        st.markdown(f'<div class="metric-card"><div class="metric-label">Significant Shifts (p &lt; α)</div><div class="metric-val">{stats["sig_hits"]}</div></div>', unsafe_allow_html=True)
+    with k4:
+        st.markdown(f'<div class="metric-card"><div class="metric-label">Differential Hit Rate</div><div class="metric-val">{stats["sig_rate"]:.1f}%</div></div>', unsafe_allow_html=True)
 
-    if st.session_state["is_unlocked_t2"]:
-        st.success(f"✅ **Payment Verified for [{stats['mode']}]!** You may freely adjust thermodynamic sliders ($T_m$, GC%, length) and re-run within this application mode. Switching the Application Mode preset starts a new session.")
-        st.dataframe(res_df, use_container_width=True)
+    if st.session_state.get("is_unlocked_t2", False):
+        st.success("✅ **Payment Verified for [Automated qPCR 2^-ΔΔCt Fold-Change Suite]!** All 4 vector figures, 4 complete biostatistical tables, and the printable report are unlocked.")
 
-        d1, d2, d3 = st.columns(3)
+        st.markdown("#### 🎨 4-Panel qPCR Publication Figure Suite (Vector `.svg` & Printable `.html`)")
+        g1, g2 = st.columns(2)
+        with g1:
+            st.markdown(svg_bar, unsafe_allow_html=True)
+            st.markdown("<br>", unsafe_allow_html=True)
+            st.markdown(svg_hm, unsafe_allow_html=True)
+        with g2:
+            st.markdown(svg_l2, unsafe_allow_html=True)
+            st.markdown("<br>", unsafe_allow_html=True)
+            st.markdown(svg_qc, unsafe_allow_html=True)
+
+        st.markdown("#### 📋 1. Complete Group-Level 2<sup>-ΔΔCt</sup> Fold-Change, 95% CI, Welch t-Test & FDR Master Table", unsafe_allow_html=True)
+        st.dataframe(sum_df, use_container_width=True)
+
+        st.markdown("#### 🧪 2. Biological Replicate-Level ΔCt, ΔΔCt & Individual Fold-Change Table")
+        st.dataframe(rep_df, use_container_width=True)
+
+        st.markdown("#### 🛡️ 3. MIQE Housekeeping Gene Stability & Inter-Group Drift Audit")
+        st.dataframe(hk_qc_df, use_container_width=True)
+
+        st.markdown("#### 🧬 4. Wide Sample × Gene Fold-Change Matrix (Prism / R Ready)")
+        st.dataframe(wide_fc_df, use_container_width=True)
+
+        st.markdown("#### ⬇️ Download Complete qPCR Deliverables (`.csv`, `.svg`, `.html`)")
+        d1, d2, d3, d4 = st.columns(4)
         with d1:
-            st.download_button(
-                "⬇️ 1. Full Primer Coordinate & Run Table (.csv)",
-                data=res_df.to_csv(index=False).encode("utf-8-sig"),
-                file_name="GenomeTech_Primer_Design_Report.csv",
-                mime="text/csv",
-                key="dl_rep_t2"
-            )
+            st.download_button("⬇️ 1. Group 2^-ddCt Master (.csv)", data=sum_df.to_csv(index=False).encode("utf-8-sig"), file_name="GenomeTech_qPCR_Group_Master.csv", mime="text/csv", key="dl1_t2")
+            st.download_button("⬇️ 5. Fig 1A: 2^-ddCt Barplot (.svg)", data=svg_bar.encode("utf-8"), file_name="GenomeTech_qPCR_FoldChange_Barplot.svg", mime="image/svg+xml", key="dl5_t2")
         with d2:
-            st.download_button(
-                "⬇️ 2. Vendor Bulk-Order Sheet (.csv)",
-                data=order_df.to_csv(index=False).encode("utf-8-sig"),
-                file_name="GenomeTech_Vendor_Oligo_Order.csv",
-                mime="text/csv",
-                key="dl_ord_t2"
-            )
+            st.download_button("⬇️ 2. Replicate-Level ddCt (.csv)", data=rep_df.to_csv(index=False).encode("utf-8-sig"), file_name="GenomeTech_qPCR_Replicate_ddCt.csv", mime="text/csv", key="dl2_t2")
+            st.download_button("⬇️ 6. Fig 1B: Log2FC Forest (.svg)", data=svg_l2.encode("utf-8"), file_name="GenomeTech_qPCR_Log2FC_Plot.svg", mime="image/svg+xml", key="dl6_t2")
         with d3:
-            st.download_button(
-                "⬇️ 3. Primer Sequences for BLAST / Browser (.fasta)",
-                data=fasta_out.encode("utf-8-sig"),
-                file_name="GenomeTech_Designed_Primers.fasta",
-                mime="text/plain",
-                key="dl_fas_t2"
-            )
+            st.download_button("⬇️ 3. MIQE Housekeeping QC (.csv)", data=hk_qc_df.to_csv(index=False).encode("utf-8-sig"), file_name="GenomeTech_qPCR_Housekeeping_QC.csv", mime="text/csv", key="dl3_t2")
+            st.download_button("⬇️ 7. Fig 1C: qPCR Z-Heatmap (.svg)", data=svg_hm.encode("utf-8"), file_name="GenomeTech_qPCR_Heatmap.svg", mime="image/svg+xml", key="dl7_t2")
+        with d4:
+            st.download_button("⬇️ 4. Wide Fold-Change Matrix (.csv)", data=wide_fc_df.to_csv(index=False).encode("utf-8-sig"), file_name="GenomeTech_qPCR_Wide_Matrix.csv", mime="text/csv", key="dl4_t2")
+            st.download_button("⬇️ 8. Printable Visual Report (.html)", data=html_rep.encode("utf-8"), file_name="GenomeTech_qPCR_Visual_Report.html", mime="text/html", key="dl8_t2")
     else:
-        st.markdown("**Live Preview (First 3 Designed Primer Pairs with Coordinates & Run Rates):**")
-        st.dataframe(res_df.head(3), use_container_width=True)
+        st.markdown("**Live Preview (First 3 Normalized Gene-Group Comparisons with ΔΔCt, Fold-Change & P-Values):**")
+        st.dataframe(sum_df.head(3), use_container_width=True)
 
-        blurred_preview = res_df.iloc[3:10] if len(res_df) > 3 else res_df
         st.markdown('<div class="blurred-table">', unsafe_allow_html=True)
-        st.table(blurred_preview)
+        st.table(sum_df.iloc[3:8])
         st.markdown('</div>', unsafe_allow_html=True)
 
         razorpay_link = "https://rzp.io/rzp/UVDck3w"
 
         if is_inr:
-            import urllib.parse
             paywall_price_display = "₹799 INR"
             paywall_strike_display = "₹2,499"
-            paywall_desc = "Your top preview rows are verified above. Complete the <b>₹799 INR</b> OmicsExpress checkout via Direct UPI or NEFT to unlock all designed primer coordinates, qPCR melt-curve predictions, optimum thermal cycler protocols, vendor synthesis sheet, and multi-FASTA file."
-            upi_note = "OmicsExpress Tool 2 Primer"
+            paywall_desc = (
+                f"Your top preview rows are verified above. Complete the <b>₹799 INR</b> OmicsExpress checkout via Direct UPI or NEFT to unlock all "
+                f"<b>{stats['total_comp']} normalized gene-group comparisons</b> ({stats['sig_hits']} significant hits), 4 vector publication figures (<code>.svg</code>), replicate-level ΔΔCt tables, and MIQE housekeeping audit."
+            )
+            upi_note = "OmicsExpress Tool 2 qPCR ddCt Suite"
             upi_uri = (
                 f"upi://pay?pa={urllib.parse.quote(INDIA_UPI_ID)}"
                 f"&pn={urllib.parse.quote(INDIA_PAYEE_NAME)}"
@@ -746,33 +817,45 @@ if "primer_df_t2" in st.session_state:
 
             st.markdown(
                 f'<div class="paywall-overlay" style="text-align: center;">'
-                f'<h3 style="color: #e9d5ff !important; margin-top: 0;">🔒 Unlock All {stats.get("designed_pairs", "")} Primer Pairs, Vendor Sheet &amp; BLAST FASTA</h3>'
+                f'<h3 style="color: #e9d5ff !important; margin-top: 0;">🔒 Unlock All {stats["total_comp"]} qPCR Comparisons, 4 SVG Plots &amp; MIQE Sheet</h3>'
                 f'<p style="color: #cbd5e1 !important; font-size: 0.95rem; max-width: 600px; margin: 0 auto 14px auto;">{paywall_desc}</p>'
-                f'<div style="background:rgba(56,189,248,0.14);border:1px solid rgba(56,189,248,0.45);color:#e0f2fe !important;padding:8px 14px;border-radius:8px;font-size:0.88rem;font-weight:600;margin:10px auto 14px auto;max-width:540px;">🔥 <span style="color:#38bdf8 !important;font-weight:800;">FOUNDING LAB LAUNCH OFFER:</span> <s style="color:#94a3b8 !important;">{paywall_strike_display} INR</s> <b style="color:#ffffff !important;">{paywall_price_display}</b> (0% GST — Grant Friendly)</div>'
+                f'<div style="background:rgba(56,189,248,0.14);border:1px solid rgba(56,189,248,0.45);color:#e0f2fe !important;padding:8px 14px;border-radius:8px;font-size:0.88rem;font-weight:600;margin:10px auto 14px auto;max-width:540px;">'
+                f'🔥 <span style="color:#38bdf8 !important;font-weight:800;">FOUNDING LAB LAUNCH OFFER:</span> '
+                f'<s style="color:#94a3b8 !important;">{paywall_strike_display} INR</s> '
+                f'<b style="color:#ffffff !important;">{paywall_price_display}</b> (0% GST — Grant Friendly)'
+                f'</div>'
                 f'<div style="background:rgba(15,23,42,0.95); border:1px solid rgba(16,185,129,0.4); border-radius:14px; padding:16px; margin:0 auto 16px auto; max-width:380px;">'
                 f'<div style="color:#34d399; font-weight:800; font-size:0.95rem; margin-bottom:8px;">Scan 0%-Fee UPI QR (₹799)</div>'
                 f'<img src="{qr_img_url}" alt="UPI QR Code" style="width:180px; height:180px; border-radius:10px; border:3px solid #10b981; padding:5px; background:#ffffff; margin:0 auto 10px auto; display:block;">'
-                f'<div style="color:#e2e8f0; font-size:0.8rem; font-family:monospace; background:rgba(255,255,255,0.05); padding:4px 10px; border-radius:6px; margin-bottom:4px;">UPI ID: <b>{INDIA_UPI_ID}</b></div>'
+                f'<div style="color:#e2e8f0; font-size:0.8rem; font-family:monospace; background:rgba(255,255,255,0.05); padding:4px 10px; border-radius:6px; margin-bottom:4px;">'
+                f'UPI ID: <b>{INDIA_UPI_ID}</b>'
+                f'</div>'
                 f'<div style="color:#94a3b8; font-size:0.74rem;">Google Pay, PhonePe, Paytm &amp; BHIM</div>'
                 f'</div>'
                 f'</div>',
                 unsafe_allow_html=True
             )
 
-            with st.expander("🏦 Paying via University Grant / Institutional NEFT? Request Proforma Invoice"):
+            with st.expander("🏛️ Paying via University Grant / Institutional NEFT? Request Proforma Invoice"):
                 st.markdown(
-                    "University and institute finance offices requiring an official **Proforma Invoice** for NEFT/RTGS grant processing can request one directly:\n"
+                    "University and institute finance offices require an official **Proforma Invoice** to process NEFT/RTGS grant transfers.\n\n"
                     "* **Amount Due:** `₹799 INR` *(0% GST — Exempt under ₹20L threshold)*\n"
-                    "* **How to Request:** Email your **Institute Name** and **Lab PI Name** to `genometechstudio@gmail.com` to receive your official Proforma Invoice & bank routing details."
+                    "* **How to Request:** Email your **Institute Name** and **Lab PI Name** to `genometechstudio@gmail.com` to receive a formal Proforma Invoice with verified NEFT/IMPS routing details within 15 minutes."
                 )
         else:
-            paywall_desc = "Your top preview rows are verified above. Complete the $40 OmicsExpress checkout to unlock all designed primer coordinates, qPCR melt-curve predictions, optimum thermal cycler protocols, vendor synthesis sheet, and multi-FASTA file."
             st.markdown(
                 f'<div class="paywall-overlay" style="text-align: center;">'
-                f'<h3 style="color: #e9d5ff !important; margin-top: 0;">🔒 Unlock All {stats.get("designed_pairs", "")} Primer Pairs, Vendor Sheet &amp; BLAST FASTA</h3>'
-                f'<p style="color: #cbd5e1 !important; font-size: 0.95rem; max-width: 600px; margin: 0 auto 14px auto;">{paywall_desc}</p>'
-                f'<div style="background:rgba(56,189,248,0.14);border:1px solid rgba(56,189,248,0.45);color:#e0f2fe !important;padding:8px 14px;border-radius:8px;font-size:0.88rem;font-weight:600;margin:10px auto 6px auto;max-width:520px;">🔥 <span style="color:#38bdf8 !important;font-weight:800;">FOUNDING LAB LAUNCH OFFER:</span> <s style="color:#94a3b8 !important;">$100 USD</s> <b style="color:#ffffff !important;">$40 USD</b> — Special Early-Access Rate for Our First 20 Research Clients</div>'
-                f'<a href="{razorpay_link}" target="_blank" style="background: linear-gradient(90deg, #9333ea 0%, #2563eb 100%); color: white !important; padding: 14px 32px; text-decoration: none; border-radius: 10px; font-weight: 700; font-size: 1.05rem; display: inline-block; margin: 12px 0; border: 1px solid #c084fc; box-shadow: 0 4px 20px rgba(147, 51, 234, 0.5);">💳 Pay $40 via Razorpay to Unlock All 3 Files</a>'
+                f'<h3 style="color: #e9d5ff !important; margin-top: 0;">🔒 Unlock All {stats["total_comp"]} qPCR Comparisons, 4 SVG Plots &amp; MIQE Sheet</h3>'
+                f'<p style="color: #cbd5e1 !important; font-size: 0.95rem; max-width: 600px; margin: 0 auto 14px auto;">'
+                f'Your top preview rows are verified above. Complete the $40 OmicsExpress checkout to unlock all {stats["total_comp"]} normalized gene-group comparisons ({stats["sig_hits"]} significant hits), 4 vector publication figures (<code>.svg</code>), replicate-level ΔΔCt tables, and MIQE housekeeping audit.'
+                f'</p>'
+                f'<div style="background:rgba(56,189,248,0.14);border:1px solid rgba(56,189,248,0.45);color:#e0f2fe !important;padding:8px 14px;border-radius:8px;font-size:0.88rem;font-weight:600;margin:10px auto 6px auto;max-width:520px;">'
+                f'🔥 <span style="color:#38bdf8 !important;font-weight:800;">FOUNDING LAB LAUNCH OFFER:</span> '
+                f'<s style="color:#94a3b8 !important;">$100 USD</s> <b style="color:#ffffff !important;">$40 USD</b> — Special Early-Access Rate for Our First 20 Research Clients'
+                f'</div>'
+                f'<a href="{razorpay_link}" target="_blank" style="background: linear-gradient(90deg, #9333ea 0%, #2563eb 100%); color: white !important; padding: 14px 32px; text-decoration: none; border-radius: 10px; font-weight: 700; font-size: 1.05rem; display: inline-block; margin: 12px 0; border: 1px solid #c084fc; box-shadow: 0 4px 20px rgba(147, 51, 234, 0.5);">'
+                f'💳 Pay $40 via Razorpay to Unlock Full qPCR 2^-ΔΔCt Suite'
+                f'</a>'
                 f'</div>',
                 unsafe_allow_html=True
             )
@@ -801,12 +884,8 @@ if "primer_df_t2" in st.session_state:
                 if not entered_key:
                     st.warning("Please enter a key or 12-digit UPI UTR.")
                 else:
-                    import json
-                    import os
-                    import time
-
                     DB_FILE = "used_keys.json"
-                    AUTHORIZED_DEMO_KEYS = ["GTS-DEMO-GOKUL", "GTS-DEMO-MATHURA", "GTS-DEMO-YAMUNA"]
+                    AUTHORIZED_DEMO_KEYS = ["GTS-DEMO-TIRTH", "GTS-DEMO-KASHI", "GTS-DEMO-AYODHYA"]
 
                     def is_key_burned(key_to_check):
                         if not os.path.exists(DB_FILE):
@@ -823,12 +902,9 @@ if "primer_df_t2" in st.session_state:
                         with open(DB_FILE, 'w') as f:
                             json.dump(data, f)
 
-                    # 1. INFINITE MASTER KEY CHECK
                     if entered_key == "GTS-MASTER-UNLIMITED":
                         st.session_state["is_unlocked_t2"] = True
                         st.rerun()
-
-                    # 2. AUTHORIZED DEMO KEY CHECK (One-Time Use)
                     elif entered_key in AUTHORIZED_DEMO_KEYS:
                         burned, burn_date = is_key_burned(entered_key)
                         if burned:
@@ -837,8 +913,6 @@ if "primer_df_t2" in st.session_state:
                             burn_key(entered_key)
                             st.session_state["is_unlocked_t2"] = True
                             st.rerun()
-
-                    # 3. INDIAN DIRECT UPI UTR (12-DIGIT RRN) OR NEFT UTR VERIFICATION (One-Time Use)
                     elif is_inr and (
                         (entered_key.isdigit() and len(entered_key) == 12 and entered_key[0] != "0")
                         or (len(entered_key) >= 11 and entered_key[:4].isalpha() and any(c.isdigit() for c in entered_key))
@@ -850,8 +924,6 @@ if "primer_df_t2" in st.session_state:
                             burn_key(entered_key)
                             st.session_state["is_unlocked_t2"] = True
                             st.rerun()
-
-                    # 4. RAZORPAY API VERIFICATION (Amount-Checked & One-Time Use)
                     elif entered_key.startswith("pay_") and len(entered_key) >= 14:
                         burned, burn_date = is_key_burned(entered_key)
                         if burned:
@@ -861,7 +933,6 @@ if "primer_df_t2" in st.session_state:
                                 import razorpay
                                 client = razorpay.Client(auth=(st.secrets["razorpay"]["key_id"], st.secrets["razorpay"]["key_secret"]))
                                 payment = client.payment.fetch(entered_key)
-
                                 if payment["status"] in ["captured", "authorized"]:
                                     if (payment["amount"] >= 4000 and payment["currency"] == "USD") or (payment["amount"] >= 79900 and payment["currency"] == "INR"):
                                         burn_key(entered_key)
@@ -871,40 +942,32 @@ if "primer_df_t2" in st.session_state:
                                         st.error(f"❌ Invalid Payment Amount. Expected $40.00 USD or ₹799 INR, but found {payment['amount']/100:.2f} {payment['currency']}.")
                                 else:
                                     st.error(f"❌ Payment Status: {payment['status'].upper()}. This transaction is not complete.")
-
-                            except Exception as e:
+                            except Exception:
                                 st.error("❌ Invalid Payment ID. The bank API could not verify this transaction.")
-
                     else:
                         st.error("❌ Invalid Key Format, UPI UTR, or Unauthorized Demo Key.")
         # --- END API & ANTI-REUSE GATEWAY UPGRADE ---
 
+    # ==========================================
+    # AUTOMATED DIAGNOSTICS & DIRECT EMAIL SUPPORT EXPANDER
+    # ==========================================
     st.markdown("---")
-    st.markdown("### 📝 Automated Thermodynamic Remarks & Direct Support")
-
-    st.info(
-        f"**Automated Primer Design Diagnostics:**\n"
-        f"* **Application Pipeline:** {stats['mode']}\n"
-        f"* **Candidate Site Density:** Scanned **{stats['samples']}** template sequences and identified **{stats['total_sites']:,}** total valid primer pairs meeting all thermodynamic and structural fixing rules.\n"
-        f"* **Biophysical & Melt-Curve Metrics:** Includes 3' pentamer Gibbs Free Energy ($\Delta G$), Oligo Molecular Weight (Da), full amplified product sequences, and predicted SYBR Green amplicon melt-curve temperatures.\n"
-        f"* **Optimum Run Rate & Thermal Protocol:** Selected primer pairs achieved a mean optimum match rate of **{stats['mean_opt_rate']}%**. Recommended thermal cycler annealing temperatures ($T_a = T_{{m,\\text{{min}}}} - 5^\\circ\\text{{C}}$) and extension times are listed per pair."
+    st.markdown("### 📝 Automated MIQE Normalization Remarks & Direct Support")
+    st.markdown(
+        f'<div style="background:rgba(15,23,42,0.85); border:1px solid rgba(56,189,248,0.3); border-radius:12px; padding:16px 20px; margin-bottom:14px; font-size:0.88rem; color:#cbd5e1; line-height:1.6;">'
+        f'<b style="color:#f8fafc;">Automated RT-qPCR Biostatistical Diagnostics:</b><br>'
+        f'• <b>Application Pipeline:</b> {stats["mode"]}<br>'
+        f'• <b>Normalization &amp; Reference Stability:</b> Evaluated <b>{stats["wells_in"]}</b> qPCR reactions across <b>{stats["n_genes"]}</b> target genes normalized against <code>{stats["hk_str"]}</code> (Max inter-group HK drift: <b>{stats["hk_drift"]:.3f} Ct cycles</b>).<br>'
+        f'• <b>Biophysical &amp; Expression Metrics:</b> Includes Livak $2^{{-\\Delta\\Delta C_t}}$, Pfaffl efficiency-corrected fold change ($E = {stats["eff"]:.1f}\\%$), 95% confidence intervals, Welch’s two-sample $t$-statistics, and Benjamini-Hochberg FDR.<br>'
+        f'• <b>Differential Hit Rate:</b> Identified <b>{stats["sig_hits"]}</b> statistically significant gene-group comparisons out of <b>{stats["total_comp"]}</b> total evaluations (<b>{stats["sig_rate"]:.1f}%</b> differential hit rate).'
+        f'</div>',
+        unsafe_allow_html=True
     )
 
     with st.expander("💬 Send Remarks or Questions Directly to GenomeTech Team (via Email)"):
-        client_email = st.text_input("Your Lab / Institutional Email:", key="rem_email_t2")
-        client_remark = st.text_area("Your Remarks or Questions about this Primer Design Run:", key="rem_text_t2")
-        if st.button("Prepare Direct Email", key="rem_btn_t2"):
-            import urllib.parse
-            subject = urllib.parse.quote(f"OmicsExpress Tool #2 Remark - {client_email}")
-            body = urllib.parse.quote(
-                f"Client Email: {client_email}\n"
-                f"Tool Used: Tool #2 - Automated Batch Primer Designer\n"
-                f"Application Mode: {stats['mode']}\n"
-                f"Samples Processed: {stats['samples']}\n"
-                f"Total Valid Sites Found: {stats['total_sites']}\n"
-                f"Mean Optimum Match Rate: {stats['mean_opt_rate']}%\n\n"
-                f"Client Remarks:\n{client_remark}"
-            )
-            mailto_url = f"mailto:genometechstudio@gmail.com?subject={subject}&body={body}"
-            st.success("✅ Your remark and primer diagnostics are ready! Click below to send directly from your email client:")
-            st.markdown(f'👉 <a href="https://mail.google.com/mail/?view=cm&fs=1&to=genometechstudio@gmail.com&su={subject}&body={body}" target="_blank" style="color:#38bdf8;font-weight:700;text-decoration:underline;">Click Here to Send via Gmail (Browser)</a> &nbsp;|&nbsp; <a href="{mailto_url}" style="color:#c4b5fd;font-weight:600;text-decoration:underline;">Open in Default Mail App (Outlook/Mac)</a>', unsafe_allow_html=True)
+        rem_email = st.text_input("Your Email Address:", placeholder="researcher@university.edu", key="rem_em_t2")
+        rem_msg = st.text_area("Your Question or Custom qPCR Normalization Request:", placeholder="Describe your plate layout, reference genes, or custom statistical contrast...", key="rem_msg_t2")
+        if st.button("📩 Prepare Email to GenomeTech Support", key="btn_rem_t2"):
+            subj = urllib.parse.quote("OmicsExpress Tool #2 (qPCR 2^-ddCt Suite) Inquiry")
+            body = urllib.parse.quote(f"From: {rem_email}\n\nMessage:\n{rem_msg}")
+            st.markdown(f'👉 **[Click here to send your message via your default email client](mailto:genometechstudio@gmail.com?subject={subj}&body={body})**')
