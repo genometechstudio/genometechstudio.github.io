@@ -228,7 +228,7 @@ st.markdown(
     f'<div class="t4-card" style="background:linear-gradient(90deg, rgba(12,25,52,0.94), rgba(127,29,29,0.28));">'
     f'<div style="font-size:1.1rem; font-weight:800; color:#f87171; margin-bottom:6px;">🔬 What You Receive in Tier 4 (Live Demo Dataset: 10x Genomics Single-Cell PBMCs)</div>'
     f'<div style="font-size:0.9rem; color:#e2e8f0; line-height:1.55; margin-bottom:14px;">'
-    f'This live interactive dashboard demonstrates the exact output generated in our <b>Tier 4 Single-Cell Profiling Bundle ({t4_bundle_price})</b>. '
+    f'This live interactive dashboard demonstrates the exact output generated in our <b>Tier 4 Single-Cell Profiling Bundle ({bundle_price_t4})</b>. '
     f'Starting from raw 10x Genomics reads, we perform matrix processing, quality filtering, Seurat graph-based clustering, cell type ID mapping, and 2D UMAP projections.'
     f'</div>'
     f'<div style="display:grid; grid-template-columns:repeat(auto-fit, minmax(210px, 1fr)); gap:10px; font-size:0.83rem;">'
