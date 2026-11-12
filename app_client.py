@@ -424,331 +424,92 @@ if "last_sheet_sync_msg" not in st.session_state:
 if "checkout_unlocked" not in st.session_state:
     st.session_state.checkout_unlocked = False
 
-# --- 64-PIECE (8x8) GENOMIC PICTURE PUZZLE COMPONENT ---
-def render_64_piece_puzzle(client_key):
-    puzzle_html = f"""
-    <!DOCTYPE html>
-    <html>
-    <head>
-    <style>
-        body {{
-            margin: 0;
-            padding: 0;
-            background: transparent;
-            color: #f8fafc;
-            font-family: 'Inter', -apple-system, BlinkMacSystemFont, sans-serif;
-            user-select: none;
-        }}
-        .game-wrapper {{
-            background: rgba(15, 23, 42, 0.88);
-            border: 1px solid rgba(16, 185, 129, 0.35);
-            border-radius: 16px;
-            padding: 14px;
-            box-shadow: 0 10px 30px rgba(0,0,0,0.5);
-        }}
-        .game-header {{
-            display: flex;
-            justify-content: space-between;
-            align-items: center;
-            margin-bottom: 8px;
-        }}
-        .game-title {{
-            font-size: 0.95rem;
-            font-weight: 800;
-            color: #34d399;
-        }}
-        .score-pill {{
-            background: rgba(16, 185, 129, 0.2);
-            border: 1px solid rgba(16, 185, 129, 0.4);
-            color: #6ee7b7;
-            font-size: 0.75rem;
-            font-weight: 700;
-            padding: 3px 10px;
-            border-radius: 999px;
-        }}
-        .preview-row {{
-            display: flex;
-            align-items: center;
-            gap: 10px;
-            background: rgba(2, 6, 23, 0.65);
-            border: 1px solid #1e293b;
-            padding: 8px;
-            border-radius: 10px;
-            margin-bottom: 10px;
-        }}
-        .preview-thumb {{
-            width: 68px;
-            height: 68px;
-            border-radius: 8px;
-            border: 1px solid #10b981;
-            object-fit: cover;
-            flex-shrink: 0;
-        }}
-        .preview-info {{
-            font-size: 0.74rem;
-            color: #cbd5e1;
-            line-height: 1.35;
-        }}
-        .section-label {{
-            font-size: 0.72rem;
-            text-transform: uppercase;
-            letter-spacing: 0.06em;
-            color: #94a3b8;
-            margin: 6px 0 4px 0;
-            font-weight: 700;
-        }}
-        .board-grid {{
-            display: grid;
-            grid-template-columns: repeat(8, 1fr);
-            gap: 1px;
-            width: 280px;
-            height: 280px;
-            margin: 0 auto 10px auto;
-            background: #0f172a;
-            border: 2px solid #10b981;
-            border-radius: 8px;
-            overflow: hidden;
-        }}
-        .tray-grid {{
-            display: grid;
-            grid-template-columns: repeat(8, 1fr);
-            gap: 2px;
-            width: 280px;
-            height: 280px;
-            margin: 0 auto;
-            background: #020617;
-            border: 1px dashed #475569;
-            border-radius: 8px;
-            padding: 2px;
-            box-sizing: border-box;
-        }}
-        .slot, .tray-cell {{
-            width: 100%;
-            height: 100%;
-            background-color: #091326;
-            position: relative;
-            cursor: pointer;
-            box-sizing: border-box;
-        }}
-        .slot.selected, .tray-cell.selected {{
-            outline: 2px solid #38bdf8;
-            z-index: 5;
-        }}
-        .slot.correct {{
-            box-shadow: inset 0 0 0 1px rgba(16, 185, 129, 0.5);
-        }}
-        .btn-row {{
-            display: flex;
-            gap: 6px;
-            margin-top: 10px;
-        }}
-        .g-btn {{
-            flex: 1;
-            background: #1e293b;
-            color: #e2e8f0;
-            border: 1px solid #334155;
-            border-radius: 8px;
-            padding: 7px 8px;
-            font-size: 0.75rem;
-            font-weight: 700;
-            cursor: pointer;
-            transition: all 0.15s;
-        }}
-        .g-btn:hover {{
-            background: #334155;
-            border-color: #10b981;
-        }}
-        .g-btn.primary {{
-            background: linear-gradient(90deg, #059669, #10b981);
-            color: #020617;
-            border: none;
-        }}
-        .win-banner {{
-            display: none;
-            background: rgba(16, 185, 129, 0.2);
-            border: 1px solid #10b981;
-            color: #34d399;
-            text-align: center;
-            padding: 8px;
-            border-radius: 8px;
-            font-size: 0.8rem;
-            font-weight: 700;
-            margin-top: 8px;
-        }}
-    </style>
-    </head>
-    <body>
-    <div class="game-wrapper">
-        <div class="game-header">
-            <span class="game-title">🧩 64-Piece Genomic Art Puzzle</span>
-            <span class="score-pill" id="progressText">0 / 64 Placed</span>
-        </div>
-        <div class="preview-row">
-            <img id="previewImg" class="preview-thumb" src="" alt="Preview">
-            <div class="preview-info">
-                <b id="picTitle" style="color:#34d399;">Loading...</b><br>
-                Click any piece in the <b>Pieces Box</b> below, then click its spot in the <b>8×8 Target Box</b>. Your progress stays saved across refreshes!
-            </div>
-        </div>
-        <div class="section-label">Target Assembly Box (8×8 = 64 Pieces)</div>
-        <div class="board-grid" id="boardGrid"></div>
-        <div class="section-label">Scrambled Pieces Box (Click to Pick & Place)</div>
-        <div class="tray-grid" id="trayGrid"></div>
-        <div class="win-banner" id="winBanner">
-            🎉 Masterpiece Complete! All 64 genomic fragments assembled!
-        </div>
-        <div class="btn-row">
-            <button class="g-btn" onclick="placeHintPiece()">💡 Place 5 Pieces</button>
-            <button class="g-btn primary" onclick="nextPicture()">Next Picture ➔</button>
-        </div>
-    </div>
-    <script>
-    const STORAGE_KEY = "gt_puzzle64_state_" + "{client_key}";
-    const IMAGES = [
-        {{ title: "DNA Double Helix Structure", url: "https://images.unsplash.com/photo-1530497610245-94d3c16cda28?w=600&auto=format&fit=crop&q=80" }},
-        {{ title: "Single-Cell Fluorescence Map", url: "https://images.unsplash.com/photo-1507668077129-56e32842fceb?w=600&auto=format&fit=crop&q=80" }},
-        {{ title: "Genomic Sequencing Matrix", url: "https://images.unsplash.com/photo-1518770660439-4636190af475?w=600&auto=format&fit=crop&q=80" }},
-        {{ title: "Microbiome Colony Architecture", url: "https://images.unsplash.com/photo-1579154204601-01588f351e67?w=600&auto=format&fit=crop&q=80" }}
-    ];
-    let state = null;
-    let selectedSource = null;
+# --- PUBLICATION-READY "MATERIALS & METHODS" CITATION COMPONENT ---
+def render_64_piece_puzzle(client_key="default"):
+    st.markdown(
+        '<div style="background:rgba(15,23,42,0.88); border:1px solid rgba(16,185,129,0.35); border-radius:16px; padding:16px 18px; margin-bottom:12px; box-shadow:0 10px 30px rgba(0,0,0,0.4);">'
+        '<div style="display:flex; justify-content:space-between; align-items:center; flex-wrap:wrap; gap:8px; margin-bottom:6px;">'
+        '<span style="font-size:0.98rem; font-weight:800; color:#34d399;">📝 Manuscript "Materials &amp; Methods" Generator</span>'
+        '<span style="background:rgba(16,185,129,0.2); border:1px solid rgba(16,185,129,0.4); color:#6ee7b7; font-size:0.72rem; font-weight:700; padding:3px 10px; border-radius:999px;">Peer-Review Ready</span>'
+        '</div>'
+        '<div style="font-size:0.8rem; color:#cbd5e1; line-height:1.45;">'
+        'Select your active pipeline tier and reference assembly below to generate a journal-compliant <b>Bioinformatics &amp; Statistical Analysis</b> paragraph with exact software versions for your manuscript.'
+        '</div>'
+        '</div>',
+        unsafe_allow_html=True
+    )
 
-    function initNewState(imgIndex) {{
-        const pieces = [];
-        for (let i = 0; i < 64; i++) pieces.push(i);
-        for (let i = pieces.length - 1; i > 0; i--) {{
-            const j = Math.floor(Math.random() * (i + 1));
-            [pieces[i], pieces[j]] = [pieces[j], pieces[i]];
-        }}
-        state = {{
-            imgIndex: imgIndex % IMAGES.length,
-            board: Array(64).fill(null),
-            tray: pieces
-        }};
-        saveState();
-    }}
+    cite_tier = st.selectbox(
+        "Active Pipeline Tier:",
+        [
+            "Tier 1: Variant Calling & Clinical Annotation (WGS / WES)",
+            "Tier 2: Bulk RNA-Seq Transcriptomics & Differential Expression",
+            "Tier 4: Single-Cell RNA-Seq (scRNA-Seq) Profiling & UMAP",
+            "Tier 5: 16S rRNA Microbiome & Metagenomic Profiling"
+        ],
+        key=f"cite_tier_{client_key}"
+    )
 
-    function loadState() {{
-        try {{
-            const raw = localStorage.getItem(STORAGE_KEY);
-            if (raw) {{
-                const parsed = JSON.parse(raw);
-                if (parsed && Array.isArray(parsed.board) && parsed.board.length === 64 && Array.isArray(parsed.tray)) {{
-                    state = parsed;
-                    return;
-                }}
-            }}
-        }} catch (e) {{}}
-        initNewState(0);
-    }}
+    cite_ref = st.selectbox(
+        "Reference Genome / Database Assembly:",
+        [
+            "Human GRCh38 / hg38 (GENCODE v44 / ClinVar)",
+            "Human GRCh37 / hg19 (Ensembl / dbSNP)",
+            "Mouse GRCm39 / mm39 (Ensembl)",
+            "SILVA v138.1 / Greengenes2 (16S rRNA)"
+        ],
+        index=3 if "Tier 5" in cite_tier else 0,
+        key=f"cite_ref_{client_key}"
+    )
 
-    function saveState() {{
-        try {{ localStorage.setItem(STORAGE_KEY, JSON.stringify(state)); }} catch (e) {{}}
-    }}
+    ref_short = cite_ref.split(" (")[0]
 
-    function applyPieceStyle(el, pieceId, imgUrl) {{
-        if (pieceId === null || pieceId === undefined) {{
-            el.style.backgroundImage = "none";
-            return;
-        }}
-        const row = Math.floor(pieceId / 8);
-        const col = pieceId % 8;
-        const posX = (col / 7) * 100;
-        const posY = (row / 7) * 100;
-        el.style.backgroundImage = `url('${{imgUrl}}')`;
-        el.style.backgroundSize = "800% 800%";
-        el.style.backgroundPosition = `${{posX}}% ${{posY}}%`;
-    }}
+    if "Tier 1" in cite_tier:
+        methods_text = (
+            f"Bioinformatics Processing and Clinical Variant Annotation:\n"
+            f"Raw paired-end sequencing reads (.fastq.gz) were evaluated for base-call quality, GC distribution, and adapter contamination using FastQC (v0.12.1) and MultiQC (v1.19). "
+            f"Adapter trimming and low-quality base filtering (Phred quality score Q < 20, minimum read length 36 bp) were executed via fastp (v0.23.4). "
+            f"High-quality clean reads were aligned to the {ref_short} reference assembly using the Burrows-Wheeler Aligner (BWA-MEM, v0.7.17-r1188), followed by coordinate sorting, duplicate marking, and BAM indexing via SAMtools (v1.19.2). "
+            f"Single nucleotide variants (SNVs) and small insertions/deletions (Indels) were called using BCFtools mpileup and call (v1.19) under stringent quality cutoffs (QUAL >= 30, read depth DP >= 20, variant allele frequency VAF >= 5%). "
+            f"High-confidence variants were annotated against ClinVar, gnomAD population allele frequencies, and Ensembl VEP / SnpEff transcript models in accordance with ACMG/AMP guidelines."
+        )
+    elif "Tier 2" in cite_tier:
+        methods_text = (
+            f"RNA-Seq Alignment, Quantification, and Differential Expression Analysis:\n"
+            f"Raw paired-end RNA sequencing reads were quality-screened using FastQC (v0.12.1) and trimmed for Illumina adapter sequences and low-quality 3' bases using fastp (v0.23.4). "
+            f"Clean reads were splice-aligned to the {ref_short} reference genome using the STAR 2-pass ultrafast aligner (v2.7.11a) retaining uniquely mapped reads. "
+            f"Gene-level read quantification was performed against reference gene models using Subread featureCounts (v2.0.6). "
+            f"Differential gene expression analysis was conducted in R (v4.3.2) using DESeq2 (v1.42.0) employing negative binomial generalized linear modeling and apeglm log2 fold-change shrinkage. "
+            f"P-values were adjusted via the Benjamini-Hochberg false discovery rate (FDR) procedure, with significance defined at |log2 Fold Change| >= 1.0 and adjusted p-value (padj) < 0.05."
+        )
+    elif "Tier 4" in cite_tier:
+        methods_text = (
+            f"Single-Cell RNA-Seq Processing, Clustering, and Manifold Projection:\n"
+            f"Raw single-cell gene-barcode matrices aligned to {ref_short} were processed using Seurat (v5.0.1) in R (v4.3.2). "
+            f"Stringent cell-level quality control was applied to exclude low-quality droplets and multiplets, retaining cells with >200 and <6,000 detected genes and <10% mitochondrial transcript fraction. "
+            f"UMI counts were normalized via LogNormalize (scale factor = 10,000) and the top 2,000 highly variable features were identified via variance-stabilizing transformation (vst). "
+            f"Principal Component Analysis (PCA) was performed on scaled variable features, and the top 30 principal components were utilized for shared nearest-neighbor (SNN) graph construction, Louvain modularity clustering (resolution = 0.5), and UMAP projection. "
+            f"Cluster-specific marker genes were identified using the Wilcoxon rank-sum test (min.pct = 0.25, logfc.threshold = 0.25, Bonferroni-adjusted p < 0.05)."
+        )
+    else:
+        methods_text = (
+            f"16S rRNA Amplicon Processing and Microbial Community Diversity Profiling:\n"
+            f"Demultiplexed paired-end 16S rRNA amplicon reads were imported into the QIIME 2 microbiome bioinformatics platform (v2024.2). "
+            f"Primer sequences were stripped and chimeric reads, sequencing noise, and phiX contaminants were removed using the DADA2 denoising pipeline to resolve exact Amplicon Sequence Variants (ASVs) at single-nucleotide resolution. "
+            f"Taxonomic assignment of representative ASV sequences was executed using a Naive Bayes feature classifier trained against the {ref_short} reference database. "
+            f"Alpha diversity metrics (Shannon entropy, Simpson index, Chao1 richness, and Faith's PD) were evaluated via Kruskal-Wallis and Wilcoxon rank-sum tests. "
+            f"Beta diversity ordinations (Bray-Curtis dissimilarity, Weighted/Unweighted UniFrac) were projected via PCoA and tested for group separation using PERMANOVA (999 permutations)."
+        )
 
-    function render() {{
-        const imgObj = IMAGES[state.imgIndex % IMAGES.length];
-        document.getElementById("previewImg").src = imgObj.url;
-        document.getElementById("picTitle").innerText = imgObj.title;
-        const boardEl = document.getElementById("boardGrid");
-        const trayEl = document.getElementById("trayGrid");
-        boardEl.innerHTML = "";
-        trayEl.innerHTML = "";
-        let correctCount = 0;
+    st.caption("📋 **Click the copy icon in the top-right corner of the box below to copy directly into your manuscript:**")
+    st.code(methods_text, language="text")
 
-        for (let i = 0; i < 64; i++) {{
-            const pieceId = state.board[i];
-            if (pieceId === i) correctCount++;
-            const slot = document.createElement("div");
-            slot.className = "slot" + (pieceId === i ? " correct" : "");
-            if (selectedSource && selectedSource.zone === "board" && selectedSource.index === i) slot.classList.add("selected");
-            applyPieceStyle(slot, pieceId, imgObj.url);
-            slot.onclick = () => handleCellClick("board", i);
-            boardEl.appendChild(slot);
-        }}
-
-        for (let i = 0; i < 64; i++) {{
-            const pieceId = state.tray[i];
-            const cell = document.createElement("div");
-            cell.className = "tray-cell";
-            if (selectedSource && selectedSource.zone === "tray" && selectedSource.index === i) cell.classList.add("selected");
-            applyPieceStyle(cell, pieceId, imgObj.url);
-            cell.onclick = () => handleCellClick("tray", i);
-            trayEl.appendChild(cell);
-        }}
-
-        document.getElementById("progressText").innerText = `${{correctCount}} / 64 Correct`;
-        document.getElementById("winBanner").style.display = (correctCount === 64) ? "block" : "none";
-    }}
-
-    function handleCellClick(zone, index) {{
-        const clickedVal = state[zone][index];
-        if (!selectedSource) {{
-            if (clickedVal === null) return;
-            selectedSource = {{ zone, index }};
-            render();
-            return;
-        }}
-        const srcZone = selectedSource.zone;
-        const srcIdx = selectedSource.index;
-        const temp = state[srcZone][srcIdx];
-        state[srcZone][srcIdx] = state[zone][index];
-        state[zone][index] = temp;
-        selectedSource = null;
-        saveState();
-        render();
-    }}
-
-    function placeHintPiece() {{
-        let placed = 0;
-        for (let targetIdx = 0; targetIdx < 64 && placed < 5; targetIdx++) {{
-            if (state.board[targetIdx] !== targetIdx) {{
-                let foundZone = null;
-                let foundIdx = -1;
-                for (let j = 0; j < 64; j++) {{
-                    if (state.tray[j] === targetIdx) {{ foundZone = "tray"; foundIdx = j; break; }}
-                    if (state.board[j] === targetIdx) {{ foundZone = "board"; foundIdx = j; break; }}
-                }}
-                if (foundZone !== null) {{
-                    const displaced = state.board[targetIdx];
-                    state.board[targetIdx] = targetIdx;
-                    state[foundZone][foundIdx] = displaced;
-                    placed++;
-                }}
-            }}
-        }}
-        selectedSource = null;
-        saveState();
-        render();
-    }}
-
-    function nextPicture() {{
-        selectedSource = null;
-        initNewState(state.imgIndex + 1);
-        render();
-    }}
-
-    loadState();
-    render();
-    </script>
-    </body>
-    </html>
-    """
-    components.html(puzzle_html, height=760, scrolling=False)
+    st.markdown(
+        '<div style="background:rgba(2,6,23,0.65); border:1px solid #1e293b; border-radius:10px; padding:10px 12px; margin-top:8px; font-size:0.76rem; color:#94a3b8; line-height:1.4;">'
+        '🔒 <b style="color:#38bdf8;">100% IP Ownership &amp; Zero Co-Authorship Policy:</b> You retain full intellectual property rights over all custom figures, tables, and pipeline outputs. No acknowledgment or co-authorship is required.'
+        '</div>',
+        unsafe_allow_html=True
+    )
 
 # --- TOP HEADER BAR ---
 head_col1, head_col2 = st.columns([3.6, 1.4])
@@ -1373,6 +1134,6 @@ progress_val = max(0, min(100, progress_val))
                                 st.warning("Please describe the value changes you need.")
                     st.markdown('</div>', unsafe_allow_html=True)
 
-    # --- RIGHT COLUMN: 64-PIECE GENOMIC PICTURE PUZZLE CORNER ---
+    # --- RIGHT COLUMN: MANUSCRIPT MATERIALS & METHODS GENERATOR ---
     with right_col:
         render_64_piece_puzzle(client_id_val)
