@@ -1,6 +1,6 @@
 import streamlit as st
 import pandas as pd
-import numpy as  np   
+import numpy as  np    
 
 # --- DUAL CURRENCY SYNC ---
 query_curr = str(st.query_params.get("currency", "USD")).strip().upper()
