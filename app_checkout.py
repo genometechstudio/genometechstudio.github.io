@@ -6,6 +6,21 @@ import urllib.parse
 import time
 from datetime import datetime
 
+st.markdown(
+    """
+    <style>
+        /* Completely hide sidebar, multipage file nav, and collapse arrow */
+        [data-testid="stSidebar"],
+        [data-testid="stSidebarNav"],
+        [data-testid="collapsedControl"],
+        [data-testid="stSidebarCollapsedControl"] {
+            display: none !important;
+        }
+    </style>
+    """,
+    unsafe_allow_html=True
+)
+
 # --- PAGE CONFIGURATION ---
 st.set_page_config(
     page_title="GenoStack Services | Checkout Portal",
@@ -295,59 +310,26 @@ for i, k in enumerate(tier_keys):
         default_idx = i
         break
 
-# Sync currency from URL if present, and provide a live switcher
+# --- DETECT TIER & CURRENCY FROM URL (?tier=1&currency=INR) ---
+query_params = st.query_params if hasattr(st, "query_params") else {}
+url_tier = str(query_params.get("tier", "1")).strip()
+tier_keys = ["Tier 1", "Tier 2", "Tier 4", "Tier 5"]
+default_idx = 0
+for i, k in enumerate(tier_keys):
+    if url_tier == k.replace("Tier ", "") or url_tier.lower() == k.lower():
+        default_idx = i
+        break
+
+# Sync currency from URL if present
 url_curr = str(query_params.get("currency", "")).strip().upper()
-if url_curr in ["USD", "INR"] and "currency_initialized_from_url" not in st.session_state:
+if "currency" not in st.session_state:
+    st.session_state.currency = "INR" if url_curr == "INR" else "USD"
+elif url_curr in ["USD", "INR"] and "currency_initialized_from_url" not in st.session_state:
     st.session_state.currency = url_curr
     st.session_state.currency_initialized_from_url = True
 
-with st.sidebar:
-    st.markdown("### 🌍 Region & Currency")
-    chosen_curr = st.radio(
-        "Select Pricing & Checkout Mode:",
-        options=["USD", "INR"],
-        index=1 if st.session_state.get("currency", "USD") == "INR" else 0,
-        format_func=lambda x: "🌐 Global ($ USD)" if x == "USD" else "🇮🇳 India (₹ INR • Direct UPI / NEFT)",
-    )
-    if chosen_curr != st.session_state.get("currency", "USD"):
-        st.session_state.currency = chosen_curr
-        try:
-            st.query_params["currency"] = chosen_curr
-        except Exception:
-            pass
-        st.rerun()
-
 is_inr = (st.session_state.get("currency", "USD") == "INR")
 curr_symbol = "₹" if is_inr else "$"
-
-# --- SIDEBAR BACK BUTTON ---
-with st.sidebar:
-    st.markdown(
-        f'<a href="{MAIN_WEBSITE_URL}" target="_blank" rel="noopener noreferrer" class="back-web-btn" style="width:100%; box-sizing:border-box; margin-bottom:1rem;">← Back to Our Website</a>',
-        unsafe_allow_html=True
-    )
-    st.markdown("### 🧬 GenoStack Services")
-    st.caption("Select your desired bioinformatics tier and package option to begin your project.")
-    
-    st.markdown("---")
-    st.markdown("### 🔑 Master Access")
-    master_key = st.text_input("Enter Key:", type="password", key="master_key_input")
-    if st.button("Unlock Portal"):
-        if master_key == "GTS-MASTER-UNLIMITED":
-            st.session_state["checkout_unlocked"] = True
-            st.success("Master Key Accepted.")
-            st.rerun()
-        elif master_key.startswith("GTS-DEMO-"):
-            burned, burn_date = is_key_burned(master_key)
-            if burned:
-                st.error(f"❌ Security Lock: This Demo Key was already claimed on {burn_date}.")
-            else:
-                burn_key(master_key)
-                st.session_state["checkout_unlocked"] = True
-                st.success("Demo Key Accepted.")
-                st.rerun()
-        else:
-            st.error("Invalid Key.")
 
 # --- TOP HEADER: GENOSTACK SERVICES + BACK TO WEBSITE ON SIDE ---
 head_col1, head_col2 = st.columns([3.6, 1.4])
@@ -463,6 +445,66 @@ with left_col:
         "Your Name / Institution (Optional)",
         placeholder="e.g., Dr. Sharma — Genomics Lab",
         key="checkout_client_notes"
+    )
+    
+    # --- SEQUENCING COVERAGE & UPLOAD SIZE ESTIMATOR (LEFT COLUMN) ---
+    st.markdown("<div style='margin-top: 1.2rem;'></div>", unsafe_allow_html=True)
+    st.markdown(
+        '<div style="background:rgba(15,23,42,0.75); border:1px solid rgba(56,189,248,0.3); border-radius:12px; padding:16px 18px; margin-bottom:10px;">'
+        '<div style="font-size:1.02rem; font-weight:800; color:#38bdf8; margin-bottom:4px;">🧮 Pre-Upload Coverage & File Size Estimator</div>'
+        '<div style="font-size:0.82rem; color:#94a3b8; line-height:1.45;">'
+        'Estimate your theoretical sequencing depth (<b>X</b>) and compressed <code>.fastq.gz</code> transfer size before uploading to your dedicated Drop-Off Box.'
+        '</div>'
+        '</div>',
+        unsafe_allow_html=True
+    )
+
+    est_assay = st.selectbox(
+        "Target Assay / Genome Preset:",
+        [
+            "Human Whole Exome (WES • ~60 Mb target)",
+            "Human Whole Genome (WGS • ~3,000 Mb)",
+            "Bulk RNA-Seq Transcriptome (~50 Mb coding)",
+            "Targeted Clinical Gene Panel (~2 Mb)",
+            "16S rRNA Microbiome Amplicon (~0.5 Mb)"
+        ],
+        key="chk_est_assay"
+    )
+
+    target_mb_map = {
+        "Human Whole Exome (WES • ~60 Mb target)": 60.0,
+        "Human Whole Genome (WGS • ~3,000 Mb)": 3000.0,
+        "Bulk RNA-Seq Transcriptome (~50 Mb coding)": 50.0,
+        "Targeted Clinical Gene Panel (~2 Mb)": 2.0,
+        "16S rRNA Microbiome Amplicon (~0.5 Mb)": 0.5
+    }
+    target_mb = target_mb_map[est_assay]
+
+    ec1, ec2 = st.columns(2)
+    with ec1:
+        reads_m = st.number_input("Paired Reads / Sample (Millions):", min_value=0.05, max_value=1000.0, value=40.0 if target_mb >= 50 else 1.0, step=5.0, key="chk_reads_m")
+        read_len = st.selectbox("Read Length (PE):", ["150 bp (PE150)", "100 bp (PE100)", "250 bp (PE250)"], index=0, key="chk_rlen")
+    with ec2:
+        num_samples = st.number_input("Number of Samples in Cohort:", min_value=1, max_value=500, value=4, step=1, key="chk_nsamp")
+        bp_len = 150 if "150" in read_len else (100 if "100" in read_len else 250)
+
+    # Lander-Waterman coverage: (Paired_Reads * 2 * Read_Length) / Target_Size_bp
+    total_bases_per_sample_mb = reads_m * 2.0 * bp_len
+    est_depth_x = total_bases_per_sample_mb / target_mb
+    # Approx ~0.075 GB per Million PE150 reads (gzipped R1+R2 combined)
+    est_gb_per_sample = reads_m * (bp_len / 150.0) * 0.075
+    total_cohort_gb = est_gb_per_sample * num_samples
+
+    st.markdown(
+        f'<div style="background:rgba(4,8,18,0.8); border:1px solid rgba(16,185,129,0.35); border-radius:10px; padding:12px 14px; margin-top:6px; display:flex; justify-content:space-between; align-items:center; flex-wrap:wrap; gap:10px;">'
+        f'<div><span style="color:#94a3b8; font-size:0.76rem; text-transform:uppercase; font-weight:700;">Est. Mean Depth / Sample</span><br>'
+        f'<span style="color:#34d399; font-size:1.25rem; font-weight:900;">~{est_depth_x:,.0f}x</span></div>'
+        f'<div><span style="color:#94a3b8; font-size:0.76rem; text-transform:uppercase; font-weight:700;">Per-Sample (.fastq.gz)</span><br>'
+        f'<span style="color:#e2e8f0; font-size:1.1rem; font-weight:800;">~{est_gb_per_sample:.2f} GB</span></div>'
+        f'<div><span style="color:#94a3b8; font-size:0.76rem; text-transform:uppercase; font-weight:700;">Total Cohort Upload</span><br>'
+        f'<span style="color:#38bdf8; font-size:1.25rem; font-weight:900;">~{total_cohort_gb:.1f} GB</span></div>'
+        f'</div>',
+        unsafe_allow_html=True
     )
 
 with right_col:
@@ -588,15 +630,12 @@ with right_col:
                     unsafe_allow_html=True
                 )
 
-                with st.expander("🏦 Paying via University Grant / Direct NEFT / IMPS? View Bank Details"):
-                    st.markdown(f"""
-                    * **Beneficiary Name:** `{INDIA_BANK_HOLDER}`
-                    * **Bank Name:** `{INDIA_BANK_NAME}`
-                    * **Account Number:** `{INDIA_BANK_ACC}`
-                    * **IFSC Code:** `{INDIA_BANK_IFSC}`
-                    * **Total Bundle Value:** `₹{info_a['price']:,} INR`
-                    * **30% Advance Due Now:** `₹{info_a['advance']:,} INR` *(0% GST — Exempt under ₹20L threshold)*
-                    """)
+                with st.expander("🏛️ Paying via University Grant / Institutional NEFT? Request Proforma Invoice"):
+                    st.markdown(
+                        "University and institute finance offices require an official **Proforma Invoice** to process NEFT/RTGS grant transfers.\n\n"
+                        "* **Payment Terms:** `30% Advance Due Now` *(0% GST — Exempt under ₹20L threshold)*\n"
+                        "* **How to Request:** Email your **Institute Name**, **Lab PI Name**, and **Selected Tier/Modules** to `genometechstudio@gmail.com` to receive a formal Proforma Invoice with verified NEFT/IMPS routing details within 15 minutes."
+                    )
 
                 utr_input_a = st.text_input(
                     "Paid via UPI / NEFT? Paste your 12-digit UTR / Reference No. to confirm instantly:",
@@ -737,15 +776,12 @@ with right_col:
                     unsafe_allow_html=True
                 )
 
-                with st.expander("🏦 Paying via University Grant / Direct NEFT / IMPS? View Bank Details"):
-                    st.markdown(f"""
-                    * **Beneficiary Name:** `{INDIA_BANK_HOLDER}`
-                    * **Bank Name:** `{INDIA_BANK_NAME}`
-                    * **Account Number:** `{INDIA_BANK_ACC}`
-                    * **IFSC Code:** `{INDIA_BANK_IFSC}`
-                    * **Custom Total Value:** `₹{info_b['total']:,} INR`
-                    * **30% Advance Due Now:** `₹{info_b['advance']:,} INR` *(0% GST — Exempt under ₹20L threshold)*
-                    """)
+                with st.expander("🏛️ Paying via University Grant / Institutional NEFT? Request Proforma Invoice"):
+                    st.markdown(
+                        "University and institute finance offices require an official **Proforma Invoice** to process NEFT/RTGS grant transfers.\n\n"
+                        "* **Payment Terms:** `30% Advance Due Now` *(0% GST — Exempt under ₹20L threshold)*\n"
+                        "* **How to Request:** Email your **Institute Name**, **Lab PI Name**, and **Selected Tier/Modules** to `genometechstudio@gmail.com` to receive a formal Proforma Invoice with verified NEFT/IMPS routing details within 15 minutes."
+                    )
 
                 utr_input_b = st.text_input(
                     "Paid via UPI / NEFT? Paste your 12-digit UTR / Reference No. to confirm instantly:",
