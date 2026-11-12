@@ -2,6 +2,26 @@ import streamlit as st
 import pandas as pd
 import numpy as np  
 
+st.set_page_config(
+    page_title="Tier 1 Live Showcase | GenomeTech Studio",
+    page_icon="🧬",
+    layout="wide",
+    initial_sidebar_state="collapsed"
+)
+
+st.markdown(
+    """
+    <style>
+        [data-testid="stSidebar"],
+        [data-testid="collapsedControl"],
+        [data-testid="stSidebarCollapsedControl"] {
+            display: none !important;
+        }
+    </style>
+    """,
+    unsafe_allow_html=True
+)
+
 # --- PAGE CONFIGURATION ---
 st.set_page_config(
     page_title="Tier 2 Live Showcase | Transcriptomics (RNA-Seq)",
