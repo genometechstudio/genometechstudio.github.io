@@ -1,5 +1,5 @@
 import streamlit as st
-import os 
+import os
 
 # ==========================================
 # 1. PAGE CONFIGURATION
@@ -170,13 +170,12 @@ if "tool" in query_params:
     if target_key in TOOL_MAP:
         target_file = TOOL_MAP[target_key]
         if os.path.exists(target_file):
-            # Top navigation & currency bar across all 8 tools (No sidebar needed)
+            # Top navigation & currency bar across all 8 tools (Only Back to Website + Currency)
             t_nav_l, t_nav_r = st.columns([2.6, 1.4])
             with t_nav_l:
                 st.markdown(
                     f'<div style="display:flex; gap:10px; align-items:center; padding-top:4px; margin-bottom:10px;">'
-                    f'<a href="https://genometechstudio.github.io?currency={curr_param}" target="_self" class="top-nav-btn">← Back to Main Website</a>'
-                    f'<a href="?currency={curr_param}" target="_self" class="top-nav-btn">⚡ View All 8 OmicsExpress Tools</a>'
+                    f'<a href="https://genometechstudio.github.io?currency={curr_param}" target="_self" class="top-nav-btn">← Back to Our Website</a>'
                     f'</div>',
                     unsafe_allow_html=True
                 )
