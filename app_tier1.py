@@ -296,7 +296,7 @@ else:
 with tab1:
     st.markdown(
         '<div class="t1-card">'
-        '<div style="font-size:1.15rem; font-weight:800; color:#f87171; margin-bottom:4px;f"📋 Module 4: Clinical Variant CSV & Annotation ({m4_price_str})"
+        f'<div style="font-size:1.15rem; font-weight:800; color:#f87171; margin-bottom:4px;">📋 Module 4: Clinical Variant CSV & Annotation ({m4_price_str})</div>'
         '<div style="font-size:0.86rem; color:#cbd5e1;">'
         'Explore our pre-loaded oncology panel results below. Use the interactive filters to inspect pathogenic mutations, read depth, and allele frequencies—exactly as delivered in your final annotated <code>.csv</code> report.'
         '</div>'
@@ -349,7 +349,7 @@ with tab2:
     with c_left:
         st.markdown(
             '<div class="t1-card">'
-            '<div style="font-size:1.15rem; font-weight:800; color:#f87171; margin-bottom:6px;f"🧼 Module 1: FastQC & Adapter Trimming ({m1_price_str})"
+            f'<div style="font-size:1.15rem; font-weight:800; color:#f87171; margin-bottom:6px;">🧼 Module 1: FastQC & Adapter Trimming ({m1_price_str})</div>'
             '<div style="font-size:0.88rem; color:#e2e8f0; line-height:1.6;">'
             'Before alignment, raw paired-end <code>.fastq.gz</code> reads are screened for Phred base quality, adapter dimers, and GC bias.<br><br>'
             '• <b>Raw Input Reads:</b> 48,200,000 paired reads<br>'
@@ -377,7 +377,7 @@ with tab3:
     with a_left:
         st.markdown(
             '<div class="t1-card">'
-            '<div style="font-size:1.15rem; font-weight:800; color:#f87171; margin-bottom:6px;f"🎯 Module 2: BWA-MEM Reference Alignment ({m2_price_str})"
+            f'<div style="font-size:1.15rem; font-weight:800; color:#f87171; margin-bottom:6px;">🎯 Module 2: BWA-MEM Reference Alignment ({m2_price_str})</div>'
             '<div style="font-size:0.88rem; color:#e2e8f0; line-height:1.6;">'
             'High-quality reads are aligned to the human reference genome (<code>GRCh38</code>) with coordinate sorting and PCR duplicate marking.<br><br>'
             '• <b>Reference Build:</b> Human GRCh38.p14<br>'
@@ -403,7 +403,7 @@ with tab4:
     with v_left:
         st.markdown(
             '<div class="t1-card">'
-            '<div style="font-size:1.15rem; font-weight:800; color:#f87171; margin-bottom:6px;f"🧬 Module 3: BCFtools Variant Calling ({m3_price_str})"
+            f'<div style="font-size:1.15rem; font-weight:800; color:#f87171; margin-bottom:6px;">🧬 Module 3: BCFtools Variant Calling ({m3_price_str})</div>'
             '<div style="font-size:0.88rem; color:#e2e8f0; line-height:1.6;">'
             'Probabilistic genotype calling identifies Single Nucleotide Polymorphisms (SNPs) and short Indels, filtering out low-depth artifacts.<br><br>'
             '• <b>Transition / Transversion (Ti/Tv) Ratio:</b> 2.84 (Expected Exome: ~2.8)<br>'
