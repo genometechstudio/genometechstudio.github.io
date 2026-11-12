@@ -164,6 +164,20 @@ def get_tier4_demo_data():
 
 df_cells = get_tier4_demo_data()
 
+# --- DUAL CURRENCY CHECK (Syncs with ?currency=INR or session state) ---
+if "currency" not in st.session_state:
+    url_curr = str(st.query_params.get("currency", "USD")).strip().upper()
+    st.session_state.currency = "INR" if url_curr == "INR" else "USD"
+
+is_inr = (st.session_state.get("currency", "USD") == "INR")
+
+# Dynamic Module & Bundle Price Labels for Tier 4 (Single-Cell Profiling)
+t4_bundle_price = "₹14,999" if is_inr else "$450"
+t4_m1_price = "₹6,499" if is_inr else "$190"  # Module 1: Matrix Processing
+t4_m2_price = "₹5,499" if is_inr else "$160"  # Module 2: Seurat Clustering
+t4_m3_price = "₹4,499" if is_inr else "$140"  # Module 3: Cell Type ID Maps
+t4_m4_price = "₹3,503" if is_inr else "$110"  # Module 4: UMAP Projections
+
 # --- TOP HEADER BAR ---
 top_left, top_right = st.columns([3.2, 1.8])
 with top_left:
@@ -208,20 +222,6 @@ with top_right:
     )
 
 st.markdown("<hr style='border-color: rgba(239, 68, 68, 0.3); margin: 0.85rem 0 1.2rem 0;'>", unsafe_allow_html=True)
-
-# --- DUAL CURRENCY CHECK (Syncs with ?currency=INR or session state) ---
-if "currency" not in st.session_state:
-    url_curr = str(st.query_params.get("currency", "USD")).strip().upper()
-    st.session_state.currency = "INR" if url_curr == "INR" else "USD"
-
-is_inr = (st.session_state.get("currency", "USD") == "INR")
-
-# Dynamic Module & Bundle Price Labels for Tier 4 (Single-Cell Profiling)
-t4_bundle_price = "₹14,999" if is_inr else "$450"
-t4_m1_price = "₹6,499" if is_inr else "$190"  # Module 1: Matrix Processing
-t4_m2_price = "₹5,499" if is_inr else "$160"  # Module 2: Seurat Clustering
-t4_m3_price = "₹4,499" if is_inr else "$140"  # Module 3: Cell Type ID Maps
-t4_m4_price = "₹3,503" if is_inr else "$110"  # Module 4: UMAP Projections
 
 # --- CONCISE OVERVIEW: WHAT WE DELIVER + FILES & LANGUAGES USED ---
 st.markdown(
