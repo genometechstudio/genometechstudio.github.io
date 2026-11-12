@@ -165,6 +165,20 @@ def get_tier2_demo_data():
 
 df_deg = get_tier2_demo_data()
 
+# --- DUAL CURRENCY CHECK (Syncs with ?currency=INR or session state) ---
+if "currency" not in st.session_state:
+    url_curr = str(st.query_params.get("currency", "USD")).strip().upper()
+    st.session_state.currency = "INR" if url_curr == "INR" else "USD"
+
+is_inr = (st.session_state.get("currency", "USD") == "INR")
+
+# Dynamic Module Price Labels for Tier 2 (RNA-Seq Transcriptomics)
+bundle_price_t2 = "₹12,999" if is_inr else "$410"
+t2_m1_price = "₹5,999" if is_inr else "$190"  # Module 1: STAR Read Alignment
+t2_m2_price = "₹3,499" if is_inr else "$110"  # Module 2: FeatureCounts Quant
+t2_m3_price = "₹4,999" if is_inr else "$160"  # Module 3: DESeq2 Differential Math
+t2_m4_price = "₹3,503" if is_inr else "$90"   # Module 4: Volcano & Heatmap Vis
+
 # --- TOP HEADER BAR ---
 top_left, top_right = st.columns([3.2, 1.8])
 with top_left:
@@ -209,20 +223,6 @@ with top_right:
     )
 
 st.markdown("<hr style='border-color: rgba(239, 68, 68, 0.3); margin: 0.85rem 0 1.2rem 0;'>", unsafe_allow_html=True)
-
-# --- DUAL CURRENCY CHECK (Syncs with ?currency=INR or session state) ---
-if "currency" not in st.session_state:
-    url_curr = str(st.query_params.get("currency", "USD")).strip().upper()
-    st.session_state.currency = "INR" if url_curr == "INR" else "USD"
-
-is_inr = (st.session_state.get("currency", "USD") == "INR")
-
-# Dynamic Module Price Labels for Tier 2 (RNA-Seq Transcriptomics)
-bundle_price_t2 = "₹12,999" if is_inr else "$410"
-t2_m1_price = "₹5,999" if is_inr else "$190"  # Module 1: STAR Read Alignment
-t2_m2_price = "₹3,499" if is_inr else "$110"  # Module 2: FeatureCounts Quant
-t2_m3_price = "₹4,999" if is_inr else "$160"  # Module 3: DESeq2 Differential Math
-t2_m4_price = "₹3,503" if is_inr else "$90"   # Module 4: Volcano & Heatmap Vis
 
 # --- CONCISE OVERVIEW: WHAT WE DELIVER + FILES & LANGUAGES USED ---
 st.markdown(
