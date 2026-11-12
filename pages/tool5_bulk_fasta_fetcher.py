@@ -113,32 +113,16 @@ if "currency" not in st.session_state:
 is_inr = (st.session_state.get("currency", "USD") == "INR")
 
 # ==========================================
-# TOP GLASS HEADER BANNER + TOP-RIGHT CURRENCY SWITCHER
+# TOP GLASS HEADER BANNER (FULL WIDTH)
 # ==========================================
-h_left, h_right = st.columns([3.2, 1.2])
-with h_left:
-    st.markdown(
-        '<div class="glass-header">'
-        '<div><span class="brand-title">💊 <span style="color:#34d399;">GenomeTech</span> Studio</span>'
-        '<span class="brand-sub">| OmicsExpress Automated Suite</span></div>'
-        '<div class="tool-pill">⚡ Tool #5: IC50 / EC50 Dose-Response Suite</div>'
-        '</div>',
-        unsafe_allow_html=True
-    )
-with h_right:
-    curr_choice_t5 = st.radio(
-        "Currency",
-        options=["USD", "INR"],
-        index=1 if is_inr else 0,
-        format_func=lambda x: "🌐 $ USD" if x == "USD" else "🇮🇳 ₹ INR",
-        horizontal=True,
-        label_visibility="collapsed",
-        key="t5_top_curr_radio"
-    )
-    if curr_choice_t5 != st.session_state.currency:
-        st.session_state.currency = curr_choice_t5
-        st.query_params["currency"] = curr_choice_t5
-        st.rerun()
+st.markdown(
+    '<div class="glass-header">'
+    '<div><span class="brand-title">💊 <span style="color:#34d399;">GenomeTech</span> Studio</span>'
+    '<span class="brand-sub">| OmicsExpress Automated Suite</span></div>'
+    '<div class="tool-pill">⚡ Tool #5: IC50 / EC50 Dose-Response Suite</div>'
+    '</div>',
+    unsafe_allow_html=True
+)
 
 st.markdown("## Automated IC50 / EC50 Dose-Response (4PL Hill Curve) & MTT Cytotoxicity Suite")
 st.markdown(
