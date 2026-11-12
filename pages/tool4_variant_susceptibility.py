@@ -112,18 +112,16 @@ if "currency" not in st.session_state:
 is_inr = (st.session_state.get("currency", "USD") == "INR")
 
 # ==========================================
-# TOP GLASS HEADER BANNER + TOP-RIGHT CURRENCY SWITCHER
+# TOP GLASS HEADER BANNER (FULL WIDTH)
 # ==========================================
-h_left, h_right = st.columns([3.2, 1.2])
-with h_left:
-    st.markdown(
-        '<div class="glass-header">'
-        '<div><span class="brand-title">🧬 <span style="color:#34d399;">GenomeTech</span> Studio</span>'
-        '<span class="brand-sub">| OmicsExpress Automated Suite</span></div>'
-        '<div class="tool-pill">⚡ Tool #4: GO &amp; KEGG Pathway Bubble Plotter</div>'
-        '</div>',
-        unsafe_allow_html=True
-    )
+st.markdown(
+    '<div class="glass-header">'
+    '<div><span class="brand-title">🧬 <span style="color:#34d399;">GenomeTech</span> Studio</span>'
+    '<span class="brand-sub">| OmicsExpress Automated Suite</span></div>'
+    '<div class="tool-pill">⚡ Tool #4: GO &amp; KEGG Pathway Bubble Plotter</div>'
+    '</div>',
+    unsafe_allow_html=True
+)
 
 st.markdown("## Automated GO & KEGG Pathway Enrichment Bubble/Bar Plotter")
 st.markdown(
