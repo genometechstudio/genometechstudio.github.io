@@ -182,10 +182,27 @@ with top_left:
         unsafe_allow_html=True
     )
 with top_right:
+    curr_choice = st.radio(
+        "Currency",
+        options=["USD", "INR"],
+        index=1 if is_inr else 0,
+        format_func=lambda x: "🌐 $ USD" if x == "USD" else "🇮🇳 ₹ INR",
+        horizontal=True,
+        label_visibility="collapsed",
+        key="t4_header_curr"
+    )
+    if curr_choice != st.session_state.currency:
+        st.session_state.currency = curr_choice
+        st.query_params["currency"] = curr_choice
+        st.rerun()
+
+    checkout_sep = "&" if "?" in CHECKOUT_TIER4_URL else "?"
+    checkout_url_curr = f"{CHECKOUT_TIER4_URL}{checkout_sep}currency={st.session_state.currency}"
+
     st.markdown(
-        f'<div style="display:flex; justify-content:flex-end; align-items:center; gap:10px; padding-top:10px; flex-wrap:wrap;">'
+        f'<div style="display:flex; justify-content:flex-end; align-items:center; gap:10px; padding-top:4px; flex-wrap:wrap;">'
         f'<a href="{MAIN_WEBSITE_URL}" target="_blank" rel="noopener noreferrer" class="nav-btn-back">← Back to Our Website</a>'
-        f'<a href="{CHECKOUT_TIER4_URL}" target="_blank" rel="noopener noreferrer" class="nav-btn-order">Select Tier 4 Modules ($450) ➔</a>'
+        f'<a href="{checkout_url_curr}" target="_blank" rel="noopener noreferrer" class="nav-btn-order">Select Tier 4 Modules ({bundle_price_t4}) ➔</a>'
         f'</div>',
         unsafe_allow_html=True
     )
@@ -336,7 +353,7 @@ with tab2:
     with c_left:
         st.markdown(
             '<div class="t4-card">'
-            '<div style="font-size:1.15rem; font-weight:800; color:#f87171; margin-bottom:6px;">🧼 Module 1: Matrix Processing ($150)</div>'
+            '<div style="font-size:1.15rem; font-weight:800; color:#f87171; margin-bottom:6px;">🧼 Module 1: Matrix Processing</div>'
             '<div style="font-size:0.88rem; color:#e2e8f0; line-height:1.6;">'
             'Raw sequencing data is converted into filtered expression count matrices, removing empty droplets and low-quality artifacts.<br><br>'
             '• <b>Raw Droplets Detected:</b> 9,820 cells<br>'
@@ -363,7 +380,7 @@ with tab3:
     with u_left:
         st.markdown(
             '<div class="t4-card">'
-            '<div style="font-size:1.15rem; font-weight:800; color:#f87171; margin-bottom:6px;">🧬 Module 2: Seurat Clustering ($120)</div>'
+            '<div style="font-size:1.15rem; font-weight:800; color:#f87171; margin-bottom:6px;">🧬 Module 2: Seurat Clustering</div>'
             '<div style="font-size:0.88rem; color:#e2e8f0; line-height:1.6;">'
             'High-dimensional gene expression space is reduced via PCA, followed by K-nearest neighbor graph construction and Seurat/Leiden community detection.<br><br>'
             '• <b>Principal Components Used:</b> Top 30 PCs<br>'
@@ -388,7 +405,7 @@ with tab4:
     with m_left:
         st.markdown(
             '<div class="t4-card">'
-            '<div style="font-size:1.15rem; font-weight:800; color:#f87171; margin-bottom:6px;">🗺️ Module 4: UMAP Projections ($80)</div>'
+            '<div style="font-size:1.15rem; font-weight:800; color:#f87171; margin-bottom:6px;">🗺️ Module 4: UMAP Projections</div>'
             '<div style="font-size:0.88rem; color:#e2e8f0; line-height:1.6;">'
             'Non-linear dimensionality reduction projects single-cell transcriptomes into intuitive 2D UMAP scatter visualizations.<br><br>'
             '• <b>Embedding Method:</b> Uniform Manifold Approximation and Projection (UMAP)<br>'
