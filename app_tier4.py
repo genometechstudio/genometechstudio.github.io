@@ -172,7 +172,7 @@ if "currency" not in st.session_state:
 is_inr = (st.session_state.get("currency", "USD") == "INR")
 
 # Dynamic Module & Bundle Price Labels for Tier 4 (Single-Cell Profiling)
-t4_bundle_price = "₹14,999" if is_inr else "$450"
+bundle_price_t4 = "₹14,999" if is_inr else "$450"
 t4_m1_price = "₹6,499" if is_inr else "$190"  # Module 1: Matrix Processing
 t4_m2_price = "₹5,499" if is_inr else "$160"  # Module 2: Seurat Clustering
 t4_m3_price = "₹4,499" if is_inr else "$140"  # Module 3: Cell Type ID Maps
