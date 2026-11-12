@@ -158,6 +158,20 @@ def get_tier5_demo_data():
 
 df_taxa = get_tier5_demo_data()
 
+# --- DUAL CURRENCY CHECK & TIER 5 PRICING (Must be ABOVE the header!) ---
+if "currency" not in st.session_state:
+    url_curr = str(st.query_params.get("currency", "USD")).strip().upper()
+    st.session_state.currency = "INR" if url_curr == "INR" else "USD"
+
+is_inr = (st.session_state.get("currency", "USD") == "INR")
+
+# Dynamic Module & Bundle Price Labels for Tier 5 (Microbiome 16S rRNA)
+t5_bundle_price = "₹12,499" if is_inr else "$400"
+t5_m1_price = "₹5,999" if is_inr else "$190"  # Module 1: QIIME2 Execution
+t5_m2_price = "₹4,499" if is_inr else "$140"  # Module 2: Taxonomic Classification
+t5_m3_price = "₹3,999" if is_inr else "$120"  # Module 3: Alpha/Beta Diversity
+t5_m4_price = "₹3,003" if is_inr else "$100"  # Module 4: Abundance Charts
+
 # --- TOP HEADER BAR ---
 top_left, top_right = st.columns([3.2, 1.8])
 with top_left:
@@ -176,29 +190,32 @@ with top_left:
         unsafe_allow_html=True
     )
 with top_right:
+    curr_choice = st.radio(
+        "Currency",
+        options=["USD", "INR"],
+        index=1 if is_inr else 0,
+        format_func=lambda x: "🌐 $ USD" if x == "USD" else "🇮🇳 ₹ INR",
+        horizontal=True,
+        label_visibility="collapsed",
+        key="t5_header_curr"
+    )
+    if curr_choice != st.session_state.currency:
+        st.session_state.currency = curr_choice
+        st.query_params["currency"] = curr_choice
+        st.rerun()
+
+    checkout_sep = "&" if "?" in CHECKOUT_TIER5_URL else "?"
+    checkout_url_curr = f"{CHECKOUT_TIER5_URL}{checkout_sep}currency={st.session_state.currency}"
+
     st.markdown(
-        f'<div style="display:flex; justify-content:flex-end; align-items:center; gap:10px; padding-top:10px; flex-wrap:wrap;">'
+        f'<div style="display:flex; justify-content:flex-end; align-items:center; gap:10px; padding-top:4px; flex-wrap:wrap;">'
         f'<a href="{MAIN_WEBSITE_URL}" target="_blank" rel="noopener noreferrer" class="nav-btn-back">← Back to Our Website</a>'
-        f'<a href="{CHECKOUT_TIER5_URL}" target="_blank" rel="noopener noreferrer" class="nav-btn-order">Select Tier 5 Modules ($400) ➔</a>'
+        f'<a href="{checkout_url_curr}" target="_blank" rel="noopener noreferrer" class="nav-btn-order">Select Tier 5 Modules ({t5_bundle_price}) ➔</a>'
         f'</div>',
         unsafe_allow_html=True
     )
 
 st.markdown("<hr style='border-color: rgba(239, 68, 68, 0.3); margin: 0.85rem 0 1.2rem 0;'>", unsafe_allow_html=True)
-
-# --- DUAL CURRENCY CHECK (Syncs with ?currency=INR or session state) ---
-if "currency" not in st.session_state:
-    url_curr = str(st.query_params.get("currency", "USD")).strip().upper()
-    st.session_state.currency = "INR" if url_curr == "INR" else "USD"
-
-is_inr = (st.session_state.get("currency", "USD") == "INR")
-
-# Dynamic Module & Bundle Price Labels for Tier 5 (Microbiome 16S rRNA)
-t5_bundle_price = "₹12,499" if is_inr else "$400"
-t5_m1_price = "₹5,999" if is_inr else "$190"  # Module 1: QIIME2 Execution
-t5_m2_price = "₹4,499" if is_inr else "$140"  # Module 2: Taxonomic Classification
-t5_m3_price = "₹3,999" if is_inr else "$120"  # Module 3: Alpha/Beta Diversity
-t5_m4_price = "₹3,003" if is_inr else "$100"  # Module 4: Abundance Charts
 
 # --- CONCISE OVERVIEW: WHAT WE DELIVER + FILES & LANGUAGES USED ---
 st.markdown(
@@ -327,7 +344,7 @@ with tab2:
     with c_left:
         st.markdown(
             '<div class="t5-card">'
-            '<div style="font-size:1.15rem; font-weight:800; color:#f87171; margin-bottom:6px;">🧼 Module 1: QIIME2 Execution ($150)</div>'
+            '<div style="font-size:1.15rem; font-weight:800; color:#f87171; margin-bottom:6px;">🧼 Module 1: QIIME2 Execution</div>'
             '<div style="font-size:0.88rem; color:#e2e8f0; line-height:1.6;">'
             'Raw amplicon sequences are imported, quality-filtered, and denoised into Amplicon Sequence Variants (ASVs) using DADA2.<br><br>'
             '• <b>Raw Reads Processed:</b> 1,240,000 paired-end reads<br>'
@@ -354,7 +371,7 @@ with tab3:
     with u_left:
         st.markdown(
             '<div class="t5-card">'
-            '<div style="font-size:1.15rem; font-weight:800; color:#f87171; margin-bottom:6px;">🧬 Module 3: Alpha & Beta Diversity ($80)</div>'
+            '<div style="font-size:1.15rem; font-weight:800; color:#f87171; margin-bottom:6px;">🧬 Module 3: Alpha & Beta Diversity</div>'
             '<div style="font-size:0.88rem; color:#e2e8f0; line-height:1.6;">'
             'Measures microbial richness within samples (Alpha diversity) and compositional dissimilarity between groups (Beta diversity).<br><br>'
             '• <b>Alpha Metrics:</b> Shannon Index & Chao1 richness (p &lt; 0.01 significant loss in dysbiosis)<br>'
@@ -379,7 +396,7 @@ with tab4:
     with m_left:
         st.markdown(
             '<div class="t5-card">'
-            '<div style="font-size:1.15rem; font-weight:800; color:#f87171; margin-bottom:6px;">📊 Module 4: Abundance Charts ($70)</div>'
+            '<div style="font-size:1.15rem; font-weight:800; color:#f87171; margin-bottom:6px;">📊 Module 4: Abundance Charts</div>'
             '<div style="font-size:0.88rem; color:#e2e8f0; line-height:1.6;">'
             'Visualizes relative abundance profiles across taxonomic ranks, highlighting shifts in dominant phyla and pathogenic overgrowth.<br><br>'
             '• <b>Visualization Type:</b> Stacked bar plots & differential boxplots<br>'
