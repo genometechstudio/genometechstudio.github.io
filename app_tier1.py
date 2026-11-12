@@ -2,27 +2,25 @@ import streamlit as st
 import pandas as pd
 import numpy as  np    
 
-# --- DUAL CURRENCY SYNC ---
-query_curr = str(st.query_params.get("currency", "USD")).strip().upper()
-if "currency" not in st.session_state:
-    st.session_state.currency = "INR" if query_curr == "INR" else "USD"
+st.set_page_config(
+    page_title="Tier 1 Live Showcase | GenomeTech Studio",
+    page_icon="🧬",
+    layout="wide",
+    initial_sidebar_state="collapsed"
+)
 
-with st.sidebar:
-    st.markdown("### 🌍 Currency & Region")
-    selected_curr = st.radio(
-        "Pricing Mode:",
-        options=["USD", "INR"],
-        index=1 if st.session_state.currency == "INR" else 0,
-        format_func=lambda x: "🌐 Global ($ USD)" if x == "USD" else "🇮🇳 India (₹ INR)",
-        horizontal=True,
-        key="tier1_curr_radio"
-    )
-    if selected_curr != st.session_state.currency:
-        st.session_state.currency = selected_curr
-        st.query_params["currency"] = selected_curr
-        st.rerun()
-
-is_inr = (st.session_state.currency == "INR")
+st.markdown(
+    """
+    <style>
+        [data-testid="stSidebar"],
+        [data-testid="collapsedControl"],
+        [data-testid="stSidebarCollapsedControl"] {
+            display: none !important;
+        }
+    </style>
+    """,
+    unsafe_allow_html=True
+)
 
 # --- PAGE CONFIGURATION ---
 st.set_page_config(
@@ -197,6 +195,23 @@ with top_left:
         unsafe_allow_html=True
     )
 with top_right:
+    curr_choice = st.radio(
+        "Currency",
+        options=["USD", "INR"],
+        index=1 if is_inr else 0,
+        format_func=lambda x: "🌐 $ USD" if x == "USD" else "🇮🇳 ₹ INR",
+        horizontal=True,
+        label_visibility="collapsed",
+        key="t1_header_curr"
+    )
+    if curr_choice != st.session_state.currency:
+        st.session_state.currency = curr_choice
+        st.query_params["currency"] = curr_choice
+        st.rerun()
+
+    checkout_sep = "&" if "?" in CHECKOUT_TIER1_URL else "?"
+    checkout_url_curr = f"{CHECKOUT_TIER1_URL}{checkout_sep}currency={st.session_state.currency}"
+    
     st.markdown(
         f'<div style="display:flex; justify-content:flex-end; align-items:center; gap:10px; padding-top:10px; flex-wrap:wrap;">'
         f'<a href="{MAIN_WEBSITE_URL}" target="_blank" rel="noopener noreferrer" class="nav-btn-back">← Back to Our Website</a>'
