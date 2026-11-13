@@ -654,16 +654,18 @@ else:
     status_val = get_col_val(active_row, ["Status"], "In Progress")
     advance_status = get_col_val(active_row, ["Advance Paid (30%)"], "Paid")
 
-    # --- AUTO-DETECT CURRENCY (INR vs USD) FROM GOOGLE SHEET OR URL ---
-    raw_total_str = str(get_col_val(active_row, ["Total Price"], "0"))
+# --- AUTO-DETECT CURRENCY (INR vs USD) FROM GOOGLE SHEET OR URL ---
+    raw_total_str = str(get_col_val(active_row, ["Total Price ($)", "Total Price", "Price"], "0"))
     sheet_currency_col = str(get_col_val(active_row, ["Currency"], "")).upper()
     url_currency = st.query_params.get("currency", "").upper()
 
-    # It is an INR project if "Total Price" contains ₹ / INR, or "Currency" column is INR, or URL has ?currency=INR
+    # Detect INR if "Total Price ($)" has ₹/INR, OR "Advance Paid (30%)" mentions INR, OR URL has ?currency=INR
     is_inr_project = (
         ("₹" in raw_total_str)
         or ("INR" in raw_total_str.upper())
         or ("RS" in raw_total_str.upper())
+        or ("INR" in str(advance_status).upper())
+        or ("₹" in str(advance_status))
         or (sheet_currency_col == "INR")
         or (url_currency == "INR")
     )
@@ -678,6 +680,8 @@ else:
     total_usd = total_amount
     expected_70_amount = round(total_amount * 0.70, 2)
     expected_70_inr = int(round(total_amount * 0.70))
+    if is_inr_project and expected_70_inr <= 0:
+        expected_70_inr = 1  # Safe fallback if Total Price cell was left empty
 
     expected_70_cents = int((total_usd * 0.70) * 100)
     if expected_70_cents <= 0:
@@ -841,6 +845,12 @@ else:
                     )
                     qr_img_url = f"https://api.qrserver.com/v1/create-qr-code/?size=220x220&margin=10&data={urllib.parse.quote(upi_uri)}"
 
+                    extra_link_html = (
+                        f'<div style="margin-top:10px;"><a href="{payment_70_link}" target="_blank" rel="noopener noreferrer" class="pay-btn" style="display:inline-block; padding:8px 18px; font-size:0.85rem;">💳 Or Click Here to Pay ₹{expected_70_inr:,} via Direct Payment Link ↗</a></div>'
+                        if payment_70_link.startswith("http")
+                        else ""
+                    )
+
                     pay_button_html = (
                         f'<div style="background:rgba(15,23,42,0.9); border:1px solid rgba(16,185,129,0.4); border-radius:14px; padding:18px; margin:14px 0; text-align:center;">'
                         f'<div style="color:#34d399; font-weight:800; font-size:1.05rem; margin-bottom:4px;">🇮🇳 Pay Remaining 70% Balance: ₹{expected_70_inr:,} INR</div>'
@@ -850,6 +860,7 @@ else:
                         f'UPI ID: <b>{INDIA_UPI_ID}</b>'
                         f'</div>'
                         f'<div style="color:#94a3b8; font-size:0.76rem;">Scan with Google Pay, PhonePe, Paytm, or BHIM. Amount (<b>₹{expected_70_inr:,}</b>) is pre-filled automatically.</div>'
+                        f'{extra_link_html}'
                         f'</div>'
                     )
                     unlock_instruction_text = "After completing your UPI or NEFT transfer, copy your <b>12-digit UPI UTR / Reference No.</b> (or Payment ID) and paste it below to immediately unlock your deliverables."
