@@ -462,6 +462,7 @@ if (run_ic50_clicked or (use_demo_t5 and "ic50_df_t5" not in st.session_state)) 
     # --- SVG 1: Multi-Compound Sigmoidal 4PL Dose-Response Curves ---
     svg1 = [
         f'<svg viewBox="0 0 {w1} {h1}" width="100%" xmlns="http://www.w3.org/2000/svg" style="background:#090d16; border:1px solid #1e293b; border-radius:12px; font-family:Inter,sans-serif;">',
+        f'<rect width="100%" height="100%" fill="#090d16" rx="12"/>',
         f'<text x="18" y="25" fill="#f8fafc" font-size="13" font-weight="800">Fig 1A. Sigmoidal 4PL Dose-Response Curves (Mean ± SD &amp; IC50 Threshold)</text>',
         f'<text x="18" y="41" fill="#94a3b8" font-size="10">X-Axis: Log10 Concentration ({unit_short}) | Y-Axis: Cell Viability (%) | Dashed Line: 50% IC50</text>'
     ]
@@ -507,6 +508,7 @@ if (run_ic50_clicked or (use_demo_t5 and "ic50_df_t5" not in st.session_state)) 
     w2, h2 = 620, 360
     svg2 = [
         f'<svg viewBox="0 0 {w2} {h2}" width="100%" xmlns="http://www.w3.org/2000/svg" style="background:#090d16; border:1px solid #1e293b; border-radius:12px; font-family:Inter,sans-serif;">',
+        f'<rect width="100%" height="100%" fill="#090d16" rx="12"/>',
         f'<text x="18" y="25" fill="#f8fafc" font-size="13" font-weight="800">Fig 1B. Compound IC50 Potency &amp; 95% Confidence Interval Comparison</text>',
         f'<text x="18" y="41" fill="#94a3b8" font-size="10">Lower IC50 indicates higher potency | Dashed threshold: High-Potency Cutoff ({high_potency_cut} {unit_short})</text>'
     ]
@@ -539,6 +541,7 @@ if (run_ic50_clicked or (use_demo_t5 and "ic50_df_t5" not in st.session_state)) 
     w3, h3 = 620, 360
     svg3 = [
         f'<svg viewBox="0 0 {w3} {h3}" width="100%" xmlns="http://www.w3.org/2000/svg" style="background:#090d16; border:1px solid #1e293b; border-radius:12px; font-family:Inter,sans-serif;">',
+        f'<rect width="100%" height="100%" fill="#090d16" rx="12"/>',
         f'<text x="18" y="25" fill="#f8fafc" font-size="13" font-weight="800">Fig 1C. Multi-Dose Cytotoxicity Screening Matrix (% Viability Heatmap)</text>',
         f'<text x="18" y="41" fill="#94a3b8" font-size="10">Emerald: High Viability | Rose: Potent Cytotoxic Killing across tested concentrations</text>'
     ]
@@ -569,6 +572,7 @@ if (run_ic50_clicked or (use_demo_t5 and "ic50_df_t5" not in st.session_state)) 
     w4, h4 = 620, 360
     svg4 = [
         f'<svg viewBox="0 0 {w4} {h4}" width="100%" xmlns="http://www.w3.org/2000/svg" style="background:#090d16; border:1px solid #1e293b; border-radius:12px; font-family:Inter,sans-serif;">',
+        f'<rect width="100%" height="100%" fill="#090d16" rx="12"/>',
         f'<text x="18" y="25" fill="#f8fafc" font-size="13" font-weight="800">Fig 1D. Therapeutic Selectivity Index (SI = CC50/IC50) &amp; 4PL Fit R²</text>',
         f'<text x="18" y="41" fill="#94a3b8" font-size="10">Selectivity relative to {ref_normal_comp[:22]} | Dashed line: SI = 3.0 safety threshold</text>'
     ]
