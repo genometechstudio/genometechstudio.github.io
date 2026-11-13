@@ -515,6 +515,7 @@ if (run_clicked or (use_demo_t2 and "sum_df_t2" not in st.session_state)) and ac
         # SVG 1: Grouped Barplot
         svg1 = [
             f'<svg viewBox="0 0 {w1} {h1}" width="100%" xmlns="http://www.w3.org/2000/svg" style="background:#090d16; border:1px solid #1e293b; border-radius:12px; font-family:Inter,sans-serif;">',
+            f'<rect width="100%" height="100%" fill="#090d16" rx="12"/>',
             f'<text x="18" y="26" fill="#f8fafc" font-size="13" font-weight="800">Fig 1A. Relative mRNA Expression (2^-ΔΔCt Fold Change ± SEM)</text>',
             f'<text x="18" y="42" fill="#94a3b8" font-size="10">Ref: {", ".join(hk_genes)} | Calibrator: {ctrl_group} (1.0x) | * p&lt;0.05, ** p&lt;0.01, *** p&lt;0.001</text>'
         ]
@@ -571,6 +572,7 @@ if (run_clicked or (use_demo_t2 and "sum_df_t2" not in st.session_state)) and ac
         w2, h2 = 620, 360
         svg2 = [
             f'<svg viewBox="0 0 {w2} {h2}" width="100%" xmlns="http://www.w3.org/2000/svg" style="background:#090d16; border:1px solid #1e293b; border-radius:12px; font-family:Inter,sans-serif;">',
+            f'<rect width="100%" height="100%" fill="#090d16" rx="12"/>',
             f'<text x="18" y="26" fill="#f8fafc" font-size="13" font-weight="800">Fig 1B. Log2 Fold-Change (-ΔΔCt) Diverging Expression Profile</text>',
             f'<text x="18" y="42" fill="#94a3b8" font-size="10">Upregulated (Log2FC &gt; 0, Emerald) vs. Downregulated (Log2FC &lt; 0, Rose) vs. {ctrl_group}</text>'
         ]
@@ -606,6 +608,7 @@ if (run_clicked or (use_demo_t2 and "sum_df_t2" not in st.session_state)) and ac
         w3, h3 = 620, 360
         svg3 = [
             f'<svg viewBox="0 0 {w3} {h3}" width="100%" xmlns="http://www.w3.org/2000/svg" style="background:#090d16; border:1px solid #1e293b; border-radius:12px; font-family:Inter,sans-serif;">',
+            f'<rect width="100%" height="100%" fill="#090d16" rx="12"/>',
             f'<text x="18" y="26" fill="#f8fafc" font-size="13" font-weight="800">Fig 1C. Multi-Gene qPCR Expression Matrix (Row Z-Score of -ΔCt)</text>',
             f'<text x="18" y="42" fill="#94a3b8" font-size="10">Sample-by-gene relative transcript abundance across biological replicates</text>'
         ]
@@ -639,6 +642,7 @@ if (run_clicked or (use_demo_t2 and "sum_df_t2" not in st.session_state)) and ac
         w4, h4 = 620, 360
         svg4 = [
             f'<svg viewBox="0 0 {w4} {h4}" width="100%" xmlns="http://www.w3.org/2000/svg" style="background:#090d16; border:1px solid #1e293b; border-radius:12px; font-family:Inter,sans-serif;">',
+            f'<rect width="100%" height="100%" fill="#090d16" rx="12"/>',
             f'<text x="18" y="26" fill="#f8fafc" font-size="13" font-weight="800">Fig 1D. MIQE Housekeeping Gene Stability &amp; Raw Ct Distribution</text>',
             f'<text x="18" y="42" fill="#94a3b8" font-size="10">Cycle threshold invariance check across experimental groups (Ideal drift &lt; 0.5 Ct)</text>'
         ]
