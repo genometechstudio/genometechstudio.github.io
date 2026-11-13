@@ -455,6 +455,7 @@ if (run_ora_clicked or (use_demo_t4 and "ora_df_t4" not in st.session_state)) an
 
         svg1 = [
             f'<svg viewBox="0 0 {w1} {h1}" width="100%" xmlns="http://www.w3.org/2000/svg" style="background:#090d16; border:1px solid #1e293b; border-radius:12px; font-family:Inter,sans-serif;">',
+            f'<rect width="100%" height="100%" fill="#090d16" rx="12"/>',
             f'<text x="18" y="25" fill="#f8fafc" font-size="13" font-weight="800">Fig 1A. GO &amp; KEGG Pathway Enrichment Bubble Plot (ORA)</text>',
             f'<text x="18" y="41" fill="#94a3b8" font-size="10">X-Axis: GeneRatio (k/n) | Bubble Size: Gene Count (k) | Color: -Log10(BH-FDR)</text>'
         ]
@@ -510,6 +511,7 @@ if (run_ora_clicked or (use_demo_t4 and "ora_df_t4" not in st.session_state)) an
         }
         svg2 = [
             f'<svg viewBox="0 0 {w2} {h2}" width="100%" xmlns="http://www.w3.org/2000/svg" style="background:#090d16; border:1px solid #1e293b; border-radius:12px; font-family:Inter,sans-serif;">',
+            f'<rect width="100%" height="100%" fill="#090d16" rx="12"/>',
             f'<text x="18" y="25" fill="#f8fafc" font-size="13" font-weight="800">Fig 1B. Ontology-Stratified Pathway Significance (-Log10 BH-FDR)</text>',
             f'<text x="18" y="41" fill="#94a3b8" font-size="10">Red dashed threshold: FDR = 0.05 (-Log10 = 1.30) | Colored by Ontology Database</text>'
         ]
@@ -535,6 +537,7 @@ if (run_ora_clicked or (use_demo_t4 and "ora_df_t4" not in st.session_state)) an
         w3, h3 = 620, 360
         svg3 = [
             f'<svg viewBox="0 0 {w3} {h3}" width="100%" xmlns="http://www.w3.org/2000/svg" style="background:#090d16; border:1px solid #1e293b; border-radius:12px; font-family:Inter,sans-serif;">',
+            f'<rect width="100%" height="100%" fill="#090d16" rx="12"/>',
             f'<text x="18" y="25" fill="#f8fafc" font-size="13" font-weight="800">Fig 1C. Pathway Directional Regulation Split (Up vs. Down DEGs)</text>',
             f'<text x="18" y="41" fill="#94a3b8" font-size="10">Right (Emerald): Upregulated Genes | Left (Rose): Downregulated Genes | Label: Z-Score</text>'
         ]
@@ -563,6 +566,7 @@ if (run_ora_clicked or (use_demo_t4 and "ora_df_t4" not in st.session_state)) an
         w4, h4 = 620, 360
         svg4 = [
             f'<svg viewBox="0 0 {w4} {h4}" width="100%" xmlns="http://www.w3.org/2000/svg" style="background:#090d16; border:1px solid #1e293b; border-radius:12px; font-family:Inter,sans-serif;">',
+            f'<rect width="100%" height="100%" fill="#090d16" rx="12"/>',
             f'<text x="18" y="25" fill="#f8fafc" font-size="13" font-weight="800">Fig 1D. Gene-to-Pathway Functional Membership Matrix (Top Pleiotropic Hubs)</text>',
             f'<text x="18" y="41" fill="#94a3b8" font-size="10">Rows: Top Enriched Pathways | Columns: Multi-Pathway Hub Genes (Colored by Log2FC)</text>'
         ]
