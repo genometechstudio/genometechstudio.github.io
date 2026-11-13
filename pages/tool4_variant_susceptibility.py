@@ -526,7 +526,7 @@ if (run_ora_clicked or (use_demo_t4 and "ora_df_t4" not in st.session_state)) an
             term_short = f"[{r['Pathway_ID']}] {r['Pathway_Term'][:24]}"
             svg2.append(f'<text x="{pad_l-8}" y="{ry + bh_h/2 + 3:.1f}" fill="#e2e8f0" font-size="9" text-anchor="end">{term_short}</text>')
             svg2.append(f'<rect x="{pad_l}" y="{ry:.1f}" width="{bw:.1f}" height="{bh_h:.1f}" fill="{c_bar}" rx="3"/>')
-            svg2.append(f'<text x="{pad_l + bw + 5:.1f}" y="{ry + bh_h/2 + 3:.1f}" fill="#cbd5e1" font-size="8.5">{val_x:.2f} ({r["Significance_Stars"]})</text>')
+            svg2.append(f'<text x="{pad_l + bw + 5:.1f}" y="{ry + bh_h/2 + 3:.1f}" fill="#cbd5e1" font-size="8.5">{val_x:.2f} ({str(r["Significance_Stars"]).replace("*", "&#42;")})</text>')
 
         thresh_x = pad_l + (1.301 / max_bar_x) * bar_plot_w
         svg2.append(f'<line x1="{thresh_x:.1f}" y1="{pad_t}" x2="{thresh_x:.1f}" y2="{pad_t+plot_h}" stroke="#fde047" stroke-dasharray="4,3" stroke-width="1.3"/>')
