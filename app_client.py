@@ -636,78 +636,78 @@ else:
     active_row = exact_rows.iloc[-1] if not exact_rows.empty else client_all_rows.iloc[-1]
 
     # ==========================================
-# 🇮🇳 INDIA DIRECT PAYMENT CONFIG (SAFE FOR PUBLIC GITHUB)
-# Real bank details are stored privately in Streamlit Secrets!
-# ==========================================
-INDIA_UPI_ID = st.secrets.get("INDIA_UPI_ID", "BHARATPE2A0G0R8H8A59248@unitype")
-INDIA_PAYEE_NAME = st.secrets.get("INDIA_PAYEE_NAME", "GenomeTech Studio")
-INDIA_BANK_HOLDER = st.secrets.get("INDIA_BANK_HOLDER", "GenomeTech Studio")
-INDIA_BANK_ACC = st.secrets.get("INDIA_BANK_ACC", "Available on Proforma Invoice")
-INDIA_BANK_IFSC = st.secrets.get("INDIA_BANK_IFSC", "Available on Proforma Invoice")
-INDIA_BANK_NAME = st.secrets.get("INDIA_BANK_NAME", "Available on Proforma Invoice")
+    # 🇮🇳 INDIA DIRECT PAYMENT CONFIG (SAFE FOR PUBLIC GITHUB)
+    # Real bank details are stored privately in Streamlit Secrets!
+    # ==========================================
+    INDIA_UPI_ID = st.secrets.get("INDIA_UPI_ID", "BHARATPE2A0G0R8H8A59248@unitype")
+    INDIA_PAYEE_NAME = st.secrets.get("INDIA_PAYEE_NAME", "GenomeTech Studio")
+    INDIA_BANK_HOLDER = st.secrets.get("INDIA_BANK_HOLDER", "GenomeTech Studio")
+    INDIA_BANK_ACC = st.secrets.get("INDIA_BANK_ACC", "Available on Proforma Invoice")
+    INDIA_BANK_IFSC = st.secrets.get("INDIA_BANK_IFSC", "Available on Proforma Invoice")
+    INDIA_BANK_NAME = st.secrets.get("INDIA_BANK_NAME", "Available on Proforma Invoice")
 
     # Extract live columns from Sheet
-client_id_val = get_col_val(active_row, ["Client ID"], st.session_state.client_id.upper())
-project_id_val = get_col_val(active_row, ["Project ID"], client_id_val)
-tier_val = get_col_val(active_row, ["Tier Selected", "Tier"], "Custom Bioinformatics Pipeline")
-modules_val = get_col_val(active_row, ["Modules Chosen", "Module"], "Standard Omics Execution")
-status_val = get_col_val(active_row, ["Status"], "In Progress")
-advance_status = get_col_val(active_row, ["Advance Paid (30%)"], "Paid")
+    client_id_val = get_col_val(active_row, ["Client ID"], st.session_state.client_id.upper())
+    project_id_val = get_col_val(active_row, ["Project ID"], client_id_val)
+    tier_val = get_col_val(active_row, ["Tier Selected", "Tier"], "Custom Bioinformatics Pipeline")
+    modules_val = get_col_val(active_row, ["Modules Chosen", "Module"], "Standard Omics Execution")
+    status_val = get_col_val(active_row, ["Status"], "In Progress")
+    advance_status = get_col_val(active_row, ["Advance Paid (30%)"], "Paid")
 
-# --- AUTO-DETECT CURRENCY (INR vs USD) FROM GOOGLE SHEET OR URL ---
-raw_total_str = str(get_col_val(active_row, ["Total Price"], "0"))
-sheet_currency_col = str(get_col_val(active_row, ["Currency"], "")).upper()
-url_currency = st.query_params.get("currency", "").upper()
+    # --- AUTO-DETECT CURRENCY (INR vs USD) FROM GOOGLE SHEET OR URL ---
+    raw_total_str = str(get_col_val(active_row, ["Total Price"], "0"))
+    sheet_currency_col = str(get_col_val(active_row, ["Currency"], "")).upper()
+    url_currency = st.query_params.get("currency", "").upper()
 
-# It is an INR project if "Total Price" contains ₹ / INR, or "Currency" column is INR, or URL has ?currency=INR
-is_inr_project = (
-    ("₹" in raw_total_str)
-    or ("INR" in raw_total_str.upper())
-    or ("RS" in raw_total_str.upper())
-    or (sheet_currency_col == "INR")
-    or (url_currency == "INR")
-)
+    # It is an INR project if "Total Price" contains ₹ / INR, or "Currency" column is INR, or URL has ?currency=INR
+    is_inr_project = (
+        ("₹" in raw_total_str)
+        or ("INR" in raw_total_str.upper())
+        or ("RS" in raw_total_str.upper())
+        or (sheet_currency_col == "INR")
+        or (url_currency == "INR")
+    )
 
-# Calculate Expected 30% & 70% Amounts Based on Sheet Data
-try:
-    total_amount = float(re.sub(r'[^\d.]', '', raw_total_str))
-except ValueError:
-    total_amount = 0.0
+    # Calculate Expected 30% & 70% Amounts Based on Sheet Data
+    try:
+        total_amount = float(re.sub(r'[^\d.]', '', raw_total_str))
+    except ValueError:
+        total_amount = 0.0
 
-# Keep total_usd variable name for backward compatibility with your existing Stripe/Razorpay logic
-total_usd = total_amount
-expected_70_amount = round(total_amount * 0.70, 2)
-expected_70_inr = int(round(total_amount * 0.70))
+    # Keep total_usd variable name for backward compatibility with your existing Stripe/Razorpay logic
+    total_usd = total_amount
+    expected_70_amount = round(total_amount * 0.70, 2)
+    expected_70_inr = int(round(total_amount * 0.70))
 
-expected_70_cents = int((total_usd * 0.70) * 100)
-if expected_70_cents <= 0:
-    expected_70_cents = 100  # Fallback to prevent free unauthorized unlocks if sheet is blank
+    expected_70_cents = int((total_usd * 0.70) * 100)
+    if expected_70_cents <= 0:
+        expected_70_cents = 100  # Fallback to prevent free unauthorized unlocks if sheet is blank
 
-raw_progress = get_col_val(active_row, ["Progress Percent", "Progress"], "0")
-try:
-    progress_val = int(float(str(raw_progress).replace("%", "").strip()))
-except Exception:
-    progress_val = 0
+    raw_progress = get_col_val(active_row, ["Progress Percent", "Progress"], "0")
+    try:
+        progress_val = int(float(str(raw_progress).replace("%", "").strip()))
+    except Exception:
+        progress_val = 0
 
-initial_link = get_col_val(active_row, ["Initial Deliverables Link", "Deliverable Link"], "")
+    initial_link = get_col_val(active_row, ["Initial Deliverables Link", "Deliverable Link"], "")
 
-# Dynamically pull the 70% payment link from the Google Sheet column
-payment_70_link = get_col_val(active_row, ["Remaining Payment (70%) Link"], "")
+    # Dynamically pull the 70% payment link from the Google Sheet column
+    payment_70_link = get_col_val(active_row, ["Remaining Payment (70%) Link"], "")
 
-payment_70_status = get_col_val(active_row, ["70% Payment Status"], "")
-final_link = get_col_val(active_row, ["Final Deliverables Link"], "")
-redo_req_existing = get_col_val(active_row, ["Redo Request Text"], "")
-feedback_existing = get_col_val(active_row, ["Client Feedback"], "")
-redo_file_link = get_col_val(active_row, ["Redo File Link", "Redo Deliverable Link", "Redo Deliverables Link"], "")
+    payment_70_status = get_col_val(active_row, ["70% Payment Status"], "")
+    final_link = get_col_val(active_row, ["Final Deliverables Link"], "")
+    redo_req_existing = get_col_val(active_row, ["Redo Request Text"], "")
+    feedback_existing = get_col_val(active_row, ["Client Feedback"], "")
+    redo_file_link = get_col_val(active_row, ["Redo File Link", "Redo Deliverable Link", "Redo Deliverables Link"], "")
 
-# --- MASTER CODE IN SHEET COLUMNS DETECTION ---
-master_in_initial = has_master_code(initial_link)
-master_in_final = has_master_code(final_link) or has_master_code(payment_70_status)
-master_in_redo = has_master_code(redo_file_link)
+    # --- MASTER CODE IN SHEET COLUMNS DETECTION ---
+    master_in_initial = has_master_code(initial_link)
+    master_in_final = has_master_code(final_link) or has_master_code(payment_70_status)
+    master_in_redo = has_master_code(redo_file_link)
 
-if master_in_initial or master_in_final or master_in_redo or bool(initial_link or final_link or redo_file_link):
-    progress_val = 100
-progress_val = max(0, min(100, progress_val))
+    if master_in_initial or master_in_final or master_in_redo or bool(initial_link or final_link or redo_file_link):
+        progress_val = 100
+    progress_val = max(0, min(100, progress_val))
 
     # --- HIDE STREAMLIT'S DEFAULT SIDEBAR NAVIGATION ---
     st.markdown(
