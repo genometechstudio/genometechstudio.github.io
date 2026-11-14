@@ -257,7 +257,17 @@ with c_mid:
     st.markdown("**2. 4PL Plateau & Unit Settings**")
     conc_unit = st.selectbox("Concentration Unit Label:", ["µM (Micromolar)", "nM (Nanomolar)", "µg/mL (Extract / Mass)", "mM (Millimolar)"], index=0, key="unit_t5")
     unit_short = conc_unit.split(" ")[0]
-    resp_type = st.selectbox("Input Response Orientation:", ["% Cell Viability (Decreases with Dose)", "% Inhibition / Scavenging (Increases with Dose)"], index=1 if "Inhibition" in app_mode else 0, key="rtype_t5")
+    def_resp_idx = 1 if ("% Inhibition Mode" in app_mode or "inhib" in str(col_resp).lower()) else 0
+    resp_type = st.selectbox(
+        "Input Response Orientation:",
+        [
+            "Auto-Detect from Dose Trend (% Viability vs % Inhibition)",
+            "% Cell Viability (Decreases with Dose)",
+            "% Inhibition / Scavenging (Increases with Dose)"
+        ],
+        index=0,
+        key="rtype_t5"
+    )
     constrain_plateaus = st.checkbox("Constrain Bottom ≥ 0% and Top ≤ 100% Plateaus", value=("2PL" in app_mode), key="chk_plat_t5")
     hill_bounds = st.slider("Allowed Hill Slope Steepness Range (|h|):", min_value=0.2, max_value=6.0, value=(0.3, 4.5), step=0.1, key="hill_rng_t5")
 
@@ -268,7 +278,7 @@ else:
 
 with c_right:
     st.markdown("**3. Selectivity Index & Potency Cutoffs**")
-    def_norm_i = next((i for i, c in enumerate(detected_comps) if any(k in c.lower() for k in ["normal", "hek", "vero", "fibro", "ctrl", "control"])), len(detected_comps) - 1)
+    def_norm_i = next((i for i, c in enumerate(detected_comps) if any(k in c.lower() for k in ["normal", "hek", "vero", "fibro", "mrc", "ctrl", "control"])), len(detected_comps) - 1)
     ref_normal_comp = st.selectbox("Reference Normal-Cell / Control Curve (for Selectivity Index SI):", options=detected_comps, index=max(0, def_norm_i), key="ref_si_t5")
     high_potency_cut = st.number_input(f"High-Potency Lead Cutoff (IC50 ≤ {unit_short}):", min_value=0.1, max_value=500.0, value=10.0, step=1.0, key="pot_cut_t5")
     r2_qc_cut = st.slider("Minimum Goodness-of-Fit (R²) QC Threshold:", min_value=0.70, max_value=0.99, value=0.90, step=0.01, key="r2_cut_t5")
@@ -288,7 +298,15 @@ if (run_ic50_clicked or (use_demo_t5 and "ic50_df_t5" not in st.session_state)) 
     df_raw = df_raw.dropna(subset=["Compound", "Conc", "Resp"])
     df_raw = df_raw[df_raw["Conc"] > 0]
 
-    if "Inhibition" in resp_type:
+    # Smart orientation detection: check if response increases or decreases with log(Conc)
+    if "Auto-Detect" in resp_type:
+        low_dose_mean = df_raw[df_raw["Conc"] == df_raw["Conc"].min()]["Resp"].mean()
+        high_dose_mean = df_raw[df_raw["Conc"] == df_raw["Conc"].max()]["Resp"].mean()
+        is_inhib_input = (high_dose_mean > low_dose_mean)
+    else:
+        is_inhib_input = ("Inhibition" in resp_type)
+
+    if is_inhib_input:
         df_raw["Viability_Pct"] = 100.0 - df_raw["Resp"]
         df_raw["Inhibition_Pct"] = df_raw["Resp"]
     else:
@@ -873,7 +891,7 @@ if "ic50_df_t5" in st.session_state:
         f'<b style="color:#f8fafc;">Automated 4PL Dose-Response Diagnostics:</b><br>'
         f'• <b>Application Pipeline:</b> {stats["mode"]}<br>'
         f'• <b>Nonlinear Regression Fit Quality:</b> Modeled <b>{stats["n_wells"]}</b> replicate assay wells across <b>{stats["n_comps"]}</b> compounds, achieving a mean 4PL coefficient of determination of <b>R² = {stats["mean_r2"]:.4f}</b>.<br>'
-        f'• <b>Pharmacological Endpoints:</b> Includes exact $\\text{{IC}}_{{50}}$, $\\text{{IC}}_{{20}}$, $\\text{{IC}}_{{80}}$, $\\text{{IC}}_{{90}}$, $\\text{{pIC}}_{{50}}$, Hill cooperativity slope ($h$), and Normal-vs-Tumor Selectivity Index ($\\text{{SI}} = \\text{{CC}}_{{50}}/\\text{{IC}}_{{50}}$).<br>'
+        f'• <b>Pharmacological Endpoints:</b> Includes exact <b>IC<sub>50</sub></b>, <b>IC<sub>20</sub></b>, <b>IC<sub>80</sub></b>, <b>IC<sub>90</sub></b>, <b>pIC<sub>50</sub></b>, Hill cooperativity slope (<i>h</i>), and Normal-vs-Tumor Selectivity Index (<b>SI = CC<sub>50</sub> / IC<sub>50</sub></b>).<br>'
         f'• <b>Most Potent Lead Identified:</b> <code>{stats["best_lead"]}</code> (Peak Selectivity Index: <b>{stats["max_si"]:.1f}x</b>).'
         f'</div>',
         unsafe_allow_html=True
