@@ -243,7 +243,7 @@ if df_input is not None:
                 "Ensembl Gene ID ➔ Official Gene Symbol",
                 "Official Gene Symbol ➔ Ensembl Gene ID",
                 "Ensembl Transcript ID ➔ Official Gene Symbol",
-                "Entrez Gene ID ➔ Official Gene Symbol"
+                "Entrez / RefSeq / UniProt ID ➔ Official Gene Symbol"
             ],
             on_change=reset_on_pipeline_change_t1
         )
@@ -253,6 +253,7 @@ if df_input is not None:
             "Rattus norvegicus (Rat)": "10116",
             "Danio rerio (Zebrafish)": "7955",
             "Drosophila melanogaster (Fruit fly)": "7227",
+            "Caenorhabditis elegans (Nematode)": "6239",
             "Arabidopsis thaliana (Thale cress)": "3702",
             "Saccharomyces cerevisiae (Yeast)": "559292",
             "Other (Enter Custom NCBI Taxon ID)": "custom"
@@ -267,7 +268,7 @@ if df_input is not None:
                 "Enter NCBI Taxonomy ID (e.g., 9913 for Cattle):",
                 value="9606",
                 on_change=reset_on_pipeline_change_t1
-            )
+            ).strip()
         else:
             species_taxid = species_map[species_choice]
 
@@ -279,7 +280,7 @@ if df_input is not None:
 
     with c3:
         st.markdown("**5. Cleaning & Excel Protection**")
-        strip_versions = st.checkbox("Strip Ensembl Version Suffixes (e.g. .15)", value=True)
+        strip_versions = st.checkbox("Strip Ensembl / RefSeq Version Suffixes (e.g. .15)", value=True)
         excel_guard = st.checkbox(
             "🛡️ Enable Excel Gene-Name Guard (Protects MARCH1 / SEPT2)",
             value=False,
@@ -295,42 +296,41 @@ if df_input is not None:
             st.session_state["is_unlocked_t1"] = False
         st.session_state["locked_pipeline_t1"] = current_pipeline_sig
 
-        with st.spinner("Querying genomic annotation databases for symbols, coordinates, and cross-references..."):
+        with st.spinner("Querying live NCBI / Ensembl / UniProt genomic databases for symbols, coordinates, and cross-references..."):
             raw_ids = df_input[id_col].astype(str).str.strip().tolist()
             
-            versions_stripped_count = sum(1 for x in raw_ids if "." in x and x.startswith("ENS")) if strip_versions else 0
-            if strip_versions:
-                clean_ids = [x.split(".")[0] if x.startswith("ENS") else x for x in raw_ids]
-            else:
-                clean_ids = raw_ids
+            def clean_single_id(val):
+                v = str(val).strip()
+                if strip_versions and "." in v and (
+                    v.upper().startswith(("ENS", "NM_", "NR_", "NP_", "XM_", "XP_", "YP_", "WP_"))
+                ):
+                    return v.split(".")[0]
+                return v
 
-            if conversion_dir == "Ensembl Gene ID ➔ Official Gene Symbol":
-                scopes = "ensembl.gene"
-                target_field = "symbol"
-                target_col_name = "Official_Gene_Symbol"
-            elif conversion_dir == "Official Gene Symbol ➔ Ensembl Gene ID":
-                scopes = "symbol,alias"
+            clean_ids = [clean_single_id(x) for x in raw_ids]
+            versions_stripped_count = sum(1 for r_v, c_v in zip(raw_ids, clean_ids) if r_v != c_v)
+
+            if conversion_dir == "Official Gene Symbol ➔ Ensembl Gene ID":
+                scopes = "symbol,alias,ensembl.gene,entrezgene,refseq,uniprot"
                 target_field = "ensembl.gene"
                 target_col_name = "Ensembl_Gene_ID"
-            elif conversion_dir == "Ensembl Transcript ID ➔ Official Gene Symbol":
-                scopes = "ensembl.transcript"
-                target_field = "symbol"
-                target_col_name = "Official_Gene_Symbol"
             else:
-                scopes = "entrezgene"
+                scopes = "ensembl.gene,ensembl.transcript,ensembl.protein,entrezgene,symbol,alias,refseq,uniprot"
                 target_field = "symbol"
                 target_col_name = "Official_Gene_Symbol"
 
-            fields_to_fetch = ["symbol", "ensembl.gene", "entrezgene", "uniprot.Swiss-Prot", "name", "type_of_gene", "genomic_pos"]
+            fields_to_fetch = ["symbol", "ensembl.gene", "entrezgene", "uniprot.Swiss-Prot", "uniprot.TrEMBL", "name", "type_of_gene", "genomic_pos"]
             
-            unique_queries = list(dict.fromkeys(clean_ids))
+            unique_queries = [q for q in dict.fromkeys(clean_ids) if q and q.lower() not in ("nan", "none", "")]
             mapping_dict = {}
             
             progress_bar = st.progress(0)
             
-            # CHUNKING LOOP: Safely hits the API 1,000 IDs at a time
-            for i in range(0, len(unique_queries), 1000):
+            # CHUNKING LOOP: Safely queries MyGene.info REST API 1,000 IDs at a time
+            for i in range(0, max(1, len(unique_queries)), 1000):
                 batch = unique_queries[i:i+1000]
+                if not batch:
+                    break
                 try:
                     res = requests.post(
                         "https://mygene.info/v3/query",
@@ -344,36 +344,44 @@ if df_input is not None:
                     )
                     if res.status_code == 200:
                         for hit in res.json():
-                            q_id = hit.get("query")
-                            if q_id in mapping_dict or hit.get("notfound", False):
+                            if not isinstance(hit, dict) or hit.get("notfound", False):
+                                continue
+                            q_id = str(hit.get("query", "")).strip()
+                            # Only skip if we already have a complete, mapped entry for this query ID
+                            if q_id in mapping_dict and mapping_dict[q_id].get("mapped", "Unmapped") != "Unmapped":
                                 continue
                             
-                            # Primary Target Field
+                            # Primary Target Field (Ensembl Gene vs Official Symbol)
                             ens = hit.get("ensembl", {})
-                            if isinstance(ens, list):
-                                ens_gene_val = ens[0].get("gene", "Unmapped")
+                            if isinstance(ens, list) and len(ens) > 0:
+                                ens_gene_val = next(( item.get("gene") for item in ens if isinstance(item, dict) and item.get("gene") ), "Unmapped")
                             elif isinstance(ens, dict):
                                 ens_gene_val = ens.get("gene", "Unmapped")
                             else:
                                 ens_gene_val = "Unmapped"
 
-                            sym_val = hit.get("symbol", "Unmapped")
+                            sym_val = str(hit.get("symbol", "Unmapped")).strip() or "Unmapped"
                             mapped_val = ens_gene_val if target_field == "ensembl.gene" else sym_val
 
-                            # Entrez & UniProt
+                            # Entrez & UniProt (Swiss-Prot preferred, fallback to TrEMBL)
                             entrez_val = str(hit.get("entrezgene", "N/A"))
-                            uniprot_raw = hit.get("uniprot", {}).get("Swiss-Prot", "N/A")
-                            if isinstance(uniprot_raw, list):
-                                uniprot_val = uniprot_raw[0]
+                            uniprot_obj = hit.get("uniprot", {})
+                            if isinstance(uniprot_obj, dict):
+                                uniprot_raw = uniprot_obj.get("Swiss-Prot", uniprot_obj.get("TrEMBL", "N/A"))
+                            else:
+                                uniprot_raw = "N/A"
+                            if isinstance(uniprot_raw, list) and len(uniprot_raw) > 0:
+                                uniprot_val = str(uniprot_raw[0])
                             else:
                                 uniprot_val = str(uniprot_raw)
 
-                            # Genomic Coordinates
+                            # Genomic Coordinates (Chr:Start-End (Strand))
                             gpos = hit.get("genomic_pos", {})
-                            if isinstance(gpos, list):
+                            if isinstance(gpos, list) and len(gpos) > 0:
                                 gpos = gpos[0]
                             if isinstance(gpos, dict) and gpos.get("chr"):
-                                chr_val = f"chr{gpos.get('chr')}"
+                                chr_raw = str(gpos.get("chr"))
+                                chr_val = chr_raw if chr_raw.lower().startswith("chr") else f"chr{chr_raw}"
                                 start_val = gpos.get("start", "N/A")
                                 end_val = gpos.get("end", "N/A")
                                 strand_raw = gpos.get("strand", 0)
@@ -384,8 +392,8 @@ if df_input is not None:
 
                             mapping_dict[q_id] = {
                                 "mapped": mapped_val,
-                                "name": hit.get("name", "N/A"),
-                                "biotype": hit.get("type_of_gene", "N/A"),
+                                "name": str(hit.get("name", "N/A")),
+                                "biotype": str(hit.get("type_of_gene", "N/A")),
                                 "entrez": entrez_val,
                                 "uniprot": uniprot_val,
                                 "locus": locus_str
@@ -393,10 +401,15 @@ if df_input is not None:
                 except Exception as e:
                     st.error(f"Network error contacting genomic server: {e}")
                     
-                progress_bar.progress(min(1.0, (i + 1000) / len(unique_queries)))
+                progress_bar.progress(min(1.0, (i + 1000) / max(1, len(unique_queries))))
 
             out_df = df_input.copy()
-            mapped_col_vals = [mapping_dict.get(cid, {}).get("mapped", "Unmapped") for cid in clean_ids]
+            # Case-insensitive fallback lookup if exact case didn't match
+            mapping_upper = {k.upper(): v for k, v in mapping_dict.items()}
+            def get_info(cid):
+                return mapping_dict.get(cid) or mapping_upper.get(cid.upper(), {})
+
+            mapped_col_vals = [get_info(cid).get("mapped", "Unmapped") for cid in clean_ids]
             
             # EXCEL GUARD APPLICATION
             if excel_guard and target_col_name == "Official_Gene_Symbol":
@@ -407,17 +420,17 @@ if df_input is not None:
             insert_pos += 1
 
             if include_name:
-                out_df.insert(insert_pos, "Gene_Biotype", [mapping_dict.get(cid, {}).get("biotype", "Unmapped") for cid in clean_ids])
-                out_df.insert(insert_pos + 1, "Gene_Description", [mapping_dict.get(cid, {}).get("name", "Unmapped") for cid in clean_ids])
+                out_df.insert(insert_pos, "Gene_Biotype", [get_info(cid).get("biotype", "Unmapped") for cid in clean_ids])
+                out_df.insert(insert_pos + 1, "Gene_Description", [get_info(cid).get("name", "Unmapped") for cid in clean_ids])
                 insert_pos += 2
 
             if include_coords:
-                out_df.insert(insert_pos, "Genomic_Coordinates (Chr:Start-End)", [mapping_dict.get(cid, {}).get("locus", "N/A") for cid in clean_ids])
+                out_df.insert(insert_pos, "Genomic_Coordinates (Chr:Start-End)", [get_info(cid).get("locus", "N/A") for cid in clean_ids])
                 insert_pos += 1
 
             if include_xrefs:
-                out_df.insert(insert_pos, "NCBI_Entrez_ID", [mapping_dict.get(cid, {}).get("entrez", "N/A") for cid in clean_ids])
-                out_df.insert(insert_pos + 1, "UniProt_SwissProt_ID", [mapping_dict.get(cid, {}).get("uniprot", "N/A") for cid in clean_ids])
+                out_df.insert(insert_pos, "NCBI_Entrez_ID", [get_info(cid).get("entrez", "N/A") for cid in clean_ids])
+                out_df.insert(insert_pos + 1, "UniProt_SwissProt_ID", [get_info(cid).get("uniprot", "N/A") for cid in clean_ids])
                 insert_pos += 2
 
             total_rows = len(out_df)
