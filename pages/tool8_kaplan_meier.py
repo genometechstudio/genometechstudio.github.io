@@ -560,17 +560,17 @@ def stratify_cohort(df, id_col, time_col, event_arr, feat_col, engine_mode, cust
     }
 
 # ==========================================
-# 4-PANEL XML-SAFE VECTOR SVG SURVIVAL SUITE
+# 4-PANEL XML-SAFE VECTOR SVG SURVIVAL SUITE (DARK MODE #090d16)
 # ==========================================
 PALETTE_SURV = {
-    "JCO / Nature Medicine (Crimson High-Risk vs Royal Blue Low-Risk)": ("#e11d48", "#2563eb"),
-    "Lancet Oncology (Deep Violet vs Emerald Teal)": ("#7c3aed", "#0d9488"),
-    "Cell Press (Amber Gold vs Cosmic Indigo)": ("#d97706", "#4f46e5"),
-    "High-Contrast Print Grayscale (Black vs Slate Gray)": ("#0f172a", "#64748b")
+    "JCO / Nature Medicine (Crimson High-Risk vs Royal Blue Low-Risk)": ("#f43f5e", "#38bdf8"),
+    "Lancet Oncology (Deep Violet vs Emerald Teal)": ("#a855f7", "#10b981"),
+    "Cell Press (Amber Gold vs Cosmic Indigo)": ("#f59e0b", "#6366f1"),
+    "High-Contrast Print Grayscale (Black vs Slate Gray)": ("#f8fafc", "#94a3b8")
 }
 
 def generate_svg_km_with_risk_table(km1, km2, cens1, cens2, med1, med2, lr_res, feat_name, endpoint_label, time_unit, palette_name, show_cens=True, show_ci=True, show_med_line=True):
-    col1, col2 = PALETTE_SURV.get(palette_name, ("#e11d48", "#2563eb"))
+    col1, col2 = PALETTE_SURV.get(palette_name, ("#f43f5e", "#38bdf8"))
     g1_name = str(km1["Cohort_Group"].iloc[0])
     g2_name = str(km2["Cohort_Group"].iloc[0])
 
@@ -587,34 +587,34 @@ def generate_svg_km_with_risk_table(km1, km2, cens1, cens2, med1, med2, lr_res, 
     def y_to_px(s_prob):
         return pad_t + plot_h - (s_prob * plot_h)
 
-    f_esc = xml_esc(feat_name)
-    ep_esc = xml_esc(endpoint_label)
-    hr_str = xml_esc(f"HR = {lr_res['hr']:.2f} (95% CI: {lr_res['hr_low']:.2f}-{lr_res['hr_high']:.2f}) | Log-Rank p = {format_p(lr_res['p_logrank'])}")
+    f_esc = xml_esc(feat_name).replace("*", "&#42;")
+    ep_esc = xml_esc(endpoint_label).replace("*", "&#42;")
+    hr_str = xml_esc(f"HR = {lr_res['hr']:.2f} (95% CI: {lr_res['hr_low']:.2f}-{lr_res['hr_high']:.2f}) | Log-Rank p = {format_p(lr_res['p_logrank'])}").replace("*", "&#42;")
 
     svg = [
-        f'<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 {width} {height}" width="100%" height="100%" style="background:#ffffff; border-radius:12px; font-family:Arial, Helvetica, sans-serif;">',
-        f'<rect x="0" y="0" width="{width}" height="{height}" fill="#ffffff" rx="12"/>',
-        f'<text x="{width/2}" y="28" text-anchor="middle" font-size="16" font-weight="bold" fill="#0f172a">Figure 1A: {f_esc} — {ep_esc} Kaplan-Meier Curve &amp; Number at Risk</text>',
-        f'<text x="{width/2}" y="48" text-anchor="middle" font-size="12" font-weight="bold" fill="#334155">{hr_str}</text>'
+        f'<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 {width} {height}" width="100%" height="100%" style="background:#090d16; border:1px solid #1e293b; border-radius:12px; font-family:Inter, Arial, sans-serif;">',
+        f'<rect x="0" y="0" width="{width}" height="{height}" fill="#090d16" rx="12"/>',
+        f'<text x="22" y="28" text-anchor="start" font-size="15.5" font-weight="bold" fill="#f8fafc">Fig 1A. {f_esc} — {ep_esc} Kaplan-Meier Curve &amp; Number at Risk</text>',
+        f'<text x="22" y="47" text-anchor="start" font-size="11.5" font-weight="bold" fill="#94a3b8">{hr_str}</text>'
     ]
 
     for s_tick in [0.0, 0.25, 0.50, 0.75, 1.0]:
         py = y_to_px(s_tick)
         dash = "6,4" if (s_tick == 0.50 and show_med_line) else "3,3"
-        stroke_c = "#94a3b8" if (s_tick == 0.50 and show_med_line) else "#e2e8f0"
+        stroke_c = "#64748b" if (s_tick == 0.50 and show_med_line) else "#1e293b"
         svg.append(f'<line x1="{pad_l}" y1="{py:.1f}" x2="{width - pad_r}" y2="{py:.1f}" stroke="{stroke_c}" stroke-dasharray="{dash}" stroke-width="1.2"/>')
-        svg.append(f'<text x="{pad_l - 10}" y="{py + 4:.1f}" text-anchor="end" font-size="11" fill="#334155">{int(s_tick*100)}%</text>')
+        svg.append(f'<text x="{pad_l - 10}" y="{py + 4:.1f}" text-anchor="end" font-size="11" fill="#94a3b8">{int(s_tick*100)}%</text>')
 
     time_ticks = [round((i / 5.0) * t_max_axis, 1) for i in range(6)]
     for tv in time_ticks:
         px = x_to_px(tv)
-        svg.append(f'<line x1="{px:.1f}" y1="{pad_t}" x2="{px:.1f}" y2="{pad_t + plot_h}" stroke="#f1f5f9" stroke-width="1"/>')
-        svg.append(f'<text x="{px:.1f}" y="{pad_t + plot_h + 20}" text-anchor="middle" font-size="11" font-weight="bold" fill="#0f172a">{tv:g}</text>')
+        svg.append(f'<line x1="{px:.1f}" y1="{pad_t}" x2="{px:.1f}" y2="{pad_t + plot_h}" stroke="#1e293b" stroke-width="1"/>')
+        svg.append(f'<text x="{px:.1f}" y="{pad_t + plot_h + 20}" text-anchor="middle" font-size="11" font-weight="bold" fill="#e2e8f0">{tv:g}</text>')
 
-    svg.append(f'<line x1="{pad_l}" y1="{pad_t}" x2="{pad_l}" y2="{pad_t + plot_h}" stroke="#0f172a" stroke-width="1.8"/>')
-    svg.append(f'<line x1="{pad_l}" y1="{pad_t + plot_h}" x2="{width - pad_r}" y2="{pad_t + plot_h}" stroke="#0f172a" stroke-width="1.8"/>')
-    svg.append(f'<text x="24" y="{pad_t + plot_h/2}" text-anchor="middle" font-size="12.5" font-weight="bold" fill="#0f172a" transform="rotate(-90, 24, {pad_t + plot_h/2})">{ep_esc} Probability (%)</text>')
-    svg.append(f'<text x="{pad_l + plot_w/2}" y="{pad_t + plot_h + 38}" text-anchor="middle" font-size="12" font-weight="bold" fill="#0f172a">Follow-Up Time ({xml_esc(time_unit)})</text>')
+    svg.append(f'<line x1="{pad_l}" y1="{pad_t}" x2="{pad_l}" y2="{pad_t + plot_h}" stroke="#475569" stroke-width="1.6"/>')
+    svg.append(f'<line x1="{pad_l}" y1="{pad_t + plot_h}" x2="{width - pad_r}" y2="{pad_t + plot_h}" stroke="#475569" stroke-width="1.6"/>')
+    svg.append(f'<text x="24" y="{pad_t + plot_h/2}" text-anchor="middle" font-size="12" font-weight="bold" fill="#cbd5e1" transform="rotate(-90, 24, {pad_t + plot_h/2})">{ep_esc} Probability (%)</text>')
+    svg.append(f'<text x="{pad_l + plot_w/2}" y="{pad_t + plot_h + 38}" text-anchor="middle" font-size="11.5" font-weight="bold" fill="#cbd5e1">Follow-Up Time ({xml_esc(time_unit)})</text>')
 
     def build_step_svg(km_df, cens_list, col, med_val):
         t_vals = km_df["Time"].values
@@ -622,7 +622,6 @@ def generate_svg_km_with_risk_table(km1, km2, cens1, cens2, med1, med2, lr_res, 
         l_vals = km_df["95%_CI_Lower"].values
         u_vals = km_df["95%_CI_Upper"].values
 
-        # Draw 95% Greenwood Confidence Interval Shaded Step Ribbon if enabled
         if show_ci and len(t_vals) > 1:
             upper_pts = []
             lower_pts = []
@@ -634,7 +633,7 @@ def generate_svg_km_with_risk_table(km1, km2, cens1, cens2, med1, med2, lr_res, 
                 lower_pts.append((x_to_px(t_vals[idx]), y_to_px(l_vals[idx])))
             poly_pts = upper_pts + lower_pts[::-1]
             poly_str = " ".join(f"{px:.1f},{py:.1f}" for px, py in poly_pts)
-            svg.append(f'<polygon points="{poly_str}" fill="{col}" fill-opacity="0.13" stroke="none"/>')
+            svg.append(f'<polygon points="{poly_str}" fill="{col}" fill-opacity="0.18" stroke="none"/>')
 
         step_coords = []
         for idx in range(len(t_vals)):
@@ -653,23 +652,23 @@ def generate_svg_km_with_risk_table(km1, km2, cens1, cens2, med1, med2, lr_res, 
         if show_cens:
             for ct, cs in cens_list:
                 px_c, py_c = x_to_px(ct), y_to_px(cs)
-                svg.append(f'<line x1="{px_c:.1f}" y1="{py_c - 4.5:.1f}" x2="{px_c:.1f}" y2="{py_c + 4.5:.1f}" stroke="{col}" stroke-width="1.8"/>')
-                svg.append(f'<line x1="{px_c - 3.5:.1f}" y1="{py_c:.1f}" x2="{px_c + 3.5:.1f}" y2="{py_c:.1f}" stroke="{col}" stroke-width="1.8"/>')
+                svg.append(f'<line x1="{px_c:.1f}" y1="{py_c - 4.5:.1f}" x2="{px_c:.1f}" y2="{py_c + 4.5:.1f}" stroke="#f8fafc" stroke-width="1.8"/>')
+                svg.append(f'<line x1="{px_c - 3.5:.1f}" y1="{py_c:.1f}" x2="{px_c + 3.5:.1f}" y2="{py_c:.1f}" stroke="#f8fafc" stroke-width="1.8"/>')
 
     build_step_svg(km1, cens1, col1, med1)
     build_step_svg(km2, cens2, col2, med2)
 
     m1_txt = f"{med1:.1f} {time_unit}" if med1 is not None else "Not Reached"
     m2_txt = f"{med2:.1f} {time_unit}" if med2 is not None else "Not Reached"
-    svg.append(f'<rect x="{width - pad_r - 295}" y="{pad_t + 8}" width="287" height="54" fill="#f8fafc" fill-opacity="0.92" stroke="#cbd5e1" rx="6"/>')
+    svg.append(f'<rect x="{width - pad_r - 295}" y="{pad_t + 8}" width="287" height="54" fill="#0f172a" fill-opacity="0.92" stroke="#334155" rx="6"/>')
     svg.append(f'<line x1="{width - pad_r - 285}" y1="{pad_t + 24}" x2="{width - pad_r - 263}" y2="{pad_t + 24}" stroke="{col1}" stroke-width="3"/>')
-    svg.append(f'<text x="{width - pad_r - 255}" y="{pad_t + 28}" font-size="10.5" font-weight="bold" fill="#0f172a">{xml_esc(g1_name[:26])} (Med: {xml_esc(m1_txt)})</text>')
+    svg.append(f'<text x="{width - pad_r - 255}" y="{pad_t + 28}" font-size="10.5" font-weight="bold" fill="#e2e8f0">{xml_esc(g1_name[:26])} (Med: {xml_esc(m1_txt)})</text>')
     svg.append(f'<line x1="{width - pad_r - 285}" y1="{pad_t + 46}" x2="{width - pad_r - 263}" y2="{pad_t + 46}" stroke="{col2}" stroke-width="3"/>')
-    svg.append(f'<text x="{width - pad_r - 255}" y="{pad_t + 50}" font-size="10.5" font-weight="bold" fill="#0f172a">{xml_esc(g2_name[:26])} (Med: {xml_esc(m2_txt)})</text>')
+    svg.append(f'<text x="{width - pad_r - 255}" y="{pad_t + 50}" font-size="10.5" font-weight="bold" fill="#e2e8f0">{xml_esc(g2_name[:26])} (Med: {xml_esc(m2_txt)})</text>')
 
     nar_top = pad_t + plot_h + 62
-    svg.append(f'<line x1="15" y1="{nar_top - 14}" x2="{width - pad_r}" y2="{nar_top - 14}" stroke="#cbd5e1" stroke-width="1.2"/>')
-    svg.append(f'<text x="18" y="{nar_top}" font-size="11" font-weight="bold" fill="#0f172a">Number at Risk:</text>')
+    svg.append(f'<line x1="15" y1="{nar_top - 14}" x2="{width - pad_r}" y2="{nar_top - 14}" stroke="#1e293b" stroke-width="1.2"/>')
+    svg.append(f'<text x="18" y="{nar_top}" font-size="11" font-weight="bold" fill="#f8fafc">Number at Risk:</text>')
     svg.append(f'<text x="18" y="{nar_top + 22}" font-size="10.5" font-weight="bold" fill="{col1}">{xml_esc(g1_name[:18])}</text>')
     svg.append(f'<text x="18" y="{nar_top + 42}" font-size="10.5" font-weight="bold" fill="{col2}">{xml_esc(g2_name[:18])}</text>')
 
@@ -686,7 +685,7 @@ def generate_svg_km_with_risk_table(km1, km2, cens1, cens2, med1, med2, lr_res, 
     return "\n".join(svg)
 
 def generate_svg_cumulative_hazard(km1, km2, feat_name, time_unit, palette_name):
-    col1, col2 = PALETTE_SURV.get(palette_name, ("#e11d48", "#2563eb"))
+    col1, col2 = PALETTE_SURV.get(palette_name, ("#f43f5e", "#38bdf8"))
     g1_name = str(km1["Cohort_Group"].iloc[0])
     g2_name = str(km2["Cohort_Group"].iloc[0])
 
@@ -704,29 +703,29 @@ def generate_svg_cumulative_hazard(km1, km2, feat_name, time_unit, palette_name)
     def y_to_px(h_val):
         return pad_t + plot_h - (h_val / max(1e-6, max_h)) * plot_h
 
-    f_esc = xml_esc(feat_name)
+    f_esc = xml_esc(feat_name).replace("*", "&#42;")
     svg = [
-        f'<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 {width} {height}" width="100%" height="100%" style="background:#ffffff; border-radius:12px; font-family:Arial, Helvetica, sans-serif;">',
-        f'<rect x="0" y="0" width="{width}" height="{height}" fill="#ffffff" rx="12"/>',
-        f'<text x="{width/2}" y="28" text-anchor="middle" font-size="16" font-weight="bold" fill="#0f172a">Figure 1B: {f_esc} — Nelson-Aalen Cumulative Hazard Curve H(t)</text>',
-        f'<text x="{width/2}" y="48" text-anchor="middle" font-size="12" fill="#475569">Cumulative Event Risk Trajectory Across Follow-Up Time ({xml_esc(time_unit)})</text>'
+        f'<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 {width} {height}" width="100%" height="100%" style="background:#090d16; border:1px solid #1e293b; border-radius:12px; font-family:Inter, Arial, sans-serif;">',
+        f'<rect x="0" y="0" width="{width}" height="{height}" fill="#090d16" rx="12"/>',
+        f'<text x="22" y="28" text-anchor="start" font-size="15.5" font-weight="bold" fill="#f8fafc">Fig 1B. {f_esc} — Nelson-Aalen Cumulative Hazard Curve H(t)</text>',
+        f'<text x="22" y="47" text-anchor="start" font-size="11.5" fill="#94a3b8">Cumulative Event Risk Trajectory Across Follow-Up Time ({xml_esc(time_unit)})</text>'
     ]
 
     for idx in range(6):
         hv = (idx / 5.0) * max_h
         py = y_to_px(hv)
-        svg.append(f'<line x1="{pad_l}" y1="{py:.1f}" x2="{width - pad_r}" y2="{py:.1f}" stroke="#e2e8f0" stroke-dasharray="4,4" stroke-width="1"/>')
-        svg.append(f'<text x="{pad_l - 10}" y="{py + 4:.1f}" text-anchor="end" font-size="11" fill="#334155">{hv:.2f}</text>')
+        svg.append(f'<line x1="{pad_l}" y1="{py:.1f}" x2="{width - pad_r}" y2="{py:.1f}" stroke="#1e293b" stroke-dasharray="4,4" stroke-width="1"/>')
+        svg.append(f'<text x="{pad_l - 10}" y="{py + 4:.1f}" text-anchor="end" font-size="11" fill="#94a3b8">{hv:.2f}</text>')
 
     for idx in range(6):
         tv = round((idx / 5.0) * t_max_axis, 1)
         px = x_to_px(tv)
-        svg.append(f'<text x="{px:.1f}" y="{pad_t + plot_h + 22}" text-anchor="middle" font-size="11" font-weight="bold" fill="#0f172a">{tv:g}</text>')
+        svg.append(f'<text x="{px:.1f}" y="{pad_t + plot_h + 22}" text-anchor="middle" font-size="11" font-weight="bold" fill="#e2e8f0">{tv:g}</text>')
 
-    svg.append(f'<line x1="{pad_l}" y1="{pad_t}" x2="{pad_l}" y2="{pad_t + plot_h}" stroke="#0f172a" stroke-width="1.8"/>')
-    svg.append(f'<line x1="{pad_l}" y1="{pad_t + plot_h}" x2="{width - pad_r}" y2="{pad_t + plot_h}" stroke="#0f172a" stroke-width="1.8"/>')
-    svg.append(f'<text x="24" y="{pad_t + plot_h/2}" text-anchor="middle" font-size="12.5" font-weight="bold" fill="#0f172a" transform="rotate(-90, 24, {pad_t + plot_h/2})">Cumulative Hazard H(t)</text>')
-    svg.append(f'<text x="{pad_l + plot_w/2}" y="{pad_t + plot_h + 44}" text-anchor="middle" font-size="12" font-weight="bold" fill="#0f172a">Follow-Up Time ({xml_esc(time_unit)})</text>')
+    svg.append(f'<line x1="{pad_l}" y1="{pad_t}" x2="{pad_l}" y2="{pad_t + plot_h}" stroke="#475569" stroke-width="1.6"/>')
+    svg.append(f'<line x1="{pad_l}" y1="{pad_t + plot_h}" x2="{width - pad_r}" y2="{pad_t + plot_h}" stroke="#475569" stroke-width="1.6"/>')
+    svg.append(f'<text x="24" y="{pad_t + plot_h/2}" text-anchor="middle" font-size="12" font-weight="bold" fill="#cbd5e1" transform="rotate(-90, 24, {pad_t + plot_h/2})">Cumulative Hazard H(t)</text>')
+    svg.append(f'<text x="{pad_l + plot_w/2}" y="{pad_t + plot_h + 44}" text-anchor="middle" font-size="11.5" font-weight="bold" fill="#cbd5e1">Follow-Up Time ({xml_esc(time_unit)})</text>')
 
     for km_df, col in [(km1, col1), (km2, col2)]:
         pts = list(zip(km_df["Time"].values, km_df["Cumulative_Hazard_H(t)"].values))
@@ -738,17 +737,17 @@ def generate_svg_cumulative_hazard(km1, km2, feat_name, time_unit, palette_name)
         path_str = "M " + " L ".join(f"{px:.1f} {py:.1f}" for px, py in step_coords)
         svg.append(f'<path d="{path_str}" fill="none" stroke="{col}" stroke-width="2.8"/>')
 
-    svg.append(f'<rect x="{pad_l + 16}" y="{pad_t + 12}" width="250" height="48" fill="#f8fafc" stroke="#cbd5e1" rx="6"/>')
+    svg.append(f'<rect x="{pad_l + 16}" y="{pad_t + 12}" width="250" height="48" fill="#0f172a" stroke="#334155" rx="6"/>')
     svg.append(f'<line x1="{pad_l + 26}" y1="{pad_t + 26}" x2="{pad_l + 48}" y2="{pad_t + 26}" stroke="{col1}" stroke-width="3"/>')
-    svg.append(f'<text x="{pad_l + 56}" y="{pad_t + 30}" font-size="10.5" font-weight="bold" fill="#0f172a">{xml_esc(g1_name[:26])}</text>')
+    svg.append(f'<text x="{pad_l + 56}" y="{pad_t + 30}" font-size="10.5" font-weight="bold" fill="#e2e8f0">{xml_esc(g1_name[:26])}</text>')
     svg.append(f'<line x1="{pad_l + 26}" y1="{pad_t + 46}" x2="{pad_l + 48}" y2="{pad_t + 46}" stroke="{col2}" stroke-width="3"/>')
-    svg.append(f'<text x="{pad_l + 56}" y="{pad_t + 50}" font-size="10.5" font-weight="bold" fill="#0f172a">{xml_esc(g2_name[:26])}</text>')
+    svg.append(f'<text x="{pad_l + 56}" y="{pad_t + 50}" font-size="10.5" font-weight="bold" fill="#e2e8f0">{xml_esc(g2_name[:26])}</text>')
 
     svg.append('</svg>')
     return "\n".join(svg)
 
 def generate_svg_hr_forest(batch_df, palette_name):
-    col1, col2 = PALETTE_SURV.get(palette_name, ("#e11d48", "#2563eb"))
+    col1, col2 = PALETTE_SURV.get(palette_name, ("#f43f5e", "#38bdf8"))
     n_rows = len(batch_df)
     width, height = 840, max(360, 140 + n_rows * 48)
     pad_l, pad_r, pad_t, pad_b = 185, 175, 65, 55
@@ -761,19 +760,19 @@ def generate_svg_hr_forest(batch_df, palette_name):
         return pad_l + ((v_c - x_min) / (x_max - x_min)) * plot_w
 
     svg = [
-        f'<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 {width} {height}" width="100%" height="100%" style="background:#ffffff; border-radius:12px; font-family:Arial, Helvetica, sans-serif;">',
-        f'<rect x="0" y="0" width="{width}" height="{height}" fill="#ffffff" rx="12"/>',
-        f'<text x="{width/2}" y="28" text-anchor="middle" font-size="16" font-weight="bold" fill="#0f172a">Figure 1C: Multi-Gene Prognostic Hazard Ratio Forest Plot (95% CI)</text>',
-        f'<text x="{width/2}" y="48" text-anchor="middle" font-size="12" fill="#475569">HR &gt; 1.0 Indicates Adverse Risk Factor | HR &lt; 1.0 Indicates Protective / Favorable Prognosis</text>'
+        f'<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 {width} {height}" width="100%" height="100%" style="background:#090d16; border:1px solid #1e293b; border-radius:12px; font-family:Inter, Arial, sans-serif;">',
+        f'<rect x="0" y="0" width="{width}" height="{height}" fill="#090d16" rx="12"/>',
+        f'<text x="22" y="28" text-anchor="start" font-size="15.5" font-weight="bold" fill="#f8fafc">Fig 1C. Multi-Gene Prognostic Hazard Ratio Forest Plot (95% CI)</text>',
+        f'<text x="22" y="47" text-anchor="start" font-size="11.5" fill="#94a3b8">HR &gt; 1.0 Indicates Adverse Risk Factor | HR &lt; 1.0 Indicates Protective / Favorable Prognosis</text>'
     ]
 
     px_one = x_to_px(0.0)
-    svg.append(f'<line x1="{px_one:.1f}" y1="{pad_t}" x2="{px_one:.1f}" y2="{pad_t + plot_h}" stroke="#0f172a" stroke-dasharray="5,4" stroke-width="1.8"/>')
-    svg.append(f'<line x1="{pad_l}" y1="{pad_t + plot_h}" x2="{width - pad_r}" y2="{pad_t + plot_h}" stroke="#0f172a" stroke-width="1.6"/>')
+    svg.append(f'<line x1="{px_one:.1f}" y1="{pad_t}" x2="{px_one:.1f}" y2="{pad_t + plot_h}" stroke="#fde047" stroke-dasharray="5,4" stroke-width="1.8"/>')
+    svg.append(f'<line x1="{pad_l}" y1="{pad_t + plot_h}" x2="{width - pad_r}" y2="{pad_t + plot_h}" stroke="#475569" stroke-width="1.6"/>')
 
     for hr_tick, l2_val in [("0.12", -3.0), ("0.25", -2.0), ("0.50", -1.0), ("1.0 (Null)", 0.0), ("2.0", 1.0), ("4.0", 2.0), ("8.0", 3.0)]:
         px = x_to_px(l2_val)
-        svg.append(f'<text x="{px:.1f}" y="{pad_t + plot_h + 22}" text-anchor="middle" font-size="10.5" font-weight="bold" fill="#334155">{hr_tick}</text>')
+        svg.append(f'<text x="{px:.1f}" y="{pad_t + plot_h + 22}" text-anchor="middle" font-size="10.5" font-weight="bold" fill="#94a3b8">{hr_tick}</text>')
 
     for idx, (_, row) in enumerate(batch_df.iterrows()):
         py = pad_t + (idx + 0.5) * (plot_h / max(1, n_rows))
@@ -786,22 +785,22 @@ def generate_svg_hr_forest(batch_df, palette_name):
         px_h = x_to_px(math.log2(high_v))
         col = col1 if hr_v >= 1.0 else col2
 
-        g_esc = xml_esc(str(row["Biomarker_or_Gene"]).replace('="', '').replace('"', ''))
-        stat_esc = xml_esc(f"HR={hr_v:.2f} (p={row['LogRank_Exact_P']})")
+        g_esc = xml_esc(str(row["Biomarker_or_Gene"]).replace('="', '').replace('"', '')).replace("*", "&#42;")
+        stat_esc = xml_esc(f"HR={hr_v:.2f} (p={row['LogRank_Exact_P']})").replace("*", "&#42;")
 
-        svg.append(f'<line x1="{pad_l}" y1="{py:.1f}" x2="{width - pad_r}" y2="{py:.1f}" stroke="#f1f5f9" stroke-width="1"/>')
-        svg.append(f'<text x="{pad_l - 12}" y="{py + 4:.1f}" text-anchor="end" font-size="11.5" font-weight="bold" fill="#0f172a">{g_esc}</text>')
+        svg.append(f'<line x1="{pad_l}" y1="{py:.1f}" x2="{width - pad_r}" y2="{py:.1f}" stroke="#1e293b" stroke-width="1"/>')
+        svg.append(f'<text x="{pad_l - 12}" y="{py + 4:.1f}" text-anchor="end" font-size="11.5" font-weight="bold" fill="#e2e8f0">{g_esc}</text>')
         svg.append(f'<line x1="{px_l:.1f}" y1="{py:.1f}" x2="{px_h:.1f}" y2="{py:.1f}" stroke="{col}" stroke-width="2.6"/>')
         svg.append(f'<line x1="{px_l:.1f}" y1="{py - 6:.1f}" x2="{px_l:.1f}" y2="{py + 6:.1f}" stroke="{col}" stroke-width="2.2"/>')
         svg.append(f'<line x1="{px_h:.1f}" y1="{py - 6:.1f}" x2="{px_h:.1f}" y2="{py + 6:.1f}" stroke="{col}" stroke-width="2.2"/>')
-        svg.append(f'<rect x="{px_hr - 5:.1f}" y="{py - 5:.1f}" width="10" height="10" fill="{col}" stroke="#ffffff" stroke-width="1.3" rx="2"/>')
-        svg.append(f'<text x="{width - pad_r + 10}" y="{py + 4:.1f}" text-anchor="start" font-size="10.5" font-weight="bold" fill="#1e293b">{stat_esc}</text>')
+        svg.append(f'<rect x="{px_hr - 5:.1f}" y="{py - 5:.1f}" width="10" height="10" fill="{col}" stroke="#090d16" stroke-width="1.3" rx="2"/>')
+        svg.append(f'<text x="{width - pad_r + 10}" y="{py + 4:.1f}" text-anchor="start" font-size="10.5" font-weight="bold" fill="#fde047">{stat_esc}</text>')
 
     svg.append('</svg>')
     return "\n".join(svg)
 
 def generate_svg_landmark_bars(km1, km2, feat_name, endpoint_label, time_unit, palette_name):
-    col1, col2 = PALETTE_SURV.get(palette_name, ("#e11d48", "#2563eb"))
+    col1, col2 = PALETTE_SURV.get(palette_name, ("#f43f5e", "#38bdf8"))
     landmarks = get_landmarks_for_unit(time_unit)
     width, height = 840, 460
     pad_l, pad_r, pad_t, pad_b = 85, 35, 65, 75
@@ -810,25 +809,25 @@ def generate_svg_landmark_bars(km1, km2, feat_name, endpoint_label, time_unit, p
     def y_to_px(pct):
         return pad_t + plot_h - (pct / 100.0) * plot_h
 
-    f_esc = xml_esc(feat_name)
-    ep_esc = xml_esc(endpoint_label)
+    f_esc = xml_esc(feat_name).replace("*", "&#42;")
+    ep_esc = xml_esc(endpoint_label).replace("*", "&#42;")
     lm_str = ", ".join(str(x) for x in landmarks)
 
     svg = [
-        f'<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 {width} {height}" width="100%" height="100%" style="background:#ffffff; border-radius:12px; font-family:Arial, Helvetica, sans-serif;">',
-        f'<rect x="0" y="0" width="{width}" height="{height}" fill="#ffffff" rx="12"/>',
-        f'<text x="{width/2}" y="28" text-anchor="middle" font-size="16" font-weight="bold" fill="#0f172a">Figure 1D: {f_esc} — Clinical Landmark {ep_esc} Rate Comparison</text>',
-        f'<text x="{width/2}" y="48" text-anchor="middle" font-size="12" fill="#475569">Estimated {ep_esc} Probability (%) at {xml_esc(lm_str)} {xml_esc(time_unit)}</text>'
+        f'<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 {width} {height}" width="100%" height="100%" style="background:#090d16; border:1px solid #1e293b; border-radius:12px; font-family:Inter, Arial, sans-serif;">',
+        f'<rect x="0" y="0" width="{width}" height="{height}" fill="#090d16" rx="12"/>',
+        f'<text x="22" y="28" text-anchor="start" font-size="15.5" font-weight="bold" fill="#f8fafc">Fig 1D. {f_esc} — Clinical Landmark {ep_esc} Rate Comparison</text>',
+        f'<text x="22" y="47" text-anchor="start" font-size="11.5" fill="#94a3b8">Estimated {ep_esc} Probability (%) at {xml_esc(lm_str)} {xml_esc(time_unit)}</text>'
     ]
 
     for s_pct in [0, 25, 50, 75, 100]:
         py = y_to_px(s_pct)
-        svg.append(f'<line x1="{pad_l}" y1="{py:.1f}" x2="{width - pad_r}" y2="{py:.1f}" stroke="#e2e8f0" stroke-dasharray="4,4" stroke-width="1"/>')
-        svg.append(f'<text x="{pad_l - 10}" y="{py + 4:.1f}" text-anchor="end" font-size="11" fill="#334155">{s_pct}%</text>')
+        svg.append(f'<line x1="{pad_l}" y1="{py:.1f}" x2="{width - pad_r}" y2="{py:.1f}" stroke="#1e293b" stroke-dasharray="4,4" stroke-width="1"/>')
+        svg.append(f'<text x="{pad_l - 10}" y="{py + 4:.1f}" text-anchor="end" font-size="11" fill="#94a3b8">{s_pct}%</text>')
 
-    svg.append(f'<line x1="{pad_l}" y1="{pad_t}" x2="{pad_l}" y2="{pad_t + plot_h}" stroke="#0f172a" stroke-width="1.8"/>')
-    svg.append(f'<line x1="{pad_l}" y1="{pad_t + plot_h}" x2="{width - pad_r}" y2="{pad_t + plot_h}" stroke="#0f172a" stroke-width="1.8"/>')
-    svg.append(f'<text x="24" y="{pad_t + plot_h/2}" text-anchor="middle" font-size="12.5" font-weight="bold" fill="#0f172a" transform="rotate(-90, 24, {pad_t + plot_h/2})">Landmark {ep_esc} (%)</text>')
+    svg.append(f'<line x1="{pad_l}" y1="{pad_t}" x2="{pad_l}" y2="{pad_t + plot_h}" stroke="#475569" stroke-width="1.6"/>')
+    svg.append(f'<line x1="{pad_l}" y1="{pad_t + plot_h}" x2="{width - pad_r}" y2="{pad_t + plot_h}" stroke="#475569" stroke-width="1.6"/>')
+    svg.append(f'<text x="24" y="{pad_t + plot_h/2}" text-anchor="middle" font-size="12" font-weight="bold" fill="#cbd5e1" transform="rotate(-90, 24, {pad_t + plot_h/2})">Landmark {ep_esc} (%)</text>')
 
     bar_w = 48
     py_zero = y_to_px(0.0)
@@ -840,17 +839,16 @@ def generate_svg_landmark_bars(km1, km2, feat_name, endpoint_label, time_unit, p
         py1, py2 = y_to_px(s1), y_to_px(s2)
         h1, h2 = max(2.0, py_zero - py1), max(2.0, py_zero - py2)
 
-        svg.append(f'<rect x="{cx - bar_w - 4:.1f}" y="{py1:.1f}" width="{bar_w}" height="{h1:.1f}" fill="{col1}" fill-opacity="0.75" stroke="{col1}" stroke-width="1.8" rx="3"/>')
+        svg.append(f'<rect x="{cx - bar_w - 4:.1f}" y="{py1:.1f}" width="{bar_w}" height="{h1:.1f}" fill="{col1}" fill-opacity="0.65" stroke="{col1}" stroke-width="1.8" rx="3"/>')
         svg.append(f'<text x="{cx - bar_w/2 - 4:.1f}" y="{py1 - 6:.1f}" text-anchor="middle" font-size="10.5" font-weight="bold" fill="{col1}">{s1:.1f}%</text>')
 
-        svg.append(f'<rect x="{cx + 4:.1f}" y="{py2:.1f}" width="{bar_w}" height="{h2:.1f}" fill="{col2}" fill-opacity="0.75" stroke="{col2}" stroke-width="1.8" rx="3"/>')
+        svg.append(f'<rect x="{cx + 4:.1f}" y="{py2:.1f}" width="{bar_w}" height="{h2:.1f}" fill="{col2}" fill-opacity="0.65" stroke="{col2}" stroke-width="1.8" rx="3"/>')
         svg.append(f'<text x="{cx + bar_w/2 + 4:.1f}" y="{py2 - 6:.1f}" text-anchor="middle" font-size="10.5" font-weight="bold" fill="{col2}">{s2:.1f}%</text>')
 
-        svg.append(f'<text x="{cx:.1f}" y="{pad_t + plot_h + 24}" text-anchor="middle" font-size="11.5" font-weight="bold" fill="#0f172a">{lm} {xml_esc(time_unit)}</text>')
+        svg.append(f'<text x="{cx:.1f}" y="{pad_t + plot_h + 24}" text-anchor="middle" font-size="11.5" font-weight="bold" fill="#e2e8f0">{lm} {xml_esc(time_unit)}</text>')
 
     svg.append('</svg>')
     return "\n".join(svg)
-
 # ==========================================
 # STEP 2: FILE UPLOAD OR DEMO DATASET
 # ==========================================
@@ -895,9 +893,8 @@ if df_input is not None and not df_input.empty:
     with st.expander(f"👁️ Inspect Loaded Survival & Expression Dataset ({len(df_input)} Patients Ready)", expanded=False):
         st.dataframe(df_input.head(6), use_container_width=True)
 
-    st.markdown("### ⚙️️ Configure Cohort Stratification Engine, Clinical Endpoint & Curve Options")
+    st.markdown("### ⚙ Configure Cohort Stratification Engine, Clinical Endpoint & Curve Options")
 
-    # Core Stratification & Survival Engine (ONLY switching this or uploading a new file resets paywall!)
     core_engine = st.selectbox(
         "1. Core Stratification & Survival Engine (Switching engine starts a new pipeline run):",
         [
@@ -970,7 +967,7 @@ if df_input is not None and not df_input.empty:
         excel_guard = st.checkbox(
             "🛡️ Enable Excel Gene-Name Guard (Protects MARCH1 / SEPT2)",
             value=False,
-            help="Wraps gene symbols as explicit Excel text strings (=\"GENE\") so Microsoft Excel never converts MARCH1 or SEPT2 into calendar dates."
+            help="Wraps gene symbols in exported CSVs so Microsoft Excel never converts MARCH1 or SEPT2 into calendar dates."
         )
 
     current_file_sig = uploaded_file.name if uploaded_file is not None else "demo_survival"
@@ -1010,7 +1007,7 @@ if df_input is not None and not df_input.empty:
 
                 summary_df = pd.DataFrame([
                     {
-                        "Target_Biomarker": (f'="{target_feature}"' if excel_guard else target_feature),
+                        "Target_Biomarker": str(target_feature),
                         "Clinical_Endpoint": endpoint_choice,
                         "Cohort_Stratum": strat["g1_label"],
                         "Stratification_Rule": strat["cutpoint_str"],
@@ -1031,7 +1028,7 @@ if df_input is not None and not df_input.empty:
                         "Significance_Call": p_to_stars(lr_res["p_logrank"])
                     },
                     {
-                        "Target_Biomarker": (f'="{target_feature}"' if excel_guard else target_feature),
+                        "Target_Biomarker": str(target_feature),
                         "Clinical_Endpoint": endpoint_choice,
                         "Cohort_Stratum": strat["g2_label"] + " [Reference]",
                         "Stratification_Rule": strat["cutpoint_str"],
@@ -1067,7 +1064,7 @@ if df_input is not None and not df_input.empty:
                         else:
                             prog_role = "Neutral / Not Significant"
                         batch_rows.append({
-                            "Biomarker_or_Gene": (f'="{g_col}"' if excel_guard else g_col),
+                            "Biomarker_or_Gene": str(g_col),
                             "Cutpoint_Used": b_strat["cutpoint_str"],
                             "Hazard_Ratio (HR)": b_lr["hr"],
                             "95%_CI_Lower": b_lr["hr_low"],
@@ -1087,7 +1084,8 @@ if df_input is not None and not df_input.empty:
                 if not batch_hr_df.empty:
                     batch_hr_df = batch_hr_df.sort_values(by="Raw_P_Numeric").reset_index(drop=True)
                     m_tests = len(batch_hr_df)
-                    bh_vals = [min(1.0, rp * m_tests / (idx + 1)) for idx, rp in enumerate(batch_hr_df["Raw_P_Numeric"])]
+                    raw_bh = [min(1.0, rp * m_tests / (idx + 1)) for idx, rp in enumerate(batch_hr_df["Raw_P_Numeric"])]
+                    bh_vals = list(np.minimum.accumulate(raw_bh[::-1])[::-1])
                     batch_hr_df.insert(8, "Benjamini_Hochberg_FDR_Q", [format_p(q) for q in bh_vals])
                     batch_hr_df = batch_hr_df.drop(columns=["Raw_P_Numeric"])
                 else:
@@ -1108,30 +1106,24 @@ if df_input is not None and not df_input.empty:
 <meta charset="utf-8"/>
 <title>GenomeTech Studio — {xml_esc(endpoint_choice)} Report ({xml_esc(target_feature)})</title>
 <style>
-  body {{ font-family: Arial, Helvetica, sans-serif; background: #f8fafc; color: #0f172a; margin: 24px; }}
-  .header {{ background: linear-gradient(90deg, #1e1b4b, #4c1d95, #1e3a8a); color: #fff; padding: 20px 28px; border-radius: 12px; margin-bottom: 24px; }}
-  .grid {{ display: grid; grid-template-columns: 1fr 1fr; gap: 20px; margin-bottom: 24px; }}
-  .card {{ background: #fff; border: 1px solid #cbd5e1; border-radius: 12px; padding: 16px; box-shadow: 0 4px 12px rgba(0,0,0,0.05); }}
-  table {{ width: 100%; border-collapse: collapse; margin-top: 12px; font-size: 13px; }}
-  th, td {{ border: 1px solid #cbd5e1; padding: 8px 10px; text-align: left; }}
-  th {{ background: #f1f5f9; }}
+  body {{ font-family: Inter, Arial, sans-serif; background: #0f172a; color: #f8fafc; padding: 28px; }}
+  .grid {{ display: grid; grid-template-columns: 1fr 1fr; gap: 18px; margin-bottom: 24px; }}
+  table {{ width: 100%; border-collapse: collapse; margin-top: 12px; font-size: 12px; }}
+  th, td {{ border: 1px solid #334155; padding: 7px 10px; text-align: left; }}
+  th {{ background: #1e293b; color: #38bdf8; }}
 </style>
 </head>
 <body>
-  <div class="header">
-    <h2 style="margin:0;">GenomeTech Studio | OmicsExpress Clinical Survival Report</h2>
-    <p style="margin:6px 0 0 0;">Endpoint: <b>{xml_esc(endpoint_choice)}</b> | Biomarker: <b>{xml_esc(target_feature)}</b> | HR = {lr_res['hr']:.2f} (Log-Rank p = {xml_esc(format_p(lr_res['p_logrank']))})</p>
-  </div>
+  <h2>GenomeTech Studio — Automated Kaplan-Meier &amp; Prognostic Survival Report</h2>
+  <p><b>Endpoint:</b> {xml_esc(endpoint_choice)} | <b>Biomarker:</b> {xml_esc(target_feature)} ({xml_esc(strat["cutpoint_str"])}) | <b>Hazard Ratio:</b> HR = {lr_res['hr']:.2f} (95% CI: {lr_res['hr_low']:.2f}-{lr_res['hr_high']:.2f}, Log-Rank p = {xml_esc(format_p(lr_res['p_logrank']))})</p>
   <div class="grid">
-    <div class="card">{svg_km}</div>
-    <div class="card">{svg_haz}</div>
-    <div class="card">{svg_forest}</div>
-    <div class="card">{svg_landmark}</div>
+    {svg_km}
+    {svg_haz}
+    {svg_forest}
+    {svg_landmark}
   </div>
-  <div class="card">
-    <h3>Cohort Survival Summary, RMST &amp; Landmark Survival Rates</h3>
-    {summary_df.to_html(index=False)}
-  </div>
+  <h3>Cohort Survival Summary, RMST &amp; Landmark Survival Rates</h3>
+  {summary_df.to_html(index=False)}
 </body>
 </html>"""
 
@@ -1154,7 +1146,8 @@ if df_input is not None and not df_input.empty:
                     "p_wilc_str": format_p(lr_res["p_wilcoxon"]),
                     "ph_status": lr_res["ph_status"],
                     "cutpoint": strat["cutpoint_str"],
-                    "engine": core_engine
+                    "engine": core_engine,
+                    "excel_guard": excel_guard
                 }
 
 # ==========================================
@@ -1178,7 +1171,6 @@ if "km_curve_df_t8" in st.session_state:
     html_rep = st.session_state["html_report_t8"]
     stats = st.session_state["stats_t8"]
 
-    # Ensure currency state is initialized
     if "currency" not in st.session_state:
         url_curr = str(st.query_params.get("currency", "USD")).strip().upper()
         st.session_state.currency = "INR" if url_curr == "INR" else "USD"
@@ -1224,12 +1216,21 @@ if "km_curve_df_t8" in st.session_state:
         st.markdown("#### 🔬 4. Exact Kaplan-Meier Step-Function Coordinates & Greenwood 95% CIs")
         st.dataframe(km_df, use_container_width=True)
 
+        # Apply Excel gene-name guard ONLY to exported CSV copies if requested
+        sum_csv_df = sum_df.copy()
+        batch_csv_df = batch_df.copy()
+        if stats.get("excel_guard", False):
+            if "Target_Biomarker" in sum_csv_df.columns:
+                sum_csv_df["Target_Biomarker"] = sum_csv_df["Target_Biomarker"].apply(lambda x: f'="{x}"')
+            if "Biomarker_or_Gene" in batch_csv_df.columns:
+                batch_csv_df["Biomarker_or_Gene"] = batch_csv_df["Biomarker_or_Gene"].apply(lambda x: f'="{x}"')
+
         st.markdown("#### ⬇️ Download Clinical Survival Tables (`.csv`) & High-Resolution Figures (`.svg` / `.html`)")
         d1, d2, d3, d4 = st.columns(4)
         with d1:
             st.download_button(
                 "⬇️ 1. Cohort Summary & RMST (.csv)",
-                data=sum_df.to_csv(index=False).encode("utf-8-sig"),
+                data=sum_csv_df.to_csv(index=False).encode("utf-8-sig"),
                 file_name=f"GenomeTech_Survival_Summary_{feat_name_t8}.csv",
                 mime="text/csv",
                 key="dl_sum_t8"
@@ -1259,7 +1260,7 @@ if "km_curve_df_t8" in st.session_state:
         with d3:
             st.download_button(
                 "⬇️ 3. Batch Multi-Gene HR Screen (.csv)",
-                data=batch_df.to_csv(index=False).encode("utf-8-sig"),
+                data=batch_csv_df.to_csv(index=False).encode("utf-8-sig"),
                 file_name="GenomeTech_Batch_Prognostic_HR_Screen.csv",
                 mime="text/csv",
                 key="dl_batch_t8"
@@ -1470,11 +1471,14 @@ if "km_curve_df_t8" in st.session_state:
     st.markdown("---")
     st.markdown("### 📝 Automated Clinical Survival Remarks & Direct Support")
 
-    st.info(
-        f"**Automated Kaplan-Meier & Prognostic Diagnostics:**\n"
-        f"* **Stratification Pipeline:** {stats.get('engine', '')} | Endpoint: `{endpoint_t8}` | Biomarker: `{feat_name_t8}` ({stats.get('cutpoint', '')})\n"
-        f"* **Hazard Ratio & Log-Rank Test:** Evaluated **{stats.get('n_total', len(pat_df))}** patients (**{stats.get('events_total', 0)}** clinical events). Mantel-Cox Log-Rank $p = {p_lr_str_t8}$ (Gehan-Breslow-Wilcoxon early-event $p = {stats.get('p_wilc_str', 'N/A')}$), with **Hazard Ratio = {hr_str_t8}**.\n"
-        f"* **Proportional Hazards & RMST Audit:** {stats.get('ph_status', '')}. Restricted Mean Survival Time (`RMST`) and Brookmeyer-Crowley 95% median survival confidence bounds are included in Deliverable #1."
+    st.markdown(
+        f'<div style="background:rgba(15,23,42,0.85); border:1px solid rgba(56,189,248,0.3); border-radius:12px; padding:16px 20px; margin-bottom:14px; font-size:0.88rem; color:#cbd5e1; line-height:1.65;">'
+        f'<b style="color:#f8fafc;">Automated Kaplan-Meier &amp; Prognostic Diagnostics:</b><br>'
+        f'• <b>Stratification Pipeline:</b> {html.escape(str(stats.get("engine", "")))} | Endpoint: <code>{html.escape(str(endpoint_t8))}</code> | Biomarker: <code>{html.escape(str(feat_name_t8))}</code> (<b>{html.escape(str(stats.get("cutpoint", "")))}</b>)<br>'
+        f'• <b>Hazard Ratio &amp; Log-Rank Test:</b> Evaluated <b>{stats.get("n_total", len(pat_df))} patients</b> (<b>{stats.get("events_total", 0)} clinical events</b>). Mantel-Cox Log-Rank <i>p</i> = <b>{html.escape(str(p_lr_str_t8))}</b> (Gehan-Breslow-Wilcoxon early-event <i>p</i> = <b>{html.escape(str(stats.get("p_wilc_str", "N/A")))}</b>), with <b>Hazard Ratio = {html.escape(str(hr_str_t8))}</b>.<br>'
+        f'• <b>Proportional Hazards &amp; RMST Audit:</b> {html.escape(str(stats.get("ph_status", "")))}. Restricted Mean Survival Time (<code>RMST</code>) and Brookmeyer-Crowley 95% median survival confidence bounds are included in Deliverable #1.'
+        f'</div>',
+        unsafe_allow_html=True
     )
 
     with st.expander("💬 Send Remarks or Questions Directly to GenomeTech Team (via Email)"):
@@ -1493,4 +1497,3 @@ if "km_curve_df_t8" in st.session_state:
             mailto_url = f"mailto:genometechstudio@gmail.com?subject={subject}&body={body}"
             st.success("✅ Your remark and survival diagnostics are ready! Click below to send directly from your email client:")
             st.markdown(f'👉 <a href="https://mail.google.com/mail/?view=cm&fs=1&to=genometechstudio@gmail.com&su={subject}&body={body}" target="_blank" style="color:#38bdf8;font-weight:700;text-decoration:underline;">Click Here to Send via Gmail (Browser)</a> &nbsp;|&nbsp; <a href="{mailto_url}" style="color:#c4b5fd;font-weight:600;text-decoration:underline;">Open in Default Mail App (Outlook/Mac)</a>', unsafe_allow_html=True)
-
