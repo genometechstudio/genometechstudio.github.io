@@ -271,29 +271,35 @@ def shapiro_normality_p(vals):
     v = np.array(vals, dtype=float)
     if len(v) < 3:
         return 1.0
+    if float(np.std(v, ddof=1)) <= 1e-9:
+        return 1.0
     try:
         _, p_val = sp_stats.shapiro(v)
         return float(p_val)
     except Exception:
-        pass
-    std_v = float(np.std(v, ddof=1))
-    if std_v <= 1e-9:
-        return 1.0
-    z_scores = (v - float(np.mean(v))) / std_v
-    skew = float(np.mean(z_scores ** 3))
-    z_stat = abs(skew) / math.sqrt(6.0 / len(v))
-    return min(1.0, max(1e-6, 2.0 * normal_sf(z_stat)))
+        z_scores = (v - float(np.mean(v))) / float(np.std(v, ddof=1))
+        skew = float(np.mean(z_scores ** 3))
+        z_stat = abs(skew) / math.sqrt(6.0 / len(v))
+        return min(1.0, max(1e-6, 2.0 * normal_sf(z_stat)))
 
 def t_dist_two_tail_p(t_val, df):
+    if df <= 0:
+        return 1.0
     try:
         return float(sp_stats.t.sf(abs(t_val), df) * 2.0)
     except Exception:
-        pass
-    t_abs = abs(t_val)
+        t_abs = abs(t_val)
+        z = math.sqrt(df * math.log(1.0 + (t_abs * t_abs) / df)) * (1.0 - 1.0 / (4.0 * df))
+        return min(1.0, max(1e-15, 2.0 * normal_sf(z)))
+
+def t_crit_95(df):
     if df <= 0:
-        return 1.0
-    z = math.sqrt(df * math.log(1.0 + (t_abs * t_abs) / df)) * (1.0 - 1.0 / (4.0 * df))
-    return min(1.0, max(1e-15, 2.0 * normal_sf(z)))
+        return 1.96
+    try:
+        val = float(sp_stats.t.ppf(0.975, df))
+        return val if (not np.isnan(val) and val > 0) else 1.96
+    except Exception:
+        return 1.96 + (2.4 / max(1.0, float(df)))
 
 def f_dist_sf_p(f_val, df1, df2):
     if f_val <= 0 or df1 <= 0 or df2 <= 0:
@@ -301,14 +307,13 @@ def f_dist_sf_p(f_val, df1, df2):
     try:
         return float(sp_stats.f.sf(f_val, df1, df2))
     except Exception:
-        pass
-    a = 2.0 / (9.0 * df1)
-    b = 2.0 / (9.0 * df2)
-    f_cbrt = f_val ** (1.0 / 3.0)
-    num = (1.0 - b) * f_cbrt - (1.0 - a)
-    den = math.sqrt(b * (f_cbrt ** 2) + a)
-    z = num / max(1e-9, den)
-    return min(1.0, max(1e-15, normal_sf(z)))
+        a = 2.0 / (9.0 * df1)
+        b = 2.0 / (9.0 * df2)
+        f_cbrt = f_val ** (1.0 / 3.0)
+        num = (1.0 - b) * f_cbrt - (1.0 - a)
+        den = math.sqrt(b * (f_cbrt ** 2) + a)
+        z = num / max(1e-9, den)
+        return min(1.0, max(1e-15, normal_sf(z)))
 
 def chi2_sf_p(chi2_val, df):
     if chi2_val <= 0 or df <= 0:
@@ -316,22 +321,36 @@ def chi2_sf_p(chi2_val, df):
     try:
         return float(sp_stats.chi2.sf(chi2_val, df))
     except Exception:
-        pass
-    k = float(df)
-    z = ((chi2_val / k) ** (1.0 / 3.0) - (1.0 - 2.0 / (9.0 * k))) / math.sqrt(2.0 / (9.0 * k))
-    return min(1.0, max(1e-15, normal_sf(z)))
+        k = float(df)
+        z = ((chi2_val / k) ** (1.0 / 3.0) - (1.0 - 2.0 / (9.0 * k))) / math.sqrt(2.0 / (9.0 * k))
+        return min(1.0, max(1e-15, normal_sf(z)))
 
 def tukey_hsd_p(q_val, k_groups, df_within):
-    if q_val <= 0:
+    if q_val <= 0 or df_within <= 0:
         return 1.0
     try:
         return float(sp_stats.studentized_range.sf(q_val, k_groups, df_within))
     except Exception:
-        pass
-    t_equiv = q_val / math.sqrt(2.0)
-    p_unadj = t_dist_two_tail_p(t_equiv, df_within)
-    n_pairs = max(1, (k_groups * (k_groups - 1)) // 2)
-    return min(1.0, max(1e-15, 1.0 - ((1.0 - p_unadj) ** n_pairs)))
+        t_equiv = q_val / math.sqrt(2.0)
+        p_unadj = t_dist_two_tail_p(t_equiv, df_within)
+        n_pairs = max(1, (k_groups * (k_groups - 1)) // 2)
+        return min(1.0, max(1e-15, 1.0 - ((1.0 - p_unadj) ** n_pairs)))
+
+def tukey_q_crit_95(k_groups, df_within):
+    if df_within <= 0 or k_groups < 2:
+        return 1.96 * math.sqrt(2.0)
+    try:
+        q_c = float(sp_stats.studentized_range.ppf(0.95, k_groups, df_within))
+        if np.isnan(q_c) or q_c <= 0:
+            raise ValueError("Invalid q_crit")
+        return q_c
+    except Exception:
+        n_pairs = max(1, (k_groups * (k_groups - 1)) // 2)
+        alpha_bonf = 0.05 / (2.0 * n_pairs)
+        try:
+            return float(sp_stats.t.ppf(1.0 - alpha_bonf, df_within) * math.sqrt(2.0))
+        except Exception:
+            return 2.776 * math.sqrt(2.0)
 
 def run_omnibus_and_posthoc(groups_dict, engine_mode):
     group_names = list(groups_dict.keys())
@@ -339,34 +358,36 @@ def run_omnibus_and_posthoc(groups_dict, engine_mode):
     k = len(arrays)
     n_total = sum(len(a) for a in arrays)
 
+    # Brown-Forsythe (median-centered Levene) test for homogeneity of variance
     z_arrays = [np.abs(a - np.median(a)) for a in arrays]
     all_z = np.concatenate(z_arrays)
-    grand_z = np.mean(all_z)
-    ss_b_z = sum(len(z) * ((np.mean(z) - grand_z) ** 2) for z in z_arrays)
-    ss_w_z = sum(np.sum((z - np.mean(z)) ** 2) for z in z_arrays)
+    grand_z = float(np.mean(all_z))
+    ss_b_z = sum(len(z) * ((float(np.mean(z)) - grand_z) ** 2) for z in z_arrays)
+    ss_w_z = sum(float(np.sum((z - float(np.mean(z))) ** 2)) for z in z_arrays)
     df1 = k - 1
-    df2 = n_total - k
-    f_levene = (ss_b_z / max(1, df1)) / max(1e-9, (ss_w_z / max(1, df2)))
+    df2 = max(1, n_total - k)
+    f_levene = (ss_b_z / max(1, df1)) / max(1e-9, (ss_w_z / df2))
     p_levene = f_dist_sf_p(f_levene, df1, df2)
 
+    # One-Way ANOVA sums of squares & effect sizes (Eta^2 and Omega^2)
     all_vals = np.concatenate(arrays)
-    grand_mean = np.mean(all_vals)
-    ss_between = sum(len(a) * ((np.mean(a) - grand_mean) ** 2) for a in arrays)
-    ss_within = sum(np.sum((a - np.mean(a)) ** 2) for a in arrays)
+    grand_mean = float(np.mean(all_vals))
+    ss_between = sum(len(a) * ((float(np.mean(a)) - grand_mean) ** 2) for a in arrays)
+    ss_within = sum(float(np.sum((a - float(np.mean(a))) ** 2)) for a in arrays)
     ss_total = ss_between + ss_within
     ms_between = ss_between / max(1, df1)
-    ms_within = ss_within / max(1, df2)
+    ms_within = ss_within / df2
 
     eta_sq = round(ss_between / max(1e-9, ss_total), 4)
     omega_sq = round(max(0.0, (ss_between - df1 * ms_within) / max(1e-9, ss_total + ms_within)), 4)
 
     if "Welch" in engine_mode:
-        weights = [len(a) / max(1e-9, np.var(a, ddof=1)) for a in arrays]
+        weights = [len(a) / max(1e-9, float(np.var(a, ddof=1))) for a in arrays]
         w_sum = sum(weights)
-        mean_star = sum(w * np.mean(a) for w, a in zip(weights, arrays)) / w_sum
-        lambda_term = sum(((1.0 - (w / w_sum)) ** 2) / max(1, len(a) - 1) for w, a in zip(weights, arrays))
+        mean_star = sum(w * float(np.mean(a)) for w, a in zip(weights, arrays)) / max(1e-9, w_sum)
+        lambda_term = sum(((1.0 - (w / max(1e-9, w_sum))) ** 2) / max(1, len(a) - 1) for w, a in zip(weights, arrays))
         f_stat = (
-            sum(w * ((np.mean(a) - mean_star) ** 2) for w, a in zip(weights, arrays)) / max(1, k - 1)
+            sum(w * ((float(np.mean(a)) - mean_star) ** 2) for w, a in zip(weights, arrays)) / max(1, k - 1)
         ) / (1.0 + (2.0 * (k - 2) / max(1, (k * k - 1))) * lambda_term)
         df_welch = ((k * k - 1) / max(1e-9, 3.0 * lambda_term))
         p_omni = f_dist_sf_p(f_stat, df1, df_welch)
@@ -375,16 +396,19 @@ def run_omnibus_and_posthoc(groups_dict, engine_mode):
         try:
             h_stat, p_omni = sp_stats.kruskal(*arrays)
             f_stat = float(h_stat)
+            p_omni = float(p_omni)
         except Exception:
             ranks = pd.Series(all_vals).rank().values
             idx = 0
             r_sums = []
             for a in arrays:
-                r_sums.append(np.sum(ranks[idx : idx + len(a)]))
+                r_sums.append(float(np.sum(ranks[idx : idx + len(a)])))
                 idx += len(a)
-            h_stat = (12.0 / (n_total * (n_total + 1))) * sum((rs ** 2) / len(a) for rs, a in zip(r_sums, arrays)) - 3.0 * (n_total + 1)
-            f_stat = float(h_stat)
-            p_omni = chi2_sf_p(h_stat, df1)
+            h_raw = (12.0 / (n_total * (n_total + 1))) * sum((rs ** 2) / len(a) for rs, a in zip(r_sums, arrays)) - 3.0 * (n_total + 1)
+            _, tie_counts = np.unique(all_vals, return_counts=True)
+            tie_corr = 1.0 - (float(np.sum(tie_counts ** 3 - tie_counts)) / max(1.0, float(n_total ** 3 - n_total)))
+            f_stat = float(h_raw / max(1e-9, tie_corr))
+            p_omni = chi2_sf_p(f_stat, df1)
         omni_name = f"Kruskal-Wallis H({df1}) = {f_stat:.2f}"
     else:
         f_stat = ms_between / max(1e-9, ms_within)
@@ -395,11 +419,15 @@ def run_omnibus_and_posthoc(groups_dict, engine_mode):
     posthoc_rows = []
 
     all_ranks = pd.Series(all_vals).rank().values
+    _, kw_tie_counts = np.unique(all_vals, return_counts=True)
+    kw_tie_term = float(np.sum(kw_tie_counts ** 3 - kw_tie_counts)) / (12.0 * max(1, n_total - 1))
     group_mean_ranks = {}
     curr_i = 0
     for g, a in zip(group_names, arrays):
-        group_mean_ranks[g] = np.mean(all_ranks[curr_i : curr_i + len(a)])
+        group_mean_ranks[g] = float(np.mean(all_ranks[curr_i : curr_i + len(a)]))
         curr_i += len(a)
+
+    q_crit_tukey = tukey_q_crit_95(k, df2)
 
     for i in range(k):
         for j in range(i + 1, k):
@@ -407,39 +435,47 @@ def run_omnibus_and_posthoc(groups_dict, engine_mode):
             a1, a2 = arrays[i], arrays[j]
             n1, n2 = len(a1), len(a2)
             m1, m2 = float(np.mean(a1)), float(np.mean(a2))
-            sd1, sd2 = float(np.std(a1, ddof=1)), float(np.std(a2, ddof=1))
+            sd1 = float(np.std(a1, ddof=1)) if n1 > 1 else 0.0
+            sd2 = float(np.std(a2, ddof=1)) if n2 > 1 else 0.0
 
             mean_diff = m2 - m1
             fold_change = round(m2 / m1, 3) if abs(m1) > 1e-9 else 0.0
 
-            s_pool = math.sqrt(((n1 - 1) * (sd1 ** 2) + (n2 - 1) * (sd2 ** 2)) / max(1, n1 + n2 - 2))
-            cohens_d = round(abs(mean_diff) / max(1e-9, s_pool), 3)
+            df_pair = max(1, n1 + n2 - 2)
+            s_pool = math.sqrt(((n1 - 1) * (sd1 ** 2) + (n2 - 1) * (sd2 ** 2)) / df_pair)
+            cohens_d_raw = abs(mean_diff) / max(1e-9, s_pool)
+            cohens_d = round(cohens_d_raw, 3)
 
             if "Welch" in engine_mode:
-                se_gh = math.sqrt((sd1 ** 2) / n1 + (sd2 ** 2) / n2)
-                q_gh = abs(mean_diff) / max(1e-9, se_gh / math.sqrt(2.0))
-                df_gh = (((sd1 ** 2) / n1 + (sd2 ** 2) / n2) ** 2) / max(
+                v1_n = (sd1 ** 2) / max(1, n1)
+                v2_n = (sd2 ** 2) / max(1, n2)
+                se_gh = math.sqrt(v1_n + v2_n)
+                se_tukey_gh = se_gh / math.sqrt(2.0)
+                q_gh = abs(mean_diff) / max(1e-9, se_tukey_gh)
+                df_gh = ((v1_n + v2_n) ** 2) / max(
                     1e-9,
-                    (((sd1 ** 2) / n1) ** 2) / max(1, n1 - 1) + (((sd2 ** 2) / n2) ** 2) / max(1, n2 - 1)
+                    ((v1_n ** 2) / max(1, n1 - 1)) + ((v2_n ** 2) / max(1, n2 - 1))
                 )
                 p_adj = tukey_hsd_p(q_gh, k, df_gh)
                 stat_label = f"q = {q_gh:.3f} (Games-Howell)"
-                ci_half = 1.96 * se_gh
+                q_crit_gh = tukey_q_crit_95(k, df_gh)
+                ci_half = q_crit_gh * se_tukey_gh
             elif "Kruskal-Wallis" in engine_mode:
-                se_dunn = math.sqrt((n_total * (n_total + 1) / 12.0) * (1.0 / n1 + 1.0 / n2))
+                var_rank = max(1e-9, ((n_total * (n_total + 1)) / 12.0) - kw_tie_term)
+                se_dunn = math.sqrt(var_rank * (1.0 / max(1, n1) + 1.0 / max(1, n2)))
                 z_dunn = abs(group_mean_ranks[g2] - group_mean_ranks[g1]) / max(1e-9, se_dunn)
                 p_raw = 2.0 * normal_sf(z_dunn)
                 p_adj = min(1.0, p_raw * n_pairs)
                 stat_label = f"Z = {z_dunn:.3f} (Dunn's Test)"
-                se_diff = math.sqrt((sd1 ** 2) / n1 + (sd2 ** 2) / n2)
-                ci_half = 1.96 * se_diff
+                se_diff = math.sqrt((sd1 ** 2) / max(1, n1) + (sd2 ** 2) / max(1, n2))
+                ci_half = t_crit_95(df_pair) * se_diff
             else:
-                se_tukey = math.sqrt(ms_within * 0.5 * (1.0 / n1 + 1.0 / n2))
+                se_tukey = math.sqrt(ms_within * 0.5 * (1.0 / max(1, n1) + 1.0 / max(1, n2)))
                 q_tukey = abs(mean_diff) / max(1e-9, se_tukey)
                 p_adj = tukey_hsd_p(q_tukey, k, df2)
                 stat_label = f"q = {q_tukey:.3f} (Tukey HSD)"
-                se_diff = math.sqrt(ms_within * (1.0 / n1 + 1.0 / n2))
-                ci_half = 1.96 * se_diff
+                # Exact Family-Wise 95% CI using Studentized Range critical value q_(0.95, k, df2)
+                ci_half = q_crit_tukey * se_tukey
 
             posthoc_rows.append({
                 "Comparison (Group A vs Group B)": f"{g1} vs {g2}",
@@ -473,16 +509,16 @@ def run_omnibus_and_posthoc(groups_dict, engine_mode):
     }
 
 # ==========================================
-# 4-PANEL XML-SAFE VECTOR SVG FIGURE SUITE
+# 4-PANEL XML-SAFE VECTOR SVG FIGURE SUITE (DARK MODE #090d16)
 # ==========================================
 PALETTE_MAP = {
-    "Nature Biotech (Cosmic Indigo / Violet / Cyan / Emerald)": ["#6366f1", "#a855f7", "#06b6d4", "#10b981", "#f59e0b", "#ec4899"],
-    "Cell Press (Crimson / Royal Blue / Teal / Amber)": ["#e11d48", "#2563eb", "#0d9488", "#d97706", "#7c3aed", "#475569"],
-    "High-Contrast Grayscale (Print Journal Ready)": ["#334155", "#64748b", "#94a3b8", "#475569", "#1e293b", "#cbd5e1"]
+    "Nature Biotech (Cosmic Indigo / Violet / Cyan / Emerald)": ["#38bdf8", "#a855f7", "#10b981", "#f43f5e", "#f59e0b", "#6366f1"],
+    "Cell Press (Crimson / Royal Blue / Teal / Amber)": ["#f43f5e", "#3b82f6", "#14b8a6", "#f59e0b", "#8b5cf6", "#94a3b8"],
+    "High-Contrast Grayscale (Print Journal Ready)": ["#f8fafc", "#cbd5e1", "#94a3b8", "#64748b", "#475569", "#e2e8f0"]
 }
 
 def xml_esc(txt):
-    return html.escape(str(txt), quote=True)
+    return html.escape(str(txt), quote=True).replace("*", "&#42;")
 
 def generate_svg_boxplot(groups_dict, feature_name, omni_summary, posthoc_df, palette_name):
     colors = PALETTE_MAP.get(palette_name, list(PALETTE_MAP.values())[0])
@@ -512,21 +548,21 @@ def generate_svg_boxplot(groups_dict, feature_name, omni_summary, posthoc_df, pa
     sub_esc = xml_esc(f'{omni_summary["omni_name"]} | p = {omni_summary["p_omni_str"]} | Eta2 = {omni_summary["eta_sq"]}')
 
     svg = [
-        f'<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 {width} {height}" width="100%" height="100%" style="background:#ffffff; border-radius:12px; font-family:Arial, Helvetica, sans-serif;">',
-        f'<rect x="0" y="0" width="{width}" height="{height}" fill="#ffffff" rx="12"/>',
-        f'<text x="{width/2}" y="28" text-anchor="middle" font-size="16" font-weight="bold" fill="#0f172a">Figure 1A: {f_esc} — Boxplot, Replicate Jitter &amp; Post-Hoc Brackets</text>',
-        f'<text x="{width/2}" y="48" text-anchor="middle" font-size="12" fill="#475569">{sub_esc}</text>'
+        f'<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 {width} {height}" width="100%" height="100%" style="background:#090d16; border:1px solid #1e293b; border-radius:12px; font-family:Inter, Arial, sans-serif;">',
+        f'<rect x="0" y="0" width="{width}" height="{height}" fill="#090d16" rx="12"/>',
+        f'<text x="22" y="28" text-anchor="start" font-size="15.5" font-weight="bold" fill="#f8fafc">Fig 1A. {f_esc} — Boxplot, Replicate Jitter &amp; Post-Hoc Brackets</text>',
+        f'<text x="22" y="47" text-anchor="start" font-size="11.5" fill="#94a3b8">{sub_esc}</text>'
     ]
 
     for t_idx in range(6):
         y_val = y_min + (t_idx / 5.0) * (y_max - y_min)
         py = y_to_px(y_val)
-        svg.append(f'<line x1="{pad_l}" y1="{py:.1f}" x2="{width - pad_r}" y2="{py:.1f}" stroke="#e2e8f0" stroke-dasharray="4,4" stroke-width="1"/>')
-        svg.append(f'<text x="{pad_l - 10}" y="{py + 4:.1f}" text-anchor="end" font-size="11" fill="#334155">{y_val:.1f}</text>')
+        svg.append(f'<line x1="{pad_l}" y1="{py:.1f}" x2="{width - pad_r}" y2="{py:.1f}" stroke="#1e293b" stroke-dasharray="4,4" stroke-width="1"/>')
+        svg.append(f'<text x="{pad_l - 10}" y="{py + 4:.1f}" text-anchor="end" font-size="11" fill="#94a3b8">{y_val:.1f}</text>')
 
-    svg.append(f'<line x1="{pad_l}" y1="{pad_t}" x2="{pad_l}" y2="{pad_t + plot_h}" stroke="#0f172a" stroke-width="1.8"/>')
-    svg.append(f'<line x1="{pad_l}" y1="{pad_t + plot_h}" x2="{width - pad_r}" y2="{pad_t + plot_h}" stroke="#0f172a" stroke-width="1.8"/>')
-    svg.append(f'<text x="22" y="{pad_t + plot_h/2}" text-anchor="middle" font-size="12.5" font-weight="bold" fill="#0f172a" transform="rotate(-90, 22, {pad_t + plot_h/2})">{f_esc}</text>')
+    svg.append(f'<line x1="{pad_l}" y1="{pad_t}" x2="{pad_l}" y2="{pad_t + plot_h}" stroke="#475569" stroke-width="1.6"/>')
+    svg.append(f'<line x1="{pad_l}" y1="{pad_t + plot_h}" x2="{width - pad_r}" y2="{pad_t + plot_h}" stroke="#475569" stroke-width="1.6"/>')
+    svg.append(f'<text x="22" y="{pad_t + plot_h/2}" text-anchor="middle" font-size="12" font-weight="bold" fill="#cbd5e1" transform="rotate(-90, 22, {pad_t + plot_h/2})">{f_esc}</text>')
 
     box_w = min(72, (plot_w / max(1, k)) * 0.46)
     for idx, g_name in enumerate(group_names):
@@ -544,25 +580,25 @@ def generate_svg_boxplot(groups_dict, feature_name, omni_summary, posthoc_df, pa
         py_q25, py_med, py_q75 = y_to_px(q25), y_to_px(med), y_to_px(q75)
         py_low, py_high, py_mean = y_to_px(low_whisk), y_to_px(high_whisk), y_to_px(mean_val)
 
-        svg.append(f'<line x1="{cx:.1f}" y1="{py_high:.1f}" x2="{cx:.1f}" y2="{py_q75:.1f}" stroke="#1e293b" stroke-width="1.6"/>')
-        svg.append(f'<line x1="{cx:.1f}" y1="{py_q25:.1f}" x2="{cx:.1f}" y2="{py_low:.1f}" stroke="#1e293b" stroke-width="1.6"/>')
-        svg.append(f'<line x1="{cx - box_w*0.3:.1f}" y1="{py_high:.1f}" x2="{cx + box_w*0.3:.1f}" y2="{py_high:.1f}" stroke="#1e293b" stroke-width="1.6"/>')
-        svg.append(f'<line x1="{cx - box_w*0.3:.1f}" y1="{py_low:.1f}" x2="{cx + box_w*0.3:.1f}" y2="{py_low:.1f}" stroke="#1e293b" stroke-width="1.6"/>')
+        svg.append(f'<line x1="{cx:.1f}" y1="{py_high:.1f}" x2="{cx:.1f}" y2="{py_q75:.1f}" stroke="#cbd5e1" stroke-width="1.5"/>')
+        svg.append(f'<line x1="{cx:.1f}" y1="{py_q25:.1f}" x2="{cx:.1f}" y2="{py_low:.1f}" stroke="#cbd5e1" stroke-width="1.5"/>')
+        svg.append(f'<line x1="{cx - box_w*0.3:.1f}" y1="{py_high:.1f}" x2="{cx + box_w*0.3:.1f}" y2="{py_high:.1f}" stroke="#cbd5e1" stroke-width="1.5"/>')
+        svg.append(f'<line x1="{cx - box_w*0.3:.1f}" y1="{py_low:.1f}" x2="{cx + box_w*0.3:.1f}" y2="{py_low:.1f}" stroke="#cbd5e1" stroke-width="1.5"/>')
 
         box_top = min(py_q75, py_q25)
         box_h = max(2.0, abs(py_q25 - py_q75))
-        svg.append(f'<rect x="{cx - box_w/2:.1f}" y="{box_top:.1f}" width="{box_w:.1f}" height="{box_h:.1f}" fill="{col}" fill-opacity="0.28" stroke="{col}" stroke-width="2.2" rx="3"/>')
-        svg.append(f'<line x1="{cx - box_w/2:.1f}" y1="{py_med:.1f}" x2="{cx + box_w/2:.1f}" y2="{py_med:.1f}" stroke="#0f172a" stroke-width="2.5"/>')
-        svg.append(f'<polygon points="{cx:.1f},{py_mean-4:.1f} {cx+4:.1f},{py_mean:.1f} {cx:.1f},{py_mean+4:.1f} {cx-4:.1f},{py_mean:.1f}" fill="#ffffff" stroke="#0f172a" stroke-width="1.4"/>')
+        svg.append(f'<rect x="{cx - box_w/2:.1f}" y="{box_top:.1f}" width="{box_w:.1f}" height="{box_h:.1f}" fill="{col}" fill-opacity="0.32" stroke="{col}" stroke-width="2.2" rx="3"/>')
+        svg.append(f'<line x1="{cx - box_w/2:.1f}" y1="{py_med:.1f}" x2="{cx + box_w/2:.1f}" y2="{py_med:.1f}" stroke="#f8fafc" stroke-width="2.4"/>')
+        svg.append(f'<polygon points="{cx:.1f},{py_mean-4:.1f} {cx+4:.1f},{py_mean:.1f} {cx:.1f},{py_mean+4:.1f} {cx-4:.1f},{py_mean:.1f}" fill="#fde047" stroke="#090d16" stroke-width="1.2"/>')
 
         for pt_i, v in enumerate(vals):
             px_pt = cx + ((pt_i % 5) - 2.0) * (box_w * 0.12)
             py_pt = y_to_px(v)
-            svg.append(f'<circle cx="{px_pt:.1f}" cy="{py_pt:.1f}" r="3.5" fill="{col}" stroke="#ffffff" stroke-width="1"/>')
+            svg.append(f'<circle cx="{px_pt:.1f}" cy="{py_pt:.1f}" r="3.6" fill="{col}" stroke="#090d16" stroke-width="1"/>')
 
         g_esc = xml_esc(g_name)
-        svg.append(f'<text x="{cx:.1f}" y="{pad_t + plot_h + 23}" text-anchor="middle" font-size="11.5" font-weight="bold" fill="#0f172a">{g_esc}</text>')
-        svg.append(f'<text x="{cx:.1f}" y="{pad_t + plot_h + 39}" text-anchor="middle" font-size="10.5" fill="#64748b">(n = {len(vals)})</text>')
+        svg.append(f'<text x="{cx:.1f}" y="{pad_t + plot_h + 23}" text-anchor="middle" font-size="11.5" font-weight="bold" fill="#e2e8f0">{g_esc}</text>')
+        svg.append(f'<text x="{cx:.1f}" y="{pad_t + plot_h + 39}" text-anchor="middle" font-size="10.5" fill="#94a3b8">(n = {len(vals)})</text>')
 
     base_bracket_y = y_max_raw + 0.06 * span
     for b_idx, (_, s_row) in enumerate(sig_pairs.iterrows()):
@@ -571,9 +607,9 @@ def generate_svg_boxplot(groups_dict, feature_name, omni_summary, posthoc_df, pa
             i_a, i_b = group_names.index(g_a), group_names.index(g_b)
             x1, x2 = x_for_group(min(i_a, i_b)), x_for_group(max(i_a, i_b))
             by = y_to_px(base_bracket_y + (b_idx * 0.11 * span))
-            svg.append(f'<path d="M {x1:.1f} {by+6:.1f} L {x1:.1f} {by:.1f} L {x2:.1f} {by:.1f} L {x2:.1f} {by+6:.1f}" fill="none" stroke="#0f172a" stroke-width="1.5"/>')
+            svg.append(f'<path d="M {x1:.1f} {by+6:.1f} L {x1:.1f} {by:.1f} L {x2:.1f} {by:.1f} L {x2:.1f} {by+6:.1f}" fill="none" stroke="#94a3b8" stroke-width="1.4"/>')
             lbl = xml_esc(f"{s_row['Short_Stars']} (p={s_row['Exact_Adjusted_P_Value']})")
-            svg.append(f'<text x="{(x1+x2)/2:.1f}" y="{by - 4:.1f}" text-anchor="middle" font-size="10.5" font-weight="bold" fill="#0f172a">{lbl}</text>')
+            svg.append(f'<text x="{(x1+x2)/2:.1f}" y="{by - 4:.1f}" text-anchor="middle" font-size="10.5" font-weight="bold" fill="#fde047">{lbl}</text>')
 
     svg.append('</svg>')
     return "\n".join(svg)
@@ -602,21 +638,21 @@ def generate_svg_barchart(groups_dict, feature_name, omni_summary, posthoc_df, p
 
     f_esc = xml_esc(feature_name)
     svg = [
-        f'<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 {width} {height}" width="100%" height="100%" style="background:#ffffff; border-radius:12px; font-family:Arial, Helvetica, sans-serif;">',
-        f'<rect x="0" y="0" width="{width}" height="{height}" fill="#ffffff" rx="12"/>',
-        f'<text x="{width/2}" y="28" text-anchor="middle" font-size="16" font-weight="bold" fill="#0f172a">Figure 1B: {f_esc} — Mean &#177; SD Bar Chart &amp; Replicate Overlay</text>',
-        f'<text x="{width/2}" y="48" text-anchor="middle" font-size="12" fill="#475569">Error bars represent &#177; 1 SD with individual biological replicates overlaid</text>'
+        f'<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 {width} {height}" width="100%" height="100%" style="background:#090d16; border:1px solid #1e293b; border-radius:12px; font-family:Inter, Arial, sans-serif;">',
+        f'<rect x="0" y="0" width="{width}" height="{height}" fill="#090d16" rx="12"/>',
+        f'<text x="22" y="28" text-anchor="start" font-size="15.5" font-weight="bold" fill="#f8fafc">Fig 1B. {f_esc} — Mean &#177; SD Bar Chart &amp; Replicate Overlay</text>',
+        f'<text x="22" y="47" text-anchor="start" font-size="11.5" fill="#94a3b8">Error bars represent &#177; 1 SD with individual biological replicates overlaid</text>'
     ]
 
     for t_idx in range(6):
         y_val = y_min + (t_idx / 5.0) * (y_max - y_min)
         py = y_to_px(y_val)
-        svg.append(f'<line x1="{pad_l}" y1="{py:.1f}" x2="{width - pad_r}" y2="{py:.1f}" stroke="#e2e8f0" stroke-dasharray="4,4" stroke-width="1"/>')
-        svg.append(f'<text x="{pad_l - 10}" y="{py + 4:.1f}" text-anchor="end" font-size="11" fill="#334155">{y_val:.1f}</text>')
+        svg.append(f'<line x1="{pad_l}" y1="{py:.1f}" x2="{width - pad_r}" y2="{py:.1f}" stroke="#1e293b" stroke-dasharray="4,4" stroke-width="1"/>')
+        svg.append(f'<text x="{pad_l - 10}" y="{py + 4:.1f}" text-anchor="end" font-size="11" fill="#94a3b8">{y_val:.1f}</text>')
 
-    svg.append(f'<line x1="{pad_l}" y1="{pad_t}" x2="{pad_l}" y2="{pad_t + plot_h}" stroke="#0f172a" stroke-width="1.8"/>')
-    svg.append(f'<line x1="{pad_l}" y1="{pad_t + plot_h}" x2="{width - pad_r}" y2="{pad_t + plot_h}" stroke="#0f172a" stroke-width="1.8"/>')
-    svg.append(f'<text x="22" y="{pad_t + plot_h/2}" text-anchor="middle" font-size="12.5" font-weight="bold" fill="#0f172a" transform="rotate(-90, 22, {pad_t + plot_h/2})">{f_esc} (Mean &#177; SD)</text>')
+    svg.append(f'<line x1="{pad_l}" y1="{pad_t}" x2="{pad_l}" y2="{pad_t + plot_h}" stroke="#475569" stroke-width="1.6"/>')
+    svg.append(f'<line x1="{pad_l}" y1="{pad_t + plot_h}" x2="{width - pad_r}" y2="{pad_t + plot_h}" stroke="#475569" stroke-width="1.6"/>')
+    svg.append(f'<text x="22" y="{pad_t + plot_h/2}" text-anchor="middle" font-size="12" font-weight="bold" fill="#cbd5e1" transform="rotate(-90, 22, {pad_t + plot_h/2})">{f_esc} (Mean &#177; SD)</text>')
 
     bar_w = min(68, (plot_w / max(1, k)) * 0.44)
     py_zero = y_to_px(max(0.0, y_min))
@@ -636,21 +672,21 @@ def generate_svg_barchart(groups_dict, feature_name, omni_summary, posthoc_df, p
 
         b_top = min(py_m, py_zero)
         b_height = max(2.0, abs(py_zero - py_m))
-        svg.append(f'<rect x="{cx - bar_w/2:.1f}" y="{b_top:.1f}" width="{bar_w:.1f}" height="{b_height:.1f}" fill="{col}" fill-opacity="0.45" stroke="{col}" stroke-width="2" rx="3"/>')
+        svg.append(f'<rect x="{cx - bar_w/2:.1f}" y="{b_top:.1f}" width="{bar_w:.1f}" height="{b_height:.1f}" fill="{col}" fill-opacity="0.55" stroke="{col}" stroke-width="2" rx="3"/>')
 
-        svg.append(f'<line x1="{cx:.1f}" y1="{py_top_sd:.1f}" x2="{cx:.1f}" y2="{py_bot_sd:.1f}" stroke="#0f172a" stroke-width="2"/>')
-        svg.append(f'<line x1="{cx - bar_w*0.28:.1f}" y1="{py_top_sd:.1f}" x2="{cx + bar_w*0.28:.1f}" y2="{py_top_sd:.1f}" stroke="#0f172a" stroke-width="2"/>')
-        svg.append(f'<line x1="{cx - bar_w*0.28:.1f}" y1="{py_bot_sd:.1f}" x2="{cx + bar_w*0.28:.1f}" y2="{py_bot_sd:.1f}" stroke="#0f172a" stroke-width="2"/>')
-        svg.append(f'<text x="{cx:.1f}" y="{py_top_sd - 6:.1f}" text-anchor="middle" font-size="10.5" font-weight="bold" fill="#1e293b">{m_val:.1f}</text>')
+        svg.append(f'<line x1="{cx:.1f}" y1="{py_top_sd:.1f}" x2="{cx:.1f}" y2="{py_bot_sd:.1f}" stroke="#e2e8f0" stroke-width="1.8"/>')
+        svg.append(f'<line x1="{cx - bar_w*0.28:.1f}" y1="{py_top_sd:.1f}" x2="{cx + bar_w*0.28:.1f}" y2="{py_top_sd:.1f}" stroke="#e2e8f0" stroke-width="1.8"/>')
+        svg.append(f'<line x1="{cx - bar_w*0.28:.1f}" y1="{py_bot_sd:.1f}" x2="{cx + bar_w*0.28:.1f}" y2="{py_bot_sd:.1f}" stroke="#e2e8f0" stroke-width="1.8"/>')
+        svg.append(f'<text x="{cx:.1f}" y="{py_top_sd - 6:.1f}" text-anchor="middle" font-size="10.5" font-weight="bold" fill="#f8fafc">{m_val:.1f}</text>')
 
         for pt_i, v in enumerate(vals):
             px_pt = cx + ((pt_i % 5) - 2.0) * (bar_w * 0.12)
             py_pt = y_to_px(v)
-            svg.append(f'<circle cx="{px_pt:.1f}" cy="{py_pt:.1f}" r="3.4" fill="#0f172a" fill-opacity="0.75" stroke="#ffffff" stroke-width="0.9"/>')
+            svg.append(f'<circle cx="{px_pt:.1f}" cy="{py_pt:.1f}" r="3.4" fill="#f8fafc" fill-opacity="0.85" stroke="#090d16" stroke-width="1"/>')
 
         g_esc = xml_esc(g_name)
-        svg.append(f'<text x="{cx:.1f}" y="{pad_t + plot_h + 23}" text-anchor="middle" font-size="11.5" font-weight="bold" fill="#0f172a">{g_esc}</text>')
-        svg.append(f'<text x="{cx:.1f}" y="{pad_t + plot_h + 39}" text-anchor="middle" font-size="10.5" fill="#64748b">(n = {len(vals)})</text>')
+        svg.append(f'<text x="{cx:.1f}" y="{pad_t + plot_h + 23}" text-anchor="middle" font-size="11.5" font-weight="bold" fill="#e2e8f0">{g_esc}</text>')
+        svg.append(f'<text x="{cx:.1f}" y="{pad_t + plot_h + 39}" text-anchor="middle" font-size="10.5" fill="#94a3b8">(n = {len(vals)})</text>')
 
     base_bracket_y = y_max_raw * 1.08
     for b_idx, (_, s_row) in enumerate(sig_pairs.iterrows()):
@@ -659,9 +695,9 @@ def generate_svg_barchart(groups_dict, feature_name, omni_summary, posthoc_df, p
             i_a, i_b = group_names.index(g_a), group_names.index(g_b)
             x1, x2 = x_for_group(min(i_a, i_b)), x_for_group(max(i_a, i_b))
             by = y_to_px(base_bracket_y + (b_idx * 0.08 * span))
-            svg.append(f'<path d="M {x1:.1f} {by+5:.1f} L {x1:.1f} {by:.1f} L {x2:.1f} {by:.1f} L {x2:.1f} {by+5:.1f}" fill="none" stroke="#0f172a" stroke-width="1.5"/>')
+            svg.append(f'<path d="M {x1:.1f} {by+5:.1f} L {x1:.1f} {by:.1f} L {x2:.1f} {by:.1f} L {x2:.1f} {by+5:.1f}" fill="none" stroke="#94a3b8" stroke-width="1.4"/>')
             lbl = xml_esc(f"{s_row['Short_Stars']} (p={s_row['Exact_Adjusted_P_Value']})")
-            svg.append(f'<text x="{(x1+x2)/2:.1f}" y="{by - 4:.1f}" text-anchor="middle" font-size="10.5" font-weight="bold" fill="#0f172a">{lbl}</text>')
+            svg.append(f'<text x="{(x1+x2)/2:.1f}" y="{by - 4:.1f}" text-anchor="middle" font-size="10.5" font-weight="bold" fill="#fde047">{lbl}</text>')
 
     svg.append('</svg>')
     return "\n".join(svg)
@@ -670,7 +706,7 @@ def generate_svg_forest_ci(posthoc_df, feature_name, palette_name):
     colors = PALETTE_MAP.get(palette_name, list(PALETTE_MAP.values())[0])
     n_rows = len(posthoc_df)
     width, height = 820, max(360, 140 + n_rows * 48)
-    pad_l, pad_r, pad_t, pad_b = 225, 130, 65, 55
+    pad_l, pad_r, pad_t, pad_b = 235, 140, 65, 55
     plot_w, plot_h = width - pad_l - pad_r, height - pad_t - pad_b
 
     ci_min = float(min(0.0, posthoc_df["95%_CI_Lower"].min()))
@@ -683,20 +719,20 @@ def generate_svg_forest_ci(posthoc_df, feature_name, palette_name):
 
     f_esc = xml_esc(feature_name)
     svg = [
-        f'<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 {width} {height}" width="100%" height="100%" style="background:#ffffff; border-radius:12px; font-family:Arial, Helvetica, sans-serif;">',
-        f'<rect x="0" y="0" width="{width}" height="{height}" fill="#ffffff" rx="12"/>',
-        f'<text x="{width/2}" y="28" text-anchor="middle" font-size="16" font-weight="bold" fill="#0f172a">Figure 1C: {f_esc} — Post-Hoc 95% Confidence Interval Forest Plot</text>',
-        f'<text x="{width/2}" y="48" text-anchor="middle" font-size="12" fill="#475569">Pairwise Mean Difference (Group B - Group A) with 95% Family-Wise Confidence Intervals</text>'
+        f'<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 {width} {height}" width="100%" height="100%" style="background:#090d16; border:1px solid #1e293b; border-radius:12px; font-family:Inter, Arial, sans-serif;">',
+        f'<rect x="0" y="0" width="{width}" height="{height}" fill="#090d16" rx="12"/>',
+        f'<text x="22" y="28" text-anchor="start" font-size="15.5" font-weight="bold" fill="#f8fafc">Fig 1C. {f_esc} — Post-Hoc 95% Confidence Interval Forest Plot</text>',
+        f'<text x="22" y="47" text-anchor="start" font-size="11.5" fill="#94a3b8">Pairwise Mean Difference (Group B - Group A) with 95% Family-Wise Confidence Intervals</text>'
     ]
 
     px_zero = x_to_px(0.0)
-    svg.append(f'<line x1="{px_zero:.1f}" y1="{pad_t}" x2="{px_zero:.1f}" y2="{pad_t + plot_h}" stroke="#ef4444" stroke-dasharray="5,4" stroke-width="1.8"/>')
-    svg.append(f'<line x1="{pad_l}" y1="{pad_t + plot_h}" x2="{width - pad_r}" y2="{pad_t + plot_h}" stroke="#0f172a" stroke-width="1.6"/>')
+    svg.append(f'<line x1="{px_zero:.1f}" y1="{pad_t}" x2="{px_zero:.1f}" y2="{pad_t + plot_h}" stroke="#f43f5e" stroke-dasharray="5,4" stroke-width="1.8"/>')
+    svg.append(f'<line x1="{pad_l}" y1="{pad_t + plot_h}" x2="{width - pad_r}" y2="{pad_t + plot_h}" stroke="#475569" stroke-width="1.6"/>')
 
     for t_idx in range(5):
         xv = x_min + (t_idx / 4.0) * (x_max - x_min)
         px = x_to_px(xv)
-        svg.append(f'<text x="{px:.1f}" y="{pad_t + plot_h + 22}" text-anchor="middle" font-size="11" fill="#334155">{xv:.1f}</text>')
+        svg.append(f'<text x="{px:.1f}" y="{pad_t + plot_h + 22}" text-anchor="middle" font-size="11" fill="#94a3b8">{xv:.1f}</text>')
 
     for idx, (_, row) in enumerate(posthoc_df.iterrows()):
         py = pad_t + (idx + 0.5) * (plot_h / max(1, n_rows))
@@ -704,19 +740,19 @@ def generate_svg_forest_ci(posthoc_df, feature_name, palette_name):
         low = float(row["95%_CI_Lower"])
         high = float(row["95%_CI_Upper"])
         is_sig = row["Adjusted_P_Value_Numeric"] < 0.05
-        col = colors[0] if is_sig else "#94a3b8"
+        col = colors[0] if is_sig else "#64748b"
 
         px_md, px_l, px_h = x_to_px(md), x_to_px(low), x_to_px(high)
         comp_esc = xml_esc(row["Comparison (Group A vs Group B)"])
         p_esc = xml_esc(f"{row['Short_Stars']} (p={row['Exact_Adjusted_P_Value']})")
 
-        svg.append(f'<line x1="{pad_l}" y1="{py:.1f}" x2="{width - pad_r}" y2="{py:.1f}" stroke="#f1f5f9" stroke-width="1"/>')
-        svg.append(f'<text x="{pad_l - 12}" y="{py + 4:.1f}" text-anchor="end" font-size="11.5" font-weight="bold" fill="#0f172a">{comp_esc}</text>')
+        svg.append(f'<line x1="{pad_l}" y1="{py:.1f}" x2="{width - pad_r}" y2="{py:.1f}" stroke="#1e293b" stroke-width="1"/>')
+        svg.append(f'<text x="{pad_l - 10}" y="{py + 4:.1f}" text-anchor="end" font-size="10.8" font-weight="bold" fill="#e2e8f0">{comp_esc}</text>')
         svg.append(f'<line x1="{px_l:.1f}" y1="{py:.1f}" x2="{px_h:.1f}" y2="{py:.1f}" stroke="{col}" stroke-width="2.6"/>')
         svg.append(f'<line x1="{px_l:.1f}" y1="{py - 6:.1f}" x2="{px_l:.1f}" y2="{py + 6:.1f}" stroke="{col}" stroke-width="2.2"/>')
         svg.append(f'<line x1="{px_h:.1f}" y1="{py - 6:.1f}" x2="{px_h:.1f}" y2="{py + 6:.1f}" stroke="{col}" stroke-width="2.2"/>')
-        svg.append(f'<circle cx="{px_md:.1f}" cy="{py:.1f}" r="5.2" fill="{col}" stroke="#ffffff" stroke-width="1.4"/>')
-        svg.append(f'<text x="{width - pad_r + 10}" y="{py + 4:.1f}" text-anchor="start" font-size="11" font-weight="bold" fill="#1e293b">{p_esc}</text>')
+        svg.append(f'<circle cx="{px_md:.1f}" cy="{py:.1f}" r="5.2" fill="{col}" stroke="#090d16" stroke-width="1.4"/>')
+        svg.append(f'<text x="{width - pad_r + 10}" y="{py + 4:.1f}" text-anchor="start" font-size="10.5" font-weight="bold" fill="#fde047">{p_esc}</text>')
 
     svg.append('</svg>')
     return "\n".join(svg)
@@ -740,23 +776,23 @@ def generate_svg_multi_profile(df_input, group_col, num_cols, palette_name):
         return pad_l + (idx + 0.5) * (plot_w / max(1, k))
 
     svg = [
-        f'<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 {width} {height}" width="100%" height="100%" style="background:#ffffff; border-radius:12px; font-family:Arial, Helvetica, sans-serif;">',
-        f'<rect x="0" y="0" width="{width}" height="{height}" fill="#ffffff" rx="12"/>',
-        f'<text x="{width/2}" y="28" text-anchor="middle" font-size="16" font-weight="bold" fill="#0f172a">Figure 1D: Multi-Biomarker Cohort Z-Score Expression Trajectory</text>',
-        f'<text x="{width/2}" y="48" text-anchor="middle" font-size="12" fill="#475569">Standardized Group Mean Z-Score (Mean = 0, SD = 1) Across Experimental Groups</text>'
+        f'<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 {width} {height}" width="100%" height="100%" style="background:#090d16; border:1px solid #1e293b; border-radius:12px; font-family:Inter, Arial, sans-serif;">',
+        f'<rect x="0" y="0" width="{width}" height="{height}" fill="#090d16" rx="12"/>',
+        f'<text x="22" y="28" text-anchor="start" font-size="15.5" font-weight="bold" fill="#f8fafc">Fig 1D. Multi-Biomarker Cohort Z-Score Expression Trajectory</text>',
+        f'<text x="22" y="47" text-anchor="start" font-size="11.5" fill="#94a3b8">Standardized Group Mean Z-Score (Mean = 0, SD = 1) Across Experimental Groups</text>'
     ]
 
     for zv in [-2.0, -1.0, 0.0, 1.0, 2.0]:
         py = y_to_px(zv)
-        svg.append(f'<line x1="{pad_l}" y1="{py:.1f}" x2="{width - pad_r}" y2="{py:.1f}" stroke="#e2e8f0" stroke-dasharray="4,4" stroke-width="1"/>')
-        svg.append(f'<text x="{pad_l - 10}" y="{py + 4:.1f}" text-anchor="end" font-size="11" fill="#334155">{zv:+.1f} SD</text>')
+        svg.append(f'<line x1="{pad_l}" y1="{py:.1f}" x2="{width - pad_r}" y2="{py:.1f}" stroke="#1e293b" stroke-dasharray="4,4" stroke-width="1"/>')
+        svg.append(f'<text x="{pad_l - 10}" y="{py + 4:.1f}" text-anchor="end" font-size="11" fill="#94a3b8">{zv:+.1f} SD</text>')
 
-    svg.append(f'<line x1="{pad_l}" y1="{pad_t}" x2="{pad_l}" y2="{pad_t + plot_h}" stroke="#0f172a" stroke-width="1.8"/>')
-    svg.append(f'<line x1="{pad_l}" y1="{pad_t + plot_h}" x2="{width - pad_r}" y2="{pad_t + plot_h}" stroke="#0f172a" stroke-width="1.8"/>')
+    svg.append(f'<line x1="{pad_l}" y1="{pad_t}" x2="{pad_l}" y2="{pad_t + plot_h}" stroke="#475569" stroke-width="1.6"/>')
+    svg.append(f'<line x1="{pad_l}" y1="{pad_t + plot_h}" x2="{width - pad_r}" y2="{pad_t + plot_h}" stroke="#475569" stroke-width="1.6"/>')
 
     for idx, g_name in enumerate(group_names):
         cx = x_for_group(idx)
-        svg.append(f'<text x="{cx:.1f}" y="{pad_t + plot_h + 25}" text-anchor="middle" font-size="11.5" font-weight="bold" fill="#0f172a">{xml_esc(g_name)}</text>')
+        svg.append(f'<text x="{cx:.1f}" y="{pad_t + plot_h + 25}" text-anchor="middle" font-size="11.5" font-weight="bold" fill="#e2e8f0">{xml_esc(g_name)}</text>')
 
     for f_idx, f_col in enumerate(features):
         col = colors[f_idx % len(colors)]
@@ -775,11 +811,11 @@ def generate_svg_multi_profile(df_input, group_col, num_cols, palette_name):
             path_d = "M " + " L ".join(f"{px:.1f} {py:.1f}" for px, py in pts)
             svg.append(f'<path d="{path_d}" fill="none" stroke="{col}" stroke-width="2.6"/>')
         for px, py in pts:
-            svg.append(f'<circle cx="{px:.1f}" cy="{py:.1f}" r="4.8" fill="{col}" stroke="#ffffff" stroke-width="1.3"/>')
+            svg.append(f'<circle cx="{px:.1f}" cy="{py:.1f}" r="4.8" fill="{col}" stroke="#090d16" stroke-width="1.3"/>')
 
         leg_y = pad_t + 20 + f_idx * 28
         svg.append(f'<rect x="{width - pad_r + 14}" y="{leg_y - 9}" width="14" height="14" fill="{col}" rx="3"/>')
-        svg.append(f'<text x="{width - pad_r + 34}" y="{leg_y + 2}" font-size="11" font-weight="bold" fill="#1e293b">{xml_esc(f_col[:18])}</text>')
+        svg.append(f'<text x="{width - pad_r + 34}" y="{leg_y + 2}" font-size="11" font-weight="bold" fill="#e2e8f0">{xml_esc(f_col[:18])}</text>')
 
     svg.append('</svg>')
     return "\n".join(svg)
@@ -804,18 +840,15 @@ df_input = None
 if uploaded_file is not None:
     try:
         sep = "\t" if uploaded_file.name.lower().endswith((".tsv", ".txt")) else ","
-        
-        # 1. Vertical Protection: Stop reading at 50,000 rows
         df_input = pd.read_csv(uploaded_file, sep=sep, nrows=50000)
-        
+
         if len(df_input) == 50000:
             st.warning("⚠ File exceeds 50,000 rows. Truncating to the first 50,000 to ensure stable performance.")
-            
-        # 2. Horizontal Protection: Drop excess columns to prevent Batch ANOVA timeouts
+
         if len(df_input.columns) > 1000:
             st.warning(f"⚠ File contains {len(df_input.columns):,} columns. Truncating to the first 1,000 features to protect server memory and compute limits.")
             df_input = df_input.iloc[:, :1000]
-            
+
     except Exception as e:
         st.error(f"Error reading file: {e}")
 elif use_sample:
@@ -830,7 +863,6 @@ if df_input is not None and not df_input.empty:
 
     st.markdown("### ⚙️ Configure Statistical Engine, Target Biomarker & 4-Plot Figure Styling")
 
-    # Core Statistical Engine (ONLY switching this or uploading a new file resets the paywall!)
     core_engine = st.selectbox(
         "1. Core Omnibus & Post-Hoc Statistical Engine (Switching engine starts a new pipeline run):",
         [
@@ -874,7 +906,7 @@ if df_input is not None and not df_input.empty:
         excel_guard = st.checkbox(
             "🛡️ Enable Excel Gene-Name Guard (Protects MARCH1 / SEPT2)",
             value=False,
-            help="Wraps biomarker/gene names so Microsoft Excel never converts MARCH1 or SEPT2 into calendar dates."
+            help="Wraps biomarker/gene names in exported CSVs so Microsoft Excel never converts MARCH1 or SEPT2 into calendar dates."
         )
 
     with c3:
@@ -931,11 +963,12 @@ if df_input is not None and not df_input.empty:
                     sd_g = float(np.std(vals, ddof=1)) if n_g > 1 else 0.0
                     sem_g = sd_g / math.sqrt(n_g) if n_g > 0 else 0.0
                     cv_pct = round((sd_g / abs(m_g)) * 100.0, 2) if abs(m_g) > 1e-9 else 0.0
-                    ci_95_m = 1.96 * sem_g
+                    # Exact two-tailed t-distribution critical value for 95% CI of group mean
+                    ci_95_m = t_crit_95(max(1, n_g - 1)) * sem_g
                     q25, med, q75 = np.percentile(vals, [25, 50, 75])
                     p_shap = shapiro_normality_p(vals)
                     desc_rows.append({
-                        "Feature_Biomarker": (f'="{target_feature}"' if excel_guard else target_feature),
+                        "Feature_Biomarker": str(target_feature),
                         "Experimental_Group": g_name,
                         "Sample_Size (N)": n_g,
                         "Mean": round(m_g, 3),
@@ -965,9 +998,8 @@ if df_input is not None and not df_input.empty:
                         if len(f_groups) >= 2:
                             b_res = run_omnibus_and_posthoc(f_groups, core_engine)
                             top_pair_row = b_res["posthoc"].sort_values(by="Adjusted_P_Value_Numeric").iloc[0]
-                            disp_feat = f'="{f_col}"' if excel_guard else f_col
                             batch_rows.append({
-                                "Biomarker_or_Gene": disp_feat,
+                                "Biomarker_or_Gene": str(f_col),
                                 "Omnibus_Statistic": b_res["omni_name"],
                                 "Raw_Omnibus_P_Numeric": b_res["p_omni"],
                                 "Omnibus_Exact_P": b_res["p_omni_str"],
@@ -982,10 +1014,11 @@ if df_input is not None and not df_input.empty:
                     if not batch_df.empty:
                         batch_df = batch_df.sort_values(by="Raw_Omnibus_P_Numeric").reset_index(drop=True)
                         m_tests = len(batch_df)
-                        bh_vals = [
+                        raw_bh = [
                             min(1.0, row_p * m_tests / (rank_i + 1))
                             for rank_i, row_p in enumerate(batch_df["Raw_Omnibus_P_Numeric"])
                         ]
+                        bh_vals = list(np.minimum.accumulate(raw_bh[::-1])[::-1])
                         batch_df.insert(4, "Benjamini_Hochberg_FDR_Q", [format_p(q) for q in bh_vals])
                         batch_df.insert(5, "FDR_Significance", [p_to_stars(q) for q in bh_vals])
                         batch_df = batch_df.drop(columns=["Raw_Omnibus_P_Numeric"])
@@ -1007,30 +1040,24 @@ if df_input is not None and not df_input.empty:
 <meta charset="utf-8"/>
 <title>GenomeTech Studio — ANOVA &amp; Post-Hoc Visual Report ({xml_esc(target_feature)})</title>
 <style>
-  body {{ font-family: Arial, Helvetica, sans-serif; background: #f8fafc; color: #0f172a; margin: 24px; }}
-  .header {{ background: linear-gradient(90deg, #1e1b4b, #4c1d95, #1e3a8a); color: #fff; padding: 20px 28px; border-radius: 12px; margin-bottom: 24px; }}
-  .grid {{ display: grid; grid-template-columns: 1fr 1fr; gap: 20px; margin-bottom: 24px; }}
-  .card {{ background: #fff; border: 1px solid #cbd5e1; border-radius: 12px; padding: 16px; box-shadow: 0 4px 12px rgba(0,0,0,0.05); }}
-  table {{ width: 100%; border-collapse: collapse; margin-top: 12px; font-size: 13px; }}
-  th, td {{ border: 1px solid #cbd5e1; padding: 8px 10px; text-align: left; }}
-  th {{ background: #f1f5f9; }}
+  body {{ font-family: Inter, Arial, sans-serif; background: #0f172a; color: #f8fafc; padding: 28px; }}
+  .grid {{ display: grid; grid-template-columns: 1fr 1fr; gap: 18px; margin-bottom: 24px; }}
+  table {{ width: 100%; border-collapse: collapse; margin-top: 12px; font-size: 12px; }}
+  th, td {{ border: 1px solid #334155; padding: 7px 10px; text-align: left; }}
+  th {{ background: #1e293b; color: #38bdf8; }}
 </style>
 </head>
 <body>
-  <div class="header">
-    <h2 style="margin:0;">GenomeTech Studio | OmicsExpress Biostatistical Report</h2>
-    <p style="margin:6px 0 0 0;">Target Biomarker: <b>{xml_esc(target_feature)}</b> | Engine: {xml_esc(core_engine)} | {xml_esc(res["omni_name"])} (p = {xml_esc(res["p_omni_str"])})</p>
-  </div>
+  <h2>GenomeTech Studio — Automated ANOVA &amp; Post-Hoc Biostatistics Report</h2>
+  <p><b>Target Biomarker:</b> {xml_esc(target_feature)} | <b>Statistical Engine:</b> {xml_esc(core_engine)} | <b>Omnibus Result:</b> {xml_esc(res["omni_name"])} (p = {xml_esc(res["p_omni_str"])}, &eta;&sup2; = {res["eta_sq"]})</p>
   <div class="grid">
-    <div class="card">{svg_box}</div>
-    <div class="card">{svg_bar}</div>
-    <div class="card">{svg_forest}</div>
-    <div class="card">{svg_profile}</div>
+    {svg_box}
+    {svg_bar}
+    {svg_forest}
+    {svg_profile}
   </div>
-  <div class="card">
-    <h3>Pairwise Post-Hoc Comparisons &amp; Effect Sizes</h3>
-    {posthoc_df.to_html(index=False)}
-  </div>
+  <h3>Pairwise Post-Hoc Comparisons &amp; Effect Sizes</h3>
+  {posthoc_df.to_html(index=False)}
 </body>
 </html>"""
 
@@ -1054,12 +1081,12 @@ if df_input is not None and not df_input.empty:
                     "eta_sq": res["eta_sq"],
                     "p_levene_str": res["p_levene_str"],
                     "p_levene_num": res["p_levene"],
-                    "engine": core_engine
+                    "engine": core_engine,
+                    "excel_guard": excel_guard
                 }
 
 # ==========================================
 # 🇮🇳 INDIA DIRECT PAYMENT CONFIG (PULLS PRIVATELY FROM STREAMLIT SECRETS)
-# Safe for Public GitHub! Make sure these 6 keys are in this app's Streamlit Secrets.
 # ==========================================
 INDIA_UPI_ID = st.secrets.get("INDIA_UPI_ID", "BHARATPE2A0G0R8H8A59248@unitype")
 INDIA_PAYEE_NAME = st.secrets.get("INDIA_PAYEE_NAME", "GenomeTech Studio")
@@ -1082,7 +1109,6 @@ if "posthoc_df_t7" in st.session_state:
     html_rep = st.session_state["html_report_t7"]
     stats = st.session_state["stats_t7"]
 
-    # Ensure currency state is initialized
     if "currency" not in st.session_state:
         url_curr = str(st.query_params.get("currency", "USD")).strip().upper()
         st.session_state.currency = "INR" if url_curr == "INR" else "USD"
@@ -1120,6 +1146,15 @@ if "posthoc_df_t7" in st.session_state:
         st.markdown("#### 🧬 3. Multi-Biomarker Batch ANOVA + Benjamini-Hochberg FDR Screen")
         st.dataframe(batch_df, use_container_width=True)
 
+        # Apply Excel gene-name guard ONLY to exported CSV copies if requested
+        desc_csv_df = desc_df.copy()
+        batch_csv_df = batch_df.copy()
+        if stats.get("excel_guard", False):
+            if "Feature_Biomarker" in desc_csv_df.columns:
+                desc_csv_df["Feature_Biomarker"] = desc_csv_df["Feature_Biomarker"].apply(lambda x: f'="{x}"')
+            if "Biomarker_or_Gene" in batch_csv_df.columns:
+                batch_csv_df["Biomarker_or_Gene"] = batch_csv_df["Biomarker_or_Gene"].apply(lambda x: f'="{x}"')
+
         st.markdown("#### ⬇️ Download Statistical Tables (`.csv`) & High-Resolution Figures (`.svg` / `.html`)")
         d1, d2, d3, d4 = st.columns(4)
         with d1:
@@ -1140,7 +1175,7 @@ if "posthoc_df_t7" in st.session_state:
         with d2:
             st.download_button(
                 "⬇️ 2. Group Descriptives (.csv)",
-                data=desc_df.to_csv(index=False).encode("utf-8-sig"),
+                data=desc_csv_df.to_csv(index=False).encode("utf-8-sig"),
                 file_name=f"GenomeTech_Group_Descriptives_{stats['feature']}.csv",
                 mime="text/csv",
                 key="dl_desc_t7"
@@ -1155,7 +1190,7 @@ if "posthoc_df_t7" in st.session_state:
         with d3:
             st.download_button(
                 "⬇️ 3. Batch ANOVA FDR (.csv)",
-                data=batch_df.to_csv(index=False).encode("utf-8-sig"),
+                data=batch_csv_df.to_csv(index=False).encode("utf-8-sig"),
                 file_name="GenomeTech_Batch_ANOVA_FDR_Screen.csv",
                 mime="text/csv",
                 key="dl_batch_t7"
@@ -1355,16 +1390,19 @@ if "posthoc_df_t7" in st.session_state:
     st.markdown("### 📝 Automated Biostatistical Remarks & Direct Support")
 
     levene_note = (
-        "Homogeneity of variance assumption holds (Levene's p is greater than or equal to 0.05); standard Parametric ANOVA + Tukey's HSD is statistically optimal."
+        "Homogeneity of variance assumption holds (Levene's p &ge; 0.05); standard Parametric ANOVA + Tukey's HSD is statistically optimal."
         if stats["p_levene_num"] >= 0.05
-        else "Significant variance heterogeneity detected across groups (Levene's p is less than 0.05); consider Welch's ANOVA + Games-Howell mode."
+        else "Significant variance heterogeneity detected across groups (Levene's p &lt; 0.05); consider Welch's ANOVA + Games-Howell mode."
     )
 
-    st.info(
-        f"**Automated ANOVA & Post-Hoc Diagnostics:**\n"
-        f"* **Statistical Engine:** {stats['engine']} | Target Feature: `{stats['feature']}` ({stats['groups']} Experimental Groups)\n"
-        f"* **Omnibus & Effect Size:** {stats['omni_name']}, exact $p = {stats['p_omni_str']}$, with $\\eta^2 = {stats['eta_sq']}$ ({stats['sig_pairs']} of {stats['total_pairs']} pairwise comparisons significant at $\\alpha = 0.05$).\n"
-        f"* **Normality & Variance Audit:** Group-level Shapiro-Wilk normality $P$-values are included in Deliverable #2; Levene's variance homogeneity $p = {stats['p_levene_str']}$ — {levene_note}"
+    st.markdown(
+        f'<div style="background:rgba(15,23,42,0.85); border:1px solid rgba(56,189,248,0.3); border-radius:12px; padding:16px 20px; margin-bottom:14px; font-size:0.88rem; color:#cbd5e1; line-height:1.65;">'
+        f'<b style="color:#f8fafc;">Automated ANOVA &amp; Post-Hoc Diagnostics:</b><br>'
+        f'• <b>Statistical Engine:</b> {html.escape(str(stats["engine"]))} | Target Feature: <code>{html.escape(str(stats["feature"]))}</code> (<b>{stats["groups"]} Experimental Groups</b>)<br>'
+        f'• <b>Omnibus &amp; Effect Size:</b> <b>{html.escape(str(stats["omni_name"]))}</b>, exact <i>p</i> = <b>{html.escape(str(stats["p_omni_str"]))}</b>, with &eta;<sup>2</sup> = <b>{stats["eta_sq"]}</b> (<b>{stats["sig_pairs"]} of {stats["total_pairs"]}</b> pairwise comparisons significant at &alpha; = 0.05).<br>'
+        f'• <b>Normality &amp; Variance Audit:</b> Group-level Shapiro-Wilk normality <i>P</i>-values are included in Deliverable #2; Levene\'s variance homogeneity <i>p</i> = <b>{html.escape(str(stats["p_levene_str"]))}</b> — {levene_note}'
+        f'</div>',
+        unsafe_allow_html=True
     )
 
     with st.expander("💬 Send Remarks or Questions Directly to GenomeTech Team (via Email)"):
