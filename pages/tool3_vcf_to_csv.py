@@ -272,6 +272,12 @@ def parse_vcf_content_safe(file_iterator, selected_sample_idx=0, max_rows=50000)
     ref_genome = "Unspecified"
     data_rows = []
 
+    def clean_vcf_val(val, default_str="Unannotated"):
+        v = str(val).strip()
+        if not v or v in (".", "N/A", "nan", "NaN", "None", "null"):
+            return default_str
+        return v
+
     # Stream the file line-by-line to prevent RAM overload
     for line in file_iterator:
         if isinstance(line, bytes):
@@ -286,7 +292,7 @@ def parse_vcf_content_safe(file_iterator, selected_sample_idx=0, max_rows=50000)
         if line_str.startswith("##"):
             meta_lines += 1
             if line_str.lower().startswith("##reference="):
-                ref_genome = line_str.split("=", 1)[1]
+                ref_genome = line_str.split("=", 1)[1].strip()
             continue
         
         # Skip the Column Header line
@@ -308,36 +314,102 @@ def parse_vcf_content_safe(file_iterator, selected_sample_idx=0, max_rows=50000)
             if "=" in item:
                 k, v = item.split("=", 1)
                 info_dict[k.upper()] = v
-            else:
+            elif item.strip():
                 info_dict[item.upper()] = "True"
 
-        # Extract Functional Annotations
-        gene_sym = info_dict.get("GENE", info_dict.get("SYMBOL", "N/A"))
-        transcript_id = info_dict.get("TRANSCRIPT", info_dict.get("FEATURE", "N/A"))
-        conseq = info_dict.get("CONSEQ", info_dict.get("EFF", "N/A"))
-        impact = info_dict.get("IMPACT", "N/A")
-        hgvsc = info_dict.get("HGVSC", "N/A")
-        hgvsp = info_dict.get("HGVSP", info_dict.get("AA", "N/A"))
-        clnsig = info_dict.get("CLNSIG", "Not_Reported")
+        # 1. Extract Gene Symbol (GATK / VEP / SnpEff / ANNOVAR / ClinVar GENEINFO=TP53:7157)
+        gene_raw = (
+            info_dict.get("GENE")
+            or info_dict.get("SYMBOL")
+            or info_dict.get("GENE.REFGENE")
+            or info_dict.get("GENE_NAME")
+            or ""
+        )
+        if not gene_raw and "GENEINFO" in info_dict:
+            gene_raw = info_dict["GENEINFO"].split(":")[0].split("|")[0]
+        gene_sym = clean_vcf_val(gene_raw, "Unannotated")
+
+        # 2. Extract Transcript, Consequence, Impact, HGVSc, HGVSp
+        transcript_id = clean_vcf_val(
+            info_dict.get("TRANSCRIPT") or info_dict.get("FEATURE") or info_dict.get("REFSEQ") or "",
+            "Unannotated"
+        )
+        conseq_raw = (
+            info_dict.get("CONSEQ")
+            or info_dict.get("CONSEQUENCE")
+            or info_dict.get("EXONICFUNC.REFGENE")
+            or info_dict.get("FUNC.REFGENE")
+            or ""
+        )
+        if not conseq_raw and "MC" in info_dict:
+            # ClinVar MC=SO:0001583|missense_variant
+            mc_parts = info_dict["MC"].split(",")[0].split("|")
+            conseq_raw = mc_parts[-1] if len(mc_parts) > 1 else mc_parts[0]
+        conseq = clean_vcf_val(conseq_raw, "Unannotated")
+
+        impact = clean_vcf_val(info_dict.get("IMPACT", ""), "Unannotated")
+        hgvsc = clean_vcf_val(info_dict.get("HGVSC", ""), "Unannotated")
+        hgvsp = clean_vcf_val(info_dict.get("HGVSP") or info_dict.get("AA") or "", "Unannotated")
+        clnsig = clean_vcf_val(
+            info_dict.get("CLNSIG") or info_dict.get("CLIN_SIG") or info_dict.get("CLINSIG") or "",
+            "Not_Reported"
+        )
+
+        # Unpack ANNOVAR AAChange.refGene (e.g. TP53:NM_000546:exon5:c.524G>A:p.R175H)
+        aachange_raw = info_dict.get("AACHANGE.REFGENE", "")
+        if aachange_raw and aachange_raw != ".":
+            aa_parts = aachange_raw.split(",")[0].split(":")
+            if len(aa_parts) >= 2 and transcript_id == "Unannotated":
+                transcript_id = clean_vcf_val(aa_parts[1], "Unannotated")
+            for p_item in aa_parts:
+                if p_item.startswith("c.") and hgvsc == "Unannotated":
+                    hgvsc = clean_vcf_val(p_item, "Unannotated")
+                elif p_item.startswith("p.") and hgvsp == "Unannotated":
+                    hgvsp = clean_vcf_val(p_item, "Unannotated")
+
+        # Unpack SnpEff ANN, Ensembl VEP CSQ, or BCFtools BCSQ fields
+        ann_raw = info_dict.get("ANN") or info_dict.get("CSQ") or info_dict.get("BCSQ") or ""
+        if ann_raw:
+            first_ann = ann_raw.split(",")[0].split("|")
+            if len(first_ann) >= 4:
+                if conseq == "Unannotated" and first_ann[1]:
+                    conseq = clean_vcf_val(first_ann[1], "Unannotated")
+                if impact == "Unannotated" and first_ann[2]:
+                    impact = clean_vcf_val(first_ann[2], "Unannotated")
+                if gene_sym == "Unannotated" and first_ann[3]:
+                    gene_sym = clean_vcf_val(first_ann[3], "Unannotated")
+            if len(first_ann) >= 7 and transcript_id == "Unannotated" and first_ann[6]:
+                transcript_id = clean_vcf_val(first_ann[6], "Unannotated")
+            if len(first_ann) >= 10 and hgvsc == "Unannotated" and first_ann[9]:
+                hgvsc = clean_vcf_val(first_ann[9], "Unannotated")
+            if len(first_ann) >= 11 and hgvsp == "Unannotated" and first_ann[10]:
+                hgvsp = clean_vcf_val(first_ann[10], "Unannotated")
+
+        # Infer Impact Tier from Consequence if Impact wasn't explicitly tagged
+        if impact == "Unannotated" and conseq != "Unannotated":
+            c_low = conseq.lower()
+            if any(k in c_low for k in ["stop_gained", "frameshift", "splice_acceptor", "splice_donor", "start_lost"]):
+                impact = "HIGH"
+            elif any(k in c_low for k in ["missense", "inframe_insertion", "inframe_deletion"]):
+                impact = "MODERATE"
+            elif any(k in c_low for k in ["synonymous", "splice_region"]):
+                impact = "LOW"
+            else:
+                impact = "MODIFIER"
 
         # Population AF (gnomAD / 1000G / ExAC)
-        pop_af_raw = info_dict.get("GNOMAD_AF", info_dict.get("AF_POPMAX", info_dict.get("MAX_AF", info_dict.get("MAF", "0.0"))))
+        pop_af_raw = (
+            info_dict.get("GNOMAD_AF")
+            or info_dict.get("AF_POPMAX")
+            or info_dict.get("MAX_AF")
+            or info_dict.get("1000G_ALL")
+            or info_dict.get("MAF")
+            or "0.0"
+        )
         try:
             pop_af = round(float(str(pop_af_raw).split(",")[0]), 6)
         except ValueError:
             pop_af = 0.0
-
-        # Unpack SnpEff ANN or VEP CSQ fields
-        ann_raw = info_dict.get("ANN", info_dict.get("CSQ", ""))
-        if ann_raw:
-            first_ann = ann_raw.split(",")[0].split("|")
-            if len(first_ann) >= 4:
-                if conseq == "N/A" and first_ann[1]: conseq = first_ann[1]
-                if impact == "N/A" and first_ann[2]: impact = first_ann[2]
-                if gene_sym == "N/A" and first_ann[3]: gene_sym = first_ann[3]
-            if len(first_ann) >= 7 and transcript_id == "N/A" and first_ann[6]: transcript_id = first_ann[6]
-            if len(first_ann) >= 10 and hgvsc == "N/A" and first_ann[9]: hgvsc = first_ann[9]
-            if len(first_ann) >= 11 and hgvsp == "N/A" and first_ann[10]: hgvsp = first_ann[10]
 
         # Parse FORMAT & Selected Sample Column
         fmt_map = {}
@@ -349,35 +421,65 @@ def parse_vcf_content_safe(file_iterator, selected_sample_idx=0, max_rows=50000)
 
         gt_raw = fmt_map.get("GT", "./.")
         gt_norm = gt_raw.replace("|", "/")
-        if gt_norm in ("0/1", "1/0", "0/2", "1/2"): zygosity = "Heterozygous (0/1)"
-        elif gt_norm in ("1/1", "2/2"): zygosity = "Homozygous Alt (1/1)"
-        elif gt_norm == "0/0": zygosity = "Homozygous Ref (0/0)"
-        else: zygosity = f"Uncalled/Other ({gt_raw})"
+        if gt_norm in ("0/1", "1/0", "0/2", "1/2"):
+            zygosity = "Heterozygous (0/1)"
+        elif gt_norm in ("1/1", "2/2"):
+            zygosity = "Homozygous Alt (1/1)"
+        elif gt_norm == "0/0":
+            zygosity = "Homozygous Ref (0/0)"
+        else:
+            zygosity = f"Variant Call ({gt_raw})" if gt_raw != "./." else "Genotype Not Called"
 
         dp_val = fmt_map.get("DP", info_dict.get("DP", "0"))
-        try: dp_int = int(float(dp_val.split(",")[0]))
-        except ValueError: dp_int = 0
+        try:
+            dp_int = int(float(str(dp_val).split(",")[0]))
+        except ValueError:
+            dp_int = 0
 
-        ad_raw = fmt_map.get("AD", "")
+        ad_raw = fmt_map.get("AD", info_dict.get("AD", ""))
         ref_reads, alt_reads = 0, 0
         if "," in ad_raw:
             ad_parts = ad_raw.split(",")
             try:
                 ref_reads = int(ad_parts[0])
-                alt_reads = sum(int(x) for x in ad_parts[1:] if x.isdigit())
-            except ValueError: pass
+                alt_reads = sum(int(x) for x in ad_parts[1:] if x.strip().isdigit())
+            except ValueError:
+                pass
+        elif "RO" in fmt_map and "AO" in fmt_map:
+            # FreeBayes / VarScan support
+            try:
+                ref_reads = int(str(fmt_map["RO"]).split(",")[0])
+                alt_reads = sum(int(x) for x in str(fmt_map["AO"]).split(",") if x.strip().isdigit())
+            except ValueError:
+                pass
+        elif "DP4" in info_dict:
+            # Samtools / BCFtools DP4=ref_fwd,ref_rev,alt_fwd,alt_rev
+            dp4_parts = [int(x) for x in info_dict["DP4"].split(",") if x.strip().isdigit()]
+            if len(dp4_parts) == 4:
+                ref_reads = dp4_parts[0] + dp4_parts[1]
+                alt_reads = dp4_parts[2] + dp4_parts[3]
 
-        af_info = fmt_map.get("AF", info_dict.get("AF", ""))
-        if (ref_reads + alt_reads) > 0: vaf_pct = round((alt_reads / (ref_reads + alt_reads)) * 100.0, 2)
+        if dp_int == 0 and (ref_reads + alt_reads) > 0:
+            dp_int = ref_reads + alt_reads
+
+        af_info = fmt_map.get("AF", fmt_map.get("VAF", info_dict.get("AF", "")))
+        if (ref_reads + alt_reads) > 0:
+            vaf_pct = round((alt_reads / (ref_reads + alt_reads)) * 100.0, 2)
         elif af_info:
-            try: vaf_pct = round(float(af_info.split(",")[0]) * 100.0, 2)
-            except ValueError: vaf_pct = 0.0
-        else: vaf_pct = 0.0
+            try:
+                raw_af_num = float(str(af_info).split(",")[0])
+                vaf_pct = round(raw_af_num * 100.0 if raw_af_num <= 1.0 else raw_af_num, 2)
+            except ValueError:
+                vaf_pct = 0.0
+        else:
+            vaf_pct = 0.0
 
-        try: qual_float = round(float(qual), 1) if qual != "." else 0.0
-        except ValueError: qual_float = 0.0
+        try:
+            qual_float = round(float(qual), 1) if qual not in (".", "", "N/A") else 0.0
+        except ValueError:
+            qual_float = 0.0
 
-        gq_val = fmt_map.get("GQ", "N/A")
+        gq_val = clean_vcf_val(fmt_map.get("GQ", ""), "Not_Provided")
         var_type = classify_variant(ref, alt)
         multi_allelic = "Yes" if "," in str(alt) else "No"
 
@@ -405,11 +507,10 @@ def parse_vcf_content_safe(file_iterator, selected_sample_idx=0, max_rows=50000)
             "VAF (%)": vaf_pct,
             "Phred_Quality (QUAL)": qual_float,
             "Genotype_Quality (GQ)": gq_val,
-            "Filter_Status": flt,
+            "Filter_Status": flt if flt != "." else "Unfiltered",
             "Raw_INFO_String": info_str
         })
         
-        # Hard stop memory protection limit
         if len(data_rows) >= max_rows:
             st.warning(f"⚠ VCF file exceeds {max_rows} variants. Truncating to protect server memory.")
             break
