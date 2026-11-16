@@ -21,12 +21,8 @@ st.set_page_config(
 # --- SECURITY: ANTI-REUSE DATABASE & AUTHORIZED DEMO KEYS ---
 DB_FILE = "used_keys.json"
 
-# ONLY these specific demo keys will work. Add new ones here before giving them to clients.
-AUTHORIZED_DEMO_KEYS = [
-    "GTS-DEMO-ALFA",
-    "GTS-DEMO-BETA",
-    "GTS-DEMO-GAMMA"
-]
+# ONLY these specific demo keys will work.
+AUTHORIZED_DEMO_KEYS = st.secrets["AUTHORIZED_DEMO_KEYS"]
 
 def is_key_burned(key_to_check):
     if not os.path.exists(DB_FILE):
@@ -44,10 +40,11 @@ def burn_key(key_to_burn):
         json.dump(data, f)
 
 # --- LIVE GOOGLE SHEET, APPS SCRIPT & WEBSITE ENDPOINTS ---
-SHEET_ID = "1un359_bf30-82K3C74hH7sX-uSH-jpx1yB12N7cB3v0"
-SHEET_CSV_URL = "https://docs.google.com/spreadsheets/d/e/2PACX-1vSsQkADNSxfsePaLn1b4RPN018cIyO8bHnfRtmIYGAawnRtgjBGhWhM35GMRhNrVvfcf3wZE7indbHl/pub?output=csv"
-APPS_SCRIPT_URL = "https://script.google.com/macros/s/AKfycbz-pKMSgW-i32k9XAYEPaybbE5V4MV9Pm2boob3PFW10JwqahSPZjlFD1nIoS31KtLt/exec"
-MASTER_BYPASS_CODE = "GENOMETECH_MASTER_2026!"
+SHEET_ID = st.secrets["SHEET_ID"]
+SHEET_CSV_URL = st.secrets["SHEET_CSV_URL"]
+APPS_SCRIPT_URL = st.secrets["APPS_SCRIPT_URL"]
+MASTER_BYPASS_CODE = st.secrets["MASTER_BYPASS_CODE"]
+PORTAL_MASTER_KEY = st.secrets["PORTAL_MASTER_KEY"]
 MAIN_WEBSITE_URL = "https://genometechstudio.github.io"
 
 # --- PROFESSIONAL DARK SLATE & EMERALD GREEN THEME + FLOATING STICKERS ---
@@ -555,7 +552,7 @@ if not st.session_state.logged_in:
         st.markdown("### 🔑 Master Access")
         master_key = st.text_input("Enter Key:", type="password", key="master_key_input")
         if st.button("Unlock Portal"):
-            if master_key == "GTS-MASTER-UNLIMITED":
+            if master_key == PORTAL_MASTER_KEY:
                 st.session_state.checkout_unlocked = True
                 st.success("Master Key Accepted.")
                 st.rerun()
@@ -914,7 +911,7 @@ else:
                             st.warning("Please enter a valid Payment ID or 12-digit UPI UTR.")
 
                         # 1. INFINITE MASTER KEY CHECK
-                        elif entered_key == "GTS-MASTER-UNLIMITED" or has_master_code(entered_key):
+                        elif entered_key == PORTAL_MASTER_KEY or has_master_code(entered_key):
                             st.session_state.unlocked_projects.add(project_id_val)
                             st.rerun()
 

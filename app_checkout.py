@@ -33,7 +33,7 @@ st.set_page_config(
 # 🇮🇳 INDIA DIRECT PAYMENT CONFIG (SAFE FOR PUBLIC GITHUB)
 # Remember to copy those 6 lines into app_checkout's Streamlit Secrets too!
 # ==========================================
-INDIA_UPI_ID = st.secrets.get("INDIA_UPI_ID", "BHARATPE2A0G0R8H8A59248@unitype")
+INDIA_UPI_ID = st.secrets.get("INDIA_UPI_ID")
 INDIA_PAYEE_NAME = st.secrets.get("INDIA_PAYEE_NAME", "GenomeTech Studio")
 INDIA_BANK_HOLDER = st.secrets.get("INDIA_BANK_HOLDER", "GenomeTech Studio")
 INDIA_BANK_ACC = st.secrets.get("INDIA_BANK_ACC", "Available on Proforma Invoice")
@@ -67,8 +67,8 @@ def burn_key(key_to_burn):
         json.dump(data, f)
 
 # --- YOUR LIVE ENDPOINTS ---
-SHEET_ID = "1un359_bf30-82K3C74hH7sX-uSH-jpx1yB12N7cB3v0"
-APPS_SCRIPT_URL = "https://script.google.com/macros/s/AKfycbz-pKMSgW-i32k9XAYEPaybbE5V4MV9Pm2boob3PFW10JwqahSPZjlFD1nIoS31KtLt/exec"
+SHEET_ID = st.secrets["SHEET_ID"]
+APPS_SCRIPT_URL = st.secrets["APPS_SCRIPT_URL"]
 MAIN_WEBSITE_URL = "https://genometechstudio.github.io"
 
 # --- TIER 1, 2, 4, 5 CONFIGURATION (SYNCED WITH INDEX.HTML & BUILDER.HTML FOR USD + INR) ---
